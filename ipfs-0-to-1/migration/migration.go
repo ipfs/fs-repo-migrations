@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	migrate "github.com/ipfs/fs-repo-migrations/go-migrate"
-	mfsr "github.com/ipfs/fs-repo-migrations/ipfs-0-to-1/mfsr"
+	mfsr "github.com/ipfs/fs-repo-migrations/mfsr"
 )
 
 type Migration struct {

@@ -1,7 +1,6 @@
 package mfsr
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -24,7 +23,7 @@ func (rp RepoPath) Version() (string, error) {
 
 	fn := rp.VersionFile()
 	if _, err := os.Stat(fn); os.IsNotExist(err) {
-		return "", errors.New("no version file in repo at " + string(rp))
+		return "", VersionFileNotFound(rp)
 	}
 
 	c, err := ioutil.ReadFile(fn)
@@ -53,4 +52,10 @@ func (rp RepoPath) CheckVersion(version string) error {
 func (rp RepoPath) WriteVersion(version string) error {
 	fn := rp.VersionFile()
 	return ioutil.WriteFile(fn, []byte(version+"\n"), 0644)
+}
+
+type VersionFileNotFound string
+
+func (v VersionFileNotFound) Error() string {
+	return "no version file in repo at " + string(v)
 }

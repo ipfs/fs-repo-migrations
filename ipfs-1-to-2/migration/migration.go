@@ -12,7 +12,7 @@ import (
 	flatfs "github.com/ipfs/fs-repo-migrations/ipfs-1-to-2/go-datastore/flatfs"
 	leveldb "github.com/ipfs/fs-repo-migrations/ipfs-1-to-2/go-datastore/leveldb"
 	dsq "github.com/ipfs/fs-repo-migrations/ipfs-1-to-2/go-datastore/query"
-	mfsr "github.com/ipfs/fs-repo-migrations/ipfs-1-to-2/mfsr"
+	mfsr "github.com/ipfs/fs-repo-migrations/mfsr"
 )
 
 const peerKeyName = "peer.key"
@@ -167,7 +167,6 @@ func transferBlocks(from, to dstore.Datastore, fpref, tpref string) error {
 		return err
 	}
 
-	fmt.Println("Starting query")
 	for result := range res.Next() {
 		nkey := fmt.Sprintf("%s%s", tpref, result.Key[len(fpref):])
 
@@ -187,7 +186,6 @@ func transferBlocks(from, to dstore.Datastore, fpref, tpref string) error {
 			return err
 		}
 	}
-	fmt.Println("Query done")
 
 	return nil
 }

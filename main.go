@@ -8,9 +8,9 @@ import (
 	"strconv"
 
 	gomigrate "github.com/ipfs/fs-repo-migrations/go-migrate"
-	mfsr "github.com/ipfs/fs-repo-migrations/ipfs-0-to-1/mfsr"
 	mg0 "github.com/ipfs/fs-repo-migrations/ipfs-0-to-1/migration"
 	mg1 "github.com/ipfs/fs-repo-migrations/ipfs-1-to-2/migration"
+	mfsr "github.com/ipfs/fs-repo-migrations/mfsr"
 )
 
 var migrations = []gomigrate.Migration{
@@ -49,7 +49,7 @@ func GetIpfsDir() (string, error) {
 }
 
 func runMigration(n int) error {
-	fmt.Printf("Running migration %d to %s...\n", n, n+1)
+	fmt.Printf("Running migration %d to %d...\n", n, n+1)
 	path, err := GetIpfsDir()
 	if err != nil {
 		return err
@@ -77,26 +77,59 @@ func doMigrate(from, to int) error {
 	return nil
 }
 
-func main() {
-	target := flag.Int("to", 2, "specify version to upgrade to")
-
-	flag.Parse()
-
-	ipfsdir, err := GetIpfsDir()
-	if err != nil {
-		fmt.Printf("ipfs migration: %s\n", err)
-		os.Exit(1)
+func GetVersion(ipfsdir string) (int, error) {
+	ver, err := mfsr.RepoPath(ipfsdir).Version()
+	if _, ok := err.(mfsr.VersionFileNotFound); ok {
+		// No version file in repo == version 0
+		return 0, nil
 	}
 
-	ver, err := mfsr.RepoPath(ipfsdir).Version()
 	if err != nil {
-		fmt.Printf("ipfs migration: %s\n", err)
-		os.Exit(1)
+		return 0, err
 	}
 
 	vnum, err := strconv.Atoi(ver)
 	if err != nil {
-		fmt.Printf("ipfs migration: %s\n", err)
+		return 0, err
+	}
+
+	return vnum, nil
+}
+
+func YesNoPrompt(prompt string) bool {
+	var s string
+	for {
+		fmt.Println(prompt)
+		fmt.Scanf("%s", &s)
+		switch s {
+		case "y", "Y":
+			return true
+		case "n", "N":
+			return false
+		}
+		fmt.Println("Please press either 'y' or 'n'")
+	}
+}
+
+func main() {
+	target := flag.Int("to", 2, "specify version to upgrade to")
+	yes := flag.Bool("y", false, "answer yes to all prompts")
+
+	flag.Parse()
+
+	if *target > len(migrations) {
+		fmt.Printf("No known migration to version %d. Try updating this tool.\n", *target)
+	}
+
+	ipfsdir, err := GetIpfsDir()
+	if err != nil {
+		fmt.Println("ipfs migration: ", err)
+		os.Exit(1)
+	}
+
+	vnum, err := GetVersion(ipfsdir)
+	if err != nil {
+		fmt.Println("ipfs migration: ", err)
 		os.Exit(1)
 	}
 
@@ -105,9 +138,15 @@ func main() {
 		return
 	}
 
+	fmt.Printf("Found fs-repo version %d at %s\n", vnum, ipfsdir)
+	prompt := fmt.Sprintf("Do you want to upgrade this to version %d? [y/n]", *target)
+	if !(*yes || YesNoPrompt(prompt)) {
+		os.Exit(1)
+	}
+
 	err = doMigrate(vnum, *target)
-	if vnum >= *target {
-		fmt.Println("ipfs migration: already at or above target version number")
-		return
+	if err != nil {
+		fmt.Println("ipfs migration: ", err)
+		os.Exit(1)
 	}
 }
