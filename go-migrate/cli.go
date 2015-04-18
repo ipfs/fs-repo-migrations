@@ -42,9 +42,9 @@ func Run(m Migration) error {
 	}
 
 	if f.Revert {
-		return m.Revert(Options{f})
+		return m.Revert(Options{Flags: f})
 	} else {
-		return m.Apply(Options{f})
+		return m.Apply(Options{Flags: f})
 	}
 }
 

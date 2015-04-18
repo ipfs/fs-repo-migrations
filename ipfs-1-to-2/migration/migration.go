@@ -39,11 +39,17 @@ func (m Migration) Apply(opts migrate.Options) error {
 	if err != nil {
 		return err
 	}
+	if opts.Verbose {
+		fmt.Println("performed sanity check")
+	}
 
 	// 2) Transfer blocks out of leveldb into flatDB
 	err = transferBlocksToFlatDB(opts.Path)
 	if err != nil {
 		return err
+	}
+	if opts.Verbose {
+		fmt.Println("moved blocks from leveldb to flatfs")
 	}
 
 	// 3) move ipfs path from .go-ipfs to .ipfs
@@ -51,12 +57,18 @@ func (m Migration) Apply(opts migrate.Options) error {
 	if err != nil {
 		return err
 	}
+	if opts.Verbose {
+		fmt.Println("moved ipfs directory from .go-ipfs to .ipfs")
+	}
 
 	// 4) Update version number
 	repo = mfsr.RepoPath(newpath)
 	err = repo.WriteVersion("2")
 	if err != nil {
 		return err
+	}
+	if opts.Verbose {
+		fmt.Println("updated version file")
 	}
 
 	return nil
@@ -73,11 +85,17 @@ func (m Migration) Revert(opts migrate.Options) error {
 	if err != nil {
 		return err
 	}
+	if opts.Verbose {
+		fmt.Println("moved ipfs directory from .ipfs to .go-ipfs")
+	}
 
 	// 2) move blocks back from flatfs to leveldb
 	err = transferBlocksFromFlatDB(npath)
 	if err != nil {
 		return err
+	}
+	if opts.Verbose {
+		fmt.Println("moved blocks from flatfs to leveldb")
 	}
 
 	// 3) change version number back down
@@ -85,6 +103,9 @@ func (m Migration) Revert(opts migrate.Options) error {
 	err = repo.WriteVersion("1")
 	if err != nil {
 		return err
+	}
+	if opts.Verbose {
+		fmt.Println("lowered version number to 1")
 	}
 
 	return nil

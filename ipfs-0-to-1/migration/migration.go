@@ -43,6 +43,10 @@ func (m Migration) Apply(opts migrate.Options) error {
 		return err
 	}
 
+	if opts.Verbose {
+		fmt.Println("wrote version file")
+	}
+
 	return nil
 }
 
@@ -58,6 +62,9 @@ func (m Migration) Revert(opts migrate.Options) error {
 	// remove the version file
 	if err := os.Remove(repo.VersionFile()); err != nil {
 		return err
+	}
+	if opts.Verbose {
+		fmt.Println("deleted version file")
 	}
 
 	return nil

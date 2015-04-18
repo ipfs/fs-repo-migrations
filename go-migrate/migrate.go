@@ -7,6 +7,7 @@ import (
 // Options are migration options. For now all flags are options.
 type Options struct {
 	Flags
+	Verbose bool
 }
 
 // Migration represents
