@@ -22,7 +22,7 @@ Soon, we hope to run these entirely automatically. But for now, we ask you to ru
   - [Linux ARM](https://gobuilder.me/get/github.com/ipfs/fs-repo-migrations/fs-repo-migrations_master_linux-arm.zip)
   - [Windows 32bit](https://gobuilder.me/get/github.com/ipfs/fs-repo-migrations/fs-repo-migrations_master_windows-386.zip)
   - [Windows 64bit](https://gobuilder.me/get/github.com/ipfs/fs-repo-migrations/fs-repo-migrations_master_windows-amd64.zip)
-  - [See all available builds](https://gobuilder.me/github.com/ipfs/fs-repo-migrations)
+  - [See more available builds](https://gobuilder.me/github.com/ipfs/fs-repo-migrations)
 
 ## Step 2. Run the Migration
 
