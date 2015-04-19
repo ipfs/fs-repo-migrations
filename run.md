@@ -12,6 +12,18 @@ Please see https://github.com/ipfs/fs-repo-migrations/blob/master/run.md
 
 Soon, we hope to run these entirely automatically. But for now, we ask you to run these manually in case something goes wrong. It's very easy. See the quick steps below. If you run into any trouble, please feel free to open an issue in this repository: [issues](https://github.com/ipfs/fs-repo-migrations/issues).
 
+## Step 0. Back up your repo (optional)
+
+The migration tool is safe-- it should not delete any data. Just to be safe though -- if you _do_ have important data stored only in your ipfs node -- back up the repo just in case:
+
+```
+# version 0
+cp -r ~/.go-ipfs ~/.go-ipfs.bak
+
+# version 1+
+cp -r ~/.ipfs ~/.ipfs.bak
+```
+
 ## Step 1. Downloading the Migration
 
 - If you have Go installed: `go get github.com/ipfs/fs-repo-migrations`
