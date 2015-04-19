@@ -14,7 +14,7 @@ Soon, we hope to run these entirely automatically. But for now, we ask you to ru
 
 ## Step 0. Back up your repo (optional)
 
-The migration tool is safe-- it should not delete any data. Just to be safe though -- if you _do_ have important data stored only in your ipfs node -- back up the repo just in case:
+The migration tool is safe-- it should not delete any data. If you have important data stored _only_ in your ipfs node, and want to be extra safe, you can back up the whole repo with:
 
 ```
 # version 0
