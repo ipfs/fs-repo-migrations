@@ -16,7 +16,7 @@ Soon, we hope to run these entirely automatically. But for now, we ask you to ru
 
 The migration tool is safe-- it should not delete any data. If you have important data stored _only_ in your ipfs node, and want to be extra safe, you can back up the whole repo with:
 
-```
+```sh
 # version 0
 cp -r ~/.go-ipfs ~/.go-ipfs.bak
 
