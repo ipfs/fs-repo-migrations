@@ -38,9 +38,13 @@ cp -r ~/.ipfs ~/.ipfs.bak
 
 ## Step 2. Run the Migration
 
-Now, run the migration tool. (Note: if you installed from Go, the tool is in your global `$PATH`, so use `fs-repo-migrations` instead of `./fs-repo-migrations`)
+Now, run the migration tool.
 
-```
+```sh
+# if you installed from Go, tool is in your global $PATH
+fs-repo-migrations
+
+# otherwise, unzip the package, cd into it and run the binary:
 ./fs-repo-migrations
 ```
 
