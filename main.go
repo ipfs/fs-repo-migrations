@@ -49,7 +49,7 @@ func GetIpfsDir() (string, error) {
 }
 
 func runMigration(n int) error {
-	fmt.Printf("Running migration %d to %d...\n", n, n+1)
+	fmt.Printf("===> Running migration %d to %d...\n", n, n+1)
 	path, err := GetIpfsDir()
 	if err != nil {
 		return err
@@ -57,12 +57,13 @@ func runMigration(n int) error {
 
 	opts := gomigrate.Options{}
 	opts.Path = path
+	opts.Verbose = true
 
 	err = migrations[n].Apply(opts)
 	if err != nil {
 		return fmt.Errorf("migration %d to %d failed: %s", n, n+1, err)
 	}
-	fmt.Printf("Migration %d to %d succeeded!\n", n, n+1)
+	fmt.Printf("===> Migration %d to %d succeeded!\n", n, n+1)
 	return nil
 }
 
