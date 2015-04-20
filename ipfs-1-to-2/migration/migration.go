@@ -12,6 +12,7 @@ import (
 	flatfs "github.com/ipfs/fs-repo-migrations/ipfs-1-to-2/go-datastore/flatfs"
 	leveldb "github.com/ipfs/fs-repo-migrations/ipfs-1-to-2/go-datastore/leveldb"
 	dsq "github.com/ipfs/fs-repo-migrations/ipfs-1-to-2/go-datastore/query"
+	lock "github.com/ipfs/fs-repo-migrations/ipfs-1-to-2/repolock"
 	mfsr "github.com/ipfs/fs-repo-migrations/mfsr"
 )
 
@@ -28,6 +29,12 @@ func (m Migration) Reversible() bool {
 }
 
 func (m Migration) Apply(opts migrate.Options) error {
+	repolk, err := lock.Lock1(opts.Path) // lock daemon.lock
+	if err != nil {
+		return err
+	}
+	defer repolk.Close()
+
 	repo := mfsr.RepoPath(opts.Path)
 
 	if err := repo.CheckVersion("1"); err != nil {
@@ -35,7 +42,7 @@ func (m Migration) Apply(opts migrate.Options) error {
 	}
 
 	// 1) run some sanity checks to make sure we should even bother
-	err := sanityChecks(opts)
+	err = sanityChecks(opts)
 	if err != nil {
 		return err
 	}
@@ -75,6 +82,12 @@ func (m Migration) Apply(opts migrate.Options) error {
 }
 
 func (m Migration) Revert(opts migrate.Options) error {
+	repolk, err := lock.Lock2(opts.Path) // lock repo.lock
+	if err != nil {
+		return err
+	}
+	defer repolk.Close()
+
 	repo := mfsr.RepoPath(opts.Path)
 	if err := repo.CheckVersion("2"); err != nil {
 		return err
