@@ -100,7 +100,7 @@ func GetVersion(ipfsdir string) (int, error) {
 func YesNoPrompt(prompt string) bool {
 	var s string
 	for {
-		fmt.Println(prompt)
+		fmt.Printf("%s ", prompt)
 		fmt.Scanf("%s", &s)
 		switch s {
 		case "y", "Y":
