@@ -149,16 +149,16 @@ func sanityChecks(opts migrate.Options) error {
 	npath := strings.Replace(opts.Path, ".go-ipfs", ".ipfs", 1)
 
 	// make sure we can move the repo from .go-ipfs to .ipfs
-	err := os.Mkdir(npath, 0777)
-	if err != nil {
-		return err
-	}
+	if npath != opts.Path {
+		if err := os.Mkdir(npath, 0777); err != nil {
+			return err
+		}
 
-	// we can? good, remove it now
-	err = os.Remove(npath)
-	if err != nil {
-		// this is weird... not worth continuing
-		return err
+		// we can? good, remove it now
+		if err := os.Remove(npath); err != nil {
+			// this is weird... not worth continuing
+			return err
+		}
 	}
 
 	return nil
