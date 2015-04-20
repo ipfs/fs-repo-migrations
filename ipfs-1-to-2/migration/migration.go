@@ -29,11 +29,20 @@ func (m Migration) Reversible() bool {
 }
 
 func (m Migration) Apply(opts migrate.Options) error {
-	repolk, err := lock.Lock1(opts.Path) // lock daemon.lock
+
+	// lock the daemon.lock file. and if we succeed, remove it at the end.
+	// we remove it because camlistore/lock doesn't, and we changed the filename.
+	// so we don't want this one around anymore.
+	repolk, err := lock.Lock1(opts.Path)
 	if err != nil {
 		return err
 	}
-	defer repolk.Close()
+	closedLock := false
+	defer func() {
+		if !closedLock { // unlock only if we didn't close below
+			repolk.Close()
+		}
+	}()
 
 	repo := mfsr.RepoPath(opts.Path)
 
@@ -78,6 +87,16 @@ func (m Migration) Apply(opts migrate.Options) error {
 		fmt.Println("updated version file")
 	}
 
+	// 5) Remove daemon.lock file
+	if opts.Verbose {
+		fmt.Println("removing daemon.lock file")
+	}
+	repolk.Close()
+	closedLock = true
+	err = lock.Remove1(newpath)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

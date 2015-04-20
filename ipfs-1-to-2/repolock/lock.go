@@ -3,6 +3,7 @@ package lock
 import (
 	"fmt"
 	"io"
+	"os"
 	"path"
 
 	"github.com/ipfs/fs-repo-migrations/ipfs-1-to-2/lock"
@@ -24,6 +25,10 @@ func Lock1(confdir string) (io.Closer, error) {
 		return nil, fmt.Errorf(errRepoLock, confdir, LockFile1)
 	}
 	return c, nil
+}
+
+func Remove1(confdir string) error {
+	return os.Remove(path.Join(confdir, LockFile1))
 }
 
 func Lock2(confdir string) (io.Closer, error) {
