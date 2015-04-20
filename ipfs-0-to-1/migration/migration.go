@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	migrate "github.com/ipfs/fs-repo-migrations/go-migrate"
+	lock "github.com/ipfs/fs-repo-migrations/ipfs-0-to-1/repolock"
 	mfsr "github.com/ipfs/fs-repo-migrations/mfsr"
 )
 
@@ -28,6 +29,12 @@ func (m Migration) Reversible() bool {
 // Apply applies the migration in question.
 // This migration merely adds a version file.
 func (m Migration) Apply(opts migrate.Options) error {
+	repolk, err := lock.Lock(opts.Path)
+	if err != nil {
+		return err
+	}
+	defer repolk.Close()
+
 	repo := mfsr.RepoPath(opts.Path)
 
 	// first, check if there is a version file.
@@ -54,6 +61,12 @@ func (m Migration) Apply(opts migrate.Options) error {
 // Some migrations are definitively one-way. If so, return an error.
 func (m Migration) Revert(opts migrate.Options) error {
 	repo := mfsr.RepoPath(opts.Path)
+
+	repolk, err := lock.Lock(opts.Path)
+	if err != nil {
+		return err
+	}
+	defer repolk.Close()
 
 	if err := repo.CheckVersion("1"); err != nil {
 		return err
