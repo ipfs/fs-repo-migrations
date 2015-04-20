@@ -60,7 +60,7 @@ func (m Migration) Apply(opts migrate.Options) error {
 	}
 
 	// 2) Transfer blocks out of leveldb into flatDB
-	err = transferBlocksToFlatDB(opts.Path)
+	err = transferBlocksToFlatDB(opts.Path, opts.Verbose)
 	if err != nil {
 		return err
 	}
@@ -119,7 +119,7 @@ func (m Migration) Revert(opts migrate.Options) error {
 	}
 
 	// 2) move blocks back from flatfs to leveldb
-	err = transferBlocksFromFlatDB(npath)
+	err = transferBlocksFromFlatDB(npath, opts.Verbose)
 	if err != nil {
 		return err
 	}
@@ -161,7 +161,7 @@ func sanityChecks(opts migrate.Options) error {
 	return nil
 }
 
-func transferBlocksToFlatDB(repopath string) error {
+func transferBlocksToFlatDB(repopath string, verbose bool) error {
 	ldbpath := path.Join(repopath, "datastore")
 	ldb, err := leveldb.NewDatastore(ldbpath, nil)
 	if err != nil {
@@ -179,10 +179,10 @@ func transferBlocksToFlatDB(repopath string) error {
 		return err
 	}
 
-	return transferBlocks(ldb, fds, "/b/", "")
+	return transferBlocks(ldb, fds, "/b/", "", verbose)
 }
 
-func transferBlocksFromFlatDB(repopath string) error {
+func transferBlocksFromFlatDB(repopath string, verbose bool) error {
 
 	ldbpath := path.Join(repopath, "datastore")
 	blockspath := path.Join(repopath, "blocks")
@@ -196,7 +196,7 @@ func transferBlocksFromFlatDB(repopath string) error {
 		return err
 	}
 
-	err = transferBlocks(fds, ldb, "", "/b/")
+	err = transferBlocks(fds, ldb, "", "/b/", verbose)
 	if err != nil {
 		return err
 	}
@@ -210,17 +210,20 @@ func transferBlocksFromFlatDB(repopath string) error {
 	return nil
 }
 
-func transferBlocks(from, to dstore.Datastore, fpref, tpref string) error {
+func transferBlocks(from, to dstore.Datastore, fpref, tpref string, verbose bool) error {
 	q := dsq.Query{Prefix: fpref, KeysOnly: true}
 	res, err := from.Query(q)
 	if err != nil {
 		return err
 	}
 
-	showProgress := func(i int) {
-		fmt.Printf("\rmoving objects: %d", i)
+	showProgress := func(i int) {}
+	if verbose {
+		showProgress = func(i int) {
+			fmt.Printf("\rmoving objects: %d", i)
+		}
+		defer fmt.Println("")
 	}
-	defer fmt.Println("")
 
 	i := 0
 	for result := range res.Next() {
