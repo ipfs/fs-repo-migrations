@@ -29,13 +29,13 @@ func (m Migration) Reversible() bool {
 // Apply applies the migration in question.
 // This migration merely adds a version file.
 func (m Migration) Apply(opts migrate.Options) error {
-	repo := mfsr.RepoPath(opts.Path)
-
 	repolk, err := lock.Lock(opts.Path)
 	if err != nil {
 		return err
 	}
 	defer repolk.Close()
+
+	repo := mfsr.RepoPath(opts.Path)
 
 	// first, check if there is a version file.
 	// if there is, bail out.
