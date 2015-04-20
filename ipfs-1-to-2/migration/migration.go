@@ -217,7 +217,16 @@ func transferBlocks(from, to dstore.Datastore, fpref, tpref string) error {
 		return err
 	}
 
+	showProgress := func(i int) {
+		fmt.Printf("\rmoving objects: %d", i)
+	}
+	defer fmt.Println("")
+
+	i := 0
 	for result := range res.Next() {
+		i++
+		showProgress(i)
+
 		nkey := fmt.Sprintf("%s%s", tpref, result.Key[len(fpref):])
 
 		fkey := dstore.NewKey(result.Key)
