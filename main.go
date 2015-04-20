@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -11,7 +10,6 @@ import (
 	gomigrate "github.com/ipfs/fs-repo-migrations/go-migrate"
 	mg0 "github.com/ipfs/fs-repo-migrations/ipfs-0-to-1/migration"
 	mg1 "github.com/ipfs/fs-repo-migrations/ipfs-1-to-2/migration"
-	lock "github.com/ipfs/fs-repo-migrations/lock"
 	mfsr "github.com/ipfs/fs-repo-migrations/mfsr"
 )
 
@@ -70,15 +68,6 @@ func runMigration(n int) error {
 }
 
 func doMigrate(from, to int) error {
-	// Make sure daemon isnt running by checking the lock
-	dir, err := GetIpfsDir()
-	if err != nil {
-		return err
-	}
-	if lock.Locked(dir) {
-		return errors.New("your daemon appears to be running. " +
-			"Please shut it down before running migrations")
-	}
 	cur := from
 	for ; cur < to; cur++ {
 		err := runMigration(cur)
