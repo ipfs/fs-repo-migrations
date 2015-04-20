@@ -93,10 +93,7 @@ func (m Migration) Apply(opts migrate.Options) error {
 	}
 	repolk.Close()
 	closedLock = true
-	err = lock.Remove1(newpath)
-	if err != nil {
-		return err
-	}
+	lock.Remove1(newpath) // ok if this fails.
 	return nil
 }
 
