@@ -2,7 +2,7 @@
 
 How to run [fs-repo](https://github.com/ipfs/specs/tree/master/repo/fs-repo) migrations for [ipfs](https://github.com/ipfs/ipfs).
 
-We have changed the internal, on-disk format we use to store data. In order to avoid losing your data, we're taking extra care to provide a stable migration tool that upgrades old versions of the repo to the new ones. You'll know you need to run the migration if you find an error like this:
+We have changed the internal, on-disk format we use to store data. In order to avoid losing your data, we're taking extra care to provide a stable migration tool that upgrades old versions of the repo to the new ones. You'll need to run the migration if you find an error like this:
 
 ```
 > ipfs daemon
@@ -14,7 +14,7 @@ Soon, we hope to run these entirely automatically. But for now, we ask you to ru
 
 ## Step 0. Back up your repo (optional)
 
-The migration tool is safe-- it should not delete any data. If you have important data stored _only_ in your ipfs node, and want to be extra safe, you can back up the whole repo with:
+The migration tool is safe -- it should not delete any data. If you have important data stored _only_ in your ipfs node, and want to be extra safe, you can back up the whole repo with:
 
 ```sh
 # version 0
