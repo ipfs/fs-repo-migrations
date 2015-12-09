@@ -1,0 +1,278 @@
+{
+	"ImportPath": "github.com/ipfs/fs-repo-migrations/ipfs-2-to-3",
+	"GoVersion": "go1.4.2",
+	"Packages": [
+		"./..."
+	],
+	"Deps": [
+		{
+			"ImportPath": "code.google.com/p/go-uuid/uuid",
+			"Comment": "null-12",
+			"Rev": "7dda39b2e7d5e265014674c5af696ba4186679e9"
+		},
+		{
+			"ImportPath": "github.com/Sirupsen/logrus",
+			"Comment": "v0.7.1",
+			"Rev": "3fc34d061b9c78a70db853c7cb6b0576b6d4f32d"
+		},
+		{
+			"ImportPath": "github.com/briantigerchow/pubsub",
+			"Rev": "39ce5f556423a4c7223b370fa17a3bbd75b2d197"
+		},
+		{
+			"ImportPath": "github.com/chuckpreslar/inflect",
+			"Rev": "2734b686192b2fa84d6f32a30f4c68852e9ad677"
+		},
+		{
+			"ImportPath": "github.com/coreos/go-semver/semver",
+			"Rev": "6fe83ccda8fb9b7549c9ab4ba47f47858bc950aa"
+		},
+		{
+			"ImportPath": "github.com/fd/go-nat",
+			"Rev": "50e7633d5f27d81490026a13e5b92d2e42d8c6bb"
+		},
+		{
+			"ImportPath": "github.com/gogo/protobuf/io",
+			"Rev": "bc946d07d1016848dfd2507f90f0859c9471681e"
+		},
+		{
+			"ImportPath": "github.com/gogo/protobuf/proto",
+			"Rev": "bc946d07d1016848dfd2507f90f0859c9471681e"
+		},
+		{
+			"ImportPath": "github.com/h2so5/utp",
+			"Rev": "654d875bb65e96729678180215cf080fe2810371"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/golang-lru",
+			"Rev": "253b2dc1ca8bae42c3b5b6e53dd2eab1a7551116"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/yamux",
+			"Rev": "9feabe6854fadca1abec9cd3bd2a613fe9a34000"
+		},
+		{
+			"ImportPath": "github.com/huin/goupnp",
+			"Rev": "223008361153d7d434c1f0ac990cd3fcae6931f5"
+		},
+		{
+			"ImportPath": "github.com/ipfs/go-ipfs/blocks",
+			"Comment": "v0.3.4-19-gc92f5ae",
+			"Rev": "c92f5ae46da3b002ab244216ee29ab41c7770f8d"
+		},
+		{
+			"ImportPath": "github.com/ipfs/go-ipfs/blockservice",
+			"Comment": "v0.3.4-19-gc92f5ae",
+			"Rev": "c92f5ae46da3b002ab244216ee29ab41c7770f8d"
+		},
+		{
+			"ImportPath": "github.com/ipfs/go-ipfs/exchange",
+			"Comment": "v0.3.4-19-gc92f5ae",
+			"Rev": "c92f5ae46da3b002ab244216ee29ab41c7770f8d"
+		},
+		{
+			"ImportPath": "github.com/ipfs/go-ipfs/merkledag",
+			"Comment": "v0.3.4-19-gc92f5ae",
+			"Rev": "c92f5ae46da3b002ab244216ee29ab41c7770f8d"
+		},
+		{
+			"ImportPath": "github.com/ipfs/go-ipfs/metrics",
+			"Comment": "v0.3.4-19-gc92f5ae",
+			"Rev": "c92f5ae46da3b002ab244216ee29ab41c7770f8d"
+		},
+		{
+			"ImportPath": "github.com/ipfs/go-ipfs/notifications",
+			"Comment": "v0.3.4-19-gc92f5ae",
+			"Rev": "c92f5ae46da3b002ab244216ee29ab41c7770f8d"
+		},
+		{
+			"ImportPath": "github.com/ipfs/go-ipfs/p2p/crypto",
+			"Comment": "v0.3.4-19-gc92f5ae",
+			"Rev": "c92f5ae46da3b002ab244216ee29ab41c7770f8d"
+		},
+		{
+			"ImportPath": "github.com/ipfs/go-ipfs/p2p/host",
+			"Comment": "v0.3.4-19-gc92f5ae",
+			"Rev": "c92f5ae46da3b002ab244216ee29ab41c7770f8d"
+		},
+		{
+			"ImportPath": "github.com/ipfs/go-ipfs/p2p/nat",
+			"Comment": "v0.3.4-19-gc92f5ae",
+			"Rev": "c92f5ae46da3b002ab244216ee29ab41c7770f8d"
+		},
+		{
+			"ImportPath": "github.com/ipfs/go-ipfs/p2p/net",
+			"Comment": "v0.3.4-19-gc92f5ae",
+			"Rev": "c92f5ae46da3b002ab244216ee29ab41c7770f8d"
+		},
+		{
+			"ImportPath": "github.com/ipfs/go-ipfs/p2p/peer",
+			"Comment": "v0.3.4-19-gc92f5ae",
+			"Rev": "c92f5ae46da3b002ab244216ee29ab41c7770f8d"
+		},
+		{
+			"ImportPath": "github.com/ipfs/go-ipfs/p2p/protocol",
+			"Comment": "v0.3.4-19-gc92f5ae",
+			"Rev": "c92f5ae46da3b002ab244216ee29ab41c7770f8d"
+		},
+		{
+			"ImportPath": "github.com/ipfs/go-ipfs/p2p/test/util",
+			"Comment": "v0.3.4-19-gc92f5ae",
+			"Rev": "c92f5ae46da3b002ab244216ee29ab41c7770f8d"
+		},
+		{
+			"ImportPath": "github.com/ipfs/go-ipfs/pin/internal/pb",
+			"Comment": "v0.3.4-19-gc92f5ae",
+			"Rev": "c92f5ae46da3b002ab244216ee29ab41c7770f8d"
+		},
+		{
+			"ImportPath": "github.com/ipfs/go-ipfs/repo/config",
+			"Comment": "v0.3.4-19-gc92f5ae",
+			"Rev": "c92f5ae46da3b002ab244216ee29ab41c7770f8d"
+		},
+		{
+			"ImportPath": "github.com/ipfs/go-ipfs/routing",
+			"Comment": "v0.3.4-19-gc92f5ae",
+			"Rev": "c92f5ae46da3b002ab244216ee29ab41c7770f8d"
+		},
+		{
+			"ImportPath": "github.com/ipfs/go-ipfs/thirdparty/delay",
+			"Comment": "v0.3.4-19-gc92f5ae",
+			"Rev": "c92f5ae46da3b002ab244216ee29ab41c7770f8d"
+		},
+		{
+			"ImportPath": "github.com/ipfs/go-ipfs/thirdparty/eventlog",
+			"Comment": "v0.3.4-19-gc92f5ae",
+			"Rev": "c92f5ae46da3b002ab244216ee29ab41c7770f8d"
+		},
+		{
+			"ImportPath": "github.com/ipfs/go-ipfs/thirdparty/multierr",
+			"Comment": "v0.3.4-19-gc92f5ae",
+			"Rev": "c92f5ae46da3b002ab244216ee29ab41c7770f8d"
+		},
+		{
+			"ImportPath": "github.com/ipfs/go-ipfs/thirdparty/notifier",
+			"Comment": "v0.3.4-19-gc92f5ae",
+			"Rev": "c92f5ae46da3b002ab244216ee29ab41c7770f8d"
+		},
+		{
+			"ImportPath": "github.com/ipfs/go-ipfs/thirdparty/pq",
+			"Comment": "v0.3.4-19-gc92f5ae",
+			"Rev": "c92f5ae46da3b002ab244216ee29ab41c7770f8d"
+		},
+		{
+			"ImportPath": "github.com/ipfs/go-ipfs/thirdparty/waitable",
+			"Comment": "v0.3.4-19-gc92f5ae",
+			"Rev": "c92f5ae46da3b002ab244216ee29ab41c7770f8d"
+		},
+		{
+			"ImportPath": "github.com/ipfs/go-ipfs/util",
+			"Comment": "v0.3.4-19-gc92f5ae",
+			"Rev": "c92f5ae46da3b002ab244216ee29ab41c7770f8d"
+		},
+		{
+			"ImportPath": "github.com/jackpal/go-nat-pmp",
+			"Rev": "a45aa3d54aef73b504e15eb71bea0e5565b5e6e1"
+		},
+		{
+			"ImportPath": "github.com/jbenet/go-base58",
+			"Rev": "568a28d73fd97651d3442392036a658b6976eed5"
+		},
+		{
+			"ImportPath": "github.com/jbenet/go-ctxgroup",
+			"Rev": "c14598396fa31465dc558b176c7976606f95a49d"
+		},
+		{
+			"ImportPath": "github.com/jbenet/go-datastore",
+			"Rev": "751a1b4ad40b27c3f0993ba5e2bcf22ad941991b"
+		},
+		{
+			"ImportPath": "github.com/jbenet/go-msgio",
+			"Rev": "dbae89193876910c736b2ce1291fa8bbcf299d77"
+		},
+		{
+			"ImportPath": "github.com/jbenet/go-multiaddr",
+			"Comment": "0.1.2-38-gc13f11b",
+			"Rev": "c13f11bbfe6439771f4df7bfb330f686826144e8"
+		},
+		{
+			"ImportPath": "github.com/jbenet/go-multiaddr-net",
+			"Rev": "eae26b653a87d02193bb261ae5c5e1f39cc033d6"
+		},
+		{
+			"ImportPath": "github.com/jbenet/go-multihash",
+			"Comment": "0.1.0-33-g4e09420",
+			"Rev": "4e09420ceb2db37a5fbb149821b9e63d88d47218"
+		},
+		{
+			"ImportPath": "github.com/jbenet/go-os-rename",
+			"Rev": "3ac97f61ef67a6b87b95c1282f6c317ed0e693c2"
+		},
+		{
+			"ImportPath": "github.com/jbenet/go-peerstream",
+			"Rev": "bbe2a6461aa80ee25fd87eccf35bd54bac7f788d"
+		},
+		{
+			"ImportPath": "github.com/jbenet/go-reuseport",
+			"Rev": "096958438ae3683c9f3c8ae0f7139b5ce600e6a8"
+		},
+		{
+			"ImportPath": "github.com/jbenet/go-sockaddr/net",
+			"Rev": "da304f94eea1af8ba8d1faf184623e1f9d9777dc"
+		},
+		{
+			"ImportPath": "github.com/jbenet/go-temp-err-catcher",
+			"Rev": "c531232018e678b2a702cfb86b5c3f68d1c8beb8"
+		},
+		{
+			"ImportPath": "github.com/jbenet/goprocess",
+			"Rev": "060ad098994e6adac22f0bd889eb756d4f5ad35b"
+		},
+		{
+			"ImportPath": "github.com/mitchellh/go-homedir",
+			"Rev": "7d2d8c8a4e078ce3c58736ab521a40b37a504c52"
+		},
+		{
+			"ImportPath": "github.com/mtchavez/jenkins",
+			"Rev": "5a816af6ef21ef401bff5e4b7dd255d63400f497"
+		},
+		{
+			"ImportPath": "github.com/steakknife/hamming",
+			"Comment": "0.0.10",
+			"Rev": "8bad99011016569c05320e51be39c648679c5b73"
+		},
+		{
+			"ImportPath": "github.com/syndtr/goleveldb/leveldb",
+			"Rev": "871eee0a7546bb7d1b2795142e29c4534abc49b3"
+		},
+		{
+			"ImportPath": "github.com/syndtr/gosnappy/snappy",
+			"Rev": "ce8acff4829e0c2458a67ead32390ac0a381c862"
+		},
+		{
+			"ImportPath": "github.com/whyrusleeping/go-logging",
+			"Rev": "128b9855511a4ea3ccbcf712695baf2bab72e134"
+		},
+		{
+			"ImportPath": "github.com/whyrusleeping/go-metrics",
+			"Rev": "1cd8009604ec2238b5a71305a0ecd974066e0e16"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/blowfish",
+			"Rev": "b7d6bf2c61544745a02f83dec90393985fc3a065"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/sha3",
+			"Rev": "b7d6bf2c61544745a02f83dec90393985fc3a065"
+		},
+		{
+			"ImportPath": "golang.org/x/net/context",
+			"Rev": "6dc0abcce25682504770fa9a7a6705bbfdebfa48"
+		},
+		{
+			"ImportPath": "gopkg.in/natefinch/lumberjack.v2",
+			"Comment": "v1.0-12-gd28785c",
+			"Rev": "d28785c2f27cd682d872df46ccd8232843629f54"
+		}
+	]
+}
