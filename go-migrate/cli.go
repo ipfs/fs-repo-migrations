@@ -7,14 +7,16 @@ import (
 )
 
 type Flags struct {
-	Force  bool
-	Revert bool
-	Path   string // file path to migrate for fs based migrations
+	Force   bool
+	Revert  bool
+	Path    string // file path to migrate for fs based migrations
+	Verbose bool
 }
 
 func (f *Flags) Setup() {
 	flag.BoolVar(&f.Force, "f", false, "whether to force a migration (ignores warnings)")
 	flag.BoolVar(&f.Revert, "revert", false, "whether to apply the migration backwards")
+	flag.BoolVar(&f.Verbose, "verbose", false, "enable verbose logging")
 	flag.StringVar(&f.Path, "path", "", "file path to migrate for fs based migrations")
 }
 
@@ -42,9 +44,15 @@ func Run(m Migration) error {
 	}
 
 	if f.Revert {
-		return m.Revert(Options{Flags: f})
+		return m.Revert(Options{
+			Flags:   f,
+			Verbose: f.Verbose,
+		})
 	} else {
-		return m.Apply(Options{Flags: f})
+		return m.Apply(Options{
+			Flags:   f,
+			Verbose: f.Verbose,
+		})
 	}
 }
 
