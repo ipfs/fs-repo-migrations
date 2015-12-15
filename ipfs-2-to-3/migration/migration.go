@@ -20,7 +20,7 @@ import (
 	dsq "github.com/ipfs/fs-repo-migrations/ipfs-2-to-3/Godeps/_workspace/src/github.com/jbenet/go-datastore/query"
 	sync "github.com/ipfs/fs-repo-migrations/ipfs-2-to-3/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	mfsr "github.com/ipfs/fs-repo-migrations/mfsr"
-	. "github.com/ipfs/fs-repo-migrations/stump"
+	log "github.com/ipfs/fs-repo-migrations/stump"
 )
 
 var recursePinDatastoreKey = dstore.NewKey("/local/pins/recursive/keys")
@@ -38,10 +38,10 @@ func (m Migration) Reversible() bool {
 }
 
 func (m Migration) Apply(opts migrate.Options) error {
-	Verbose = opts.Verbose
-	Log("applying %s repo migration", m.Versions())
+	log.Verbose = opts.Verbose
+	log.Log("applying %s repo migration", m.Versions())
 
-	VLog("locking repo at %q", opts.Path)
+	log.VLog("locking repo at %q", opts.Path)
 	lk, err := lock.Lock2(opts.Path)
 	if err != nil {
 		return err
@@ -50,7 +50,7 @@ func (m Migration) Apply(opts migrate.Options) error {
 
 	repo := mfsr.RepoPath(opts.Path)
 
-	VLog("  - verifying version is '2'")
+	log.VLog("  - verifying version is '2'")
 	if err := repo.CheckVersion("2"); err != nil {
 		return err
 	}
@@ -59,13 +59,13 @@ func (m Migration) Apply(opts migrate.Options) error {
 		return err
 	}
 
-	Log("pin transfer completed successfuly")
+	log.Log("pin transfer completed successfuly")
 
 	err = repo.WriteVersion("3")
 	if err != nil {
 		return err
 	}
-	Log("updated version file")
+	log.Log("updated version file")
 
 	return nil
 }
@@ -99,7 +99,7 @@ func (m Migration) Revert(opts migrate.Options) error {
 }
 
 func openDatastore(repopath string) (dstore.ThreadSafeDatastore, error) {
-	VLog("  - opening datastore at %q", repopath)
+	log.VLog("  - opening datastore at %q", repopath)
 	ldbpath := path.Join(repopath, "datastore")
 	ldb, err := leveldb.NewDatastore(ldbpath, nil)
 	if err != nil {
@@ -134,7 +134,7 @@ func constructDagServ(ds dstore.ThreadSafeDatastore) (dag.DAGService, error) {
 }
 
 func transferPins(repopath string, verbose bool) error {
-	Log("beginning pin transfer")
+	log.Log("beginning pin transfer")
 	ds, err := openDatastore(repopath)
 	if err != nil {
 		return err
@@ -146,10 +146,10 @@ func transferPins(repopath string, verbose bool) error {
 	}
 
 	pinner := pin.NewPinner(ds, dserv)
-	VLog("  - created version 3 pinner")
+	log.VLog("  - created version 3 pinner")
 
-	VLog("  - loading recursive pins")
-	recKeys, err := loadKeys(ds, recursePinDatastoreKey)
+	log.VLog("  - loading recursive pins")
+	recKeys, err := loadOldKeys(ds, recursePinDatastoreKey)
 	if err != nil {
 		return err
 	}
@@ -157,10 +157,10 @@ func transferPins(repopath string, verbose bool) error {
 	for _, k := range recKeys {
 		pinner.PinWithMode(k, pin.Recursive)
 	}
-	VLog("  - transfered recursive pins")
+	log.VLog("  - transfered recursive pins")
 
-	VLog("  - loading direct pins")
-	dirKeys, err := loadKeys(ds, directPinDatastoreKey)
+	log.VLog("  - loading direct pins")
+	dirKeys, err := loadOldKeys(ds, directPinDatastoreKey)
 	if err != nil {
 		return err
 	}
@@ -168,41 +168,42 @@ func transferPins(repopath string, verbose bool) error {
 	for _, k := range dirKeys {
 		pinner.PinWithMode(k, pin.Direct)
 	}
-	VLog("  - transfered direct pins")
+	log.VLog("  - transfered direct pins")
 
 	err = pinner.Flush()
 	if err != nil {
 		return err
 	}
-	Log("pinner synced to disk")
+	log.Log("pinner synced to disk")
 
 	return cleanupOldPins(ds, verbose)
 }
 
 func cleanupOldPins(ds dstore.Datastore, verbose bool) error {
-	Log("cleaning old pins")
+	log.Log("cleaning old pins")
 	err := cleanupKeyspace(ds, recursePinDatastoreKey)
 	if err != nil {
 		return err
 	}
-	VLog("  - cleaned up oldstyle recursive pins")
+	log.VLog("  - cleaned up oldstyle recursive pins")
 
 	err = cleanupKeyspace(ds, directPinDatastoreKey)
 	if err != nil {
 		return err
 	}
-	VLog("  - cleaned up oldstyle direct pins")
+	log.VLog("  - cleaned up oldstyle direct pins")
 
 	err = cleanupKeyspace(ds, indirectPinDatastoreKey)
 	if err != nil {
 		return err
 	}
-	VLog("  - cleaned up oldstyle indirect pins")
+	log.VLog("  - cleaned up oldstyle indirect pins")
 
 	return nil
 }
 
 func cleanupKeyspace(ds dstore.Datastore, k dstore.Key) error {
+	log.VLog("deleting recursePin root key:", recursePinDatastoreKey)
 	err := ds.Delete(recursePinDatastoreKey)
 	if err != nil {
 		return err
@@ -216,6 +217,7 @@ func cleanupKeyspace(ds dstore.Datastore, k dstore.Key) error {
 		return err
 	}
 	for k := range res.Next() {
+		log.VLog("deleting pin key:", k.Key)
 		err := ds.Delete(dstore.NewKey(k.Key))
 		if err != nil {
 			res.Close()
@@ -242,51 +244,22 @@ func revertPins(repopath string, verbose bool) error {
 		return err
 	}
 
-	if err := writeKeys(ds, recursePinDatastoreKey, pinner.RecursiveKeys()); err != nil {
+	if err := writeOldKeys(ds, recursePinDatastoreKey, pinner.RecursiveKeys()); err != nil {
 		return err
 	}
 
-	if err := writeKeys(ds, directPinDatastoreKey, pinner.DirectKeys()); err != nil {
+	if err := writeOldKeys(ds, directPinDatastoreKey, pinner.DirectKeys()); err != nil {
 		return err
 	}
 
-	if err := writeIndirPins(ds, indirectPinDatastoreKey, pinner.IndirectKeys()); err != nil {
+	if err := writeOldIndirPins(ds, indirectPinDatastoreKey, pinner.IndirectKeys()); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func loadIndirPins(from dstore.Datastore, k dstore.Key) (map[u.Key]int, error) {
-	v, err := from.Get(k)
-	if err != nil {
-		return nil, err
-	}
-
-	vb, ok := v.([]byte)
-	if !ok {
-		return nil, fmt.Errorf("pinset at %s was not serialized down to bytes", k)
-	}
-
-	var refset map[string]int
-	err = json.Unmarshal(vb, &refset)
-	if err != nil {
-		return nil, err
-	}
-
-	out := make(map[u.Key]int)
-	for k, v := range refset {
-		uk := u.B58KeyDecode(k)
-		if len(uk) == 0 {
-			return nil, fmt.Errorf("improperly formatted key in indirect pinset")
-		}
-		out[uk] = v
-	}
-
-	return out, nil
-}
-
-func writeIndirPins(to dstore.Datastore, k dstore.Key, pins map[u.Key]uint64) error {
+func writeOldIndirPins(to dstore.Datastore, k dstore.Key, pins map[u.Key]uint64) error {
 	refs := make(map[string]int)
 	for k, v := range pins {
 		refs[k.String()] = int(v)
@@ -300,7 +273,7 @@ func writeIndirPins(to dstore.Datastore, k dstore.Key, pins map[u.Key]uint64) er
 	return to.Put(k, b)
 }
 
-func loadKeys(from dstore.Datastore, k dstore.Key) ([]u.Key, error) {
+func loadOldKeys(from dstore.Datastore, k dstore.Key) ([]u.Key, error) {
 	v, err := from.Get(k)
 	if err != nil {
 		return nil, err
@@ -320,8 +293,8 @@ func loadKeys(from dstore.Datastore, k dstore.Key) ([]u.Key, error) {
 	return keys, nil
 }
 
-func writeKeys(to dstore.Datastore, k dstore.Key, pins []u.Key) error {
-	fmt.Println("writing keys: ", k, pins)
+func writeOldKeys(to dstore.Datastore, k dstore.Key, pins []u.Key) error {
+	log.Log("writing keys: ", k, pins)
 	b, err := json.Marshal(pins)
 	if err != nil {
 		return err
