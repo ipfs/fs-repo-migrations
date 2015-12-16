@@ -11,7 +11,7 @@ import (
 	bs "github.com/ipfs/fs-repo-migrations/ipfs-2-to-3/Godeps/_workspace/src/github.com/ipfs/go-ipfs/blockservice"
 	offline "github.com/ipfs/fs-repo-migrations/ipfs-2-to-3/Godeps/_workspace/src/github.com/ipfs/go-ipfs/exchange/offline"
 	dag "github.com/ipfs/fs-repo-migrations/ipfs-2-to-3/Godeps/_workspace/src/github.com/ipfs/go-ipfs/merkledag"
-	pin "github.com/ipfs/fs-repo-migrations/ipfs-2-to-3/Godeps/_workspace/src/github.com/ipfs/go-ipfs/pin"
+	newpin "github.com/ipfs/fs-repo-migrations/ipfs-2-to-3/Godeps/_workspace/src/github.com/ipfs/go-ipfs/pin"
 	u "github.com/ipfs/fs-repo-migrations/ipfs-2-to-3/Godeps/_workspace/src/github.com/ipfs/go-ipfs/util"
 	dstore "github.com/ipfs/fs-repo-migrations/ipfs-2-to-3/Godeps/_workspace/src/github.com/jbenet/go-datastore"
 	flatfs "github.com/ipfs/fs-repo-migrations/ipfs-2-to-3/Godeps/_workspace/src/github.com/jbenet/go-datastore/flatfs"
@@ -145,7 +145,7 @@ func transferPins(repopath string, verbose bool) error {
 		return err
 	}
 
-	pinner := pin.NewPinner(ds, dserv)
+	pinner := newpin.NewPinner(ds, dserv)
 	log.VLog("  - created version 3 pinner")
 
 	log.VLog("  - loading recursive pins")
@@ -155,7 +155,7 @@ func transferPins(repopath string, verbose bool) error {
 	}
 
 	for _, k := range recKeys {
-		pinner.PinWithMode(k, pin.Recursive)
+		pinner.PinWithMode(k, newpin.Recursive)
 	}
 	log.VLog("  - transfered recursive pins")
 
@@ -166,7 +166,7 @@ func transferPins(repopath string, verbose bool) error {
 	}
 
 	for _, k := range dirKeys {
-		pinner.PinWithMode(k, pin.Direct)
+		pinner.PinWithMode(k, newpin.Direct)
 	}
 	log.VLog("  - transfered direct pins")
 
@@ -239,7 +239,7 @@ func revertPins(repopath string, verbose bool) error {
 		return err
 	}
 
-	pinner, err := pin.LoadPinner(ds, dserv)
+	pinner, err := newpin.LoadPinner(ds, dserv)
 	if err != nil {
 		return err
 	}
