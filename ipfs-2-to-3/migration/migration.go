@@ -203,7 +203,7 @@ func cleanupOldPins(ds dstore.Datastore, verbose bool) error {
 }
 
 func cleanupKeyspace(ds dstore.Datastore, k dstore.Key) error {
-	log.VLog("deleting recursePin root key:", recursePinDatastoreKey)
+	log.VLog("  - deleting recursePin root key: %q", recursePinDatastoreKey)
 	err := ds.Delete(recursePinDatastoreKey)
 	if err != nil {
 		return err
@@ -217,7 +217,7 @@ func cleanupKeyspace(ds dstore.Datastore, k dstore.Key) error {
 		return err
 	}
 	for k := range res.Next() {
-		log.VLog("deleting pin key:", k.Key)
+		log.VLog("  - deleting pin key: %q", k.Key)
 		err := ds.Delete(dstore.NewKey(k.Key))
 		if err != nil {
 			res.Close()
@@ -294,7 +294,7 @@ func loadOldKeys(from dstore.Datastore, k dstore.Key) ([]u.Key, error) {
 }
 
 func writeOldKeys(to dstore.Datastore, k dstore.Key, pins []u.Key) error {
-	log.Log("writing keys: ", k, pins)
+	log.Log("writing keys: %q", k, pins)
 	b, err := json.Marshal(pins)
 	if err != nil {
 		return err
