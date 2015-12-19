@@ -4,8 +4,6 @@ import (
 	"path"
 	"strings"
 
-	"github.com/ipfs/fs-repo-migrations/ipfs-1-to-2/go-uuid/uuid"
-
 	dsq "github.com/ipfs/fs-repo-migrations/ipfs-1-to-2/go-datastore/query"
 )
 
@@ -198,13 +196,6 @@ func (k Key) IsDescendantOf(other Key) bool {
 // IsTopLevel returns whether this key has only one namespace.
 func (k Key) IsTopLevel() bool {
 	return len(k.List()) == 1
-}
-
-// RandomKey returns a randomly (uuid) generated key.
-//   RandomKey()
-//   NewKey("/f98719ea086343f7b71f32ea9d9d521d")
-func RandomKey() Key {
-	return NewKey(strings.Replace(uuid.New(), "-", "", -1))
 }
 
 /*

@@ -60,6 +60,12 @@ func (m Migration) Apply(opts migrate.Options) error {
 // Revert un-applies the migration in question. This should be best-effort.
 // Some migrations are definitively one-way. If so, return an error.
 func (m Migration) Revert(opts migrate.Options) error {
+	lk, err := lock.Lock(opts.Path)
+	if err != nil {
+		return err
+	}
+	defer lk.Close()
+
 	repo := mfsr.RepoPath(opts.Path)
 
 	repolk, err := lock.Lock(opts.Path)

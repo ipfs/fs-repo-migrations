@@ -10,12 +10,14 @@ import (
 	gomigrate "github.com/ipfs/fs-repo-migrations/go-migrate"
 	mg0 "github.com/ipfs/fs-repo-migrations/ipfs-0-to-1/migration"
 	mg1 "github.com/ipfs/fs-repo-migrations/ipfs-1-to-2/migration"
+	mg2 "github.com/ipfs/fs-repo-migrations/ipfs-2-to-3/migration"
 	mfsr "github.com/ipfs/fs-repo-migrations/mfsr"
 )
 
 var migrations = []gomigrate.Migration{
 	&mg0.Migration{},
 	&mg1.Migration{},
+	&mg2.Migration{},
 }
 
 func GetIpfsDir() (string, error) {
@@ -113,13 +115,20 @@ func YesNoPrompt(prompt string) bool {
 }
 
 func main() {
-	target := flag.Int("to", 2, "specify version to upgrade to")
+	target := flag.Int("to", 3, "specify version to upgrade to")
 	yes := flag.Bool("y", false, "answer yes to all prompts")
+	version := flag.Bool("v", false, "print highest repo version and exit")
 
 	flag.Parse()
 
+	if *version {
+		fmt.Println(3)
+		return
+	}
+
 	if *target > len(migrations) {
 		fmt.Printf("No known migration to version %d. Try updating this tool.\n", *target)
+		os.Exit(1)
 	}
 
 	ipfsdir, err := GetIpfsDir()
