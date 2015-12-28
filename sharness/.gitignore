@@ -1,3 +1,5 @@
 lib/sharness/
 test-results/
 trash directory.*.sh/
+bin/fs-repo-migrations
+BUILD-OPTIONS
