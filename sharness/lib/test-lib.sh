@@ -53,3 +53,31 @@ test_fsh() {
     echo ""
     false
 }
+
+LOCAL_IPFS_UPDATE="../bin/ipfs-update"
+GUEST_IPFS_UPDATE="sharness/bin/ipfs-update"
+
+# Install an IPFS version on a docker container
+test_install_version() {
+	VERSION="$1"
+
+	test_expect_success "'ipfs-update install' works for $VERSION" '
+		exec_docker "$DOCID" "$GUEST_IPFS_UPDATE --verbose install $VERSION" >actual 2>&1 ||
+		test_fsh cat actual
+	'
+
+	test_expect_success "'ipfs-update install' output looks good" '
+		grep "fetching ipfs version $VERSION" actual &&
+		grep "installation complete." actual ||
+		test_fsh cat actual
+	'
+
+	test_expect_success "'ipfs-update version' works for $VERSION" '
+		exec_docker "$DOCID" "$GUEST_IPFS_UPDATE version" >actual
+	'
+
+	test_expect_success "'ipfs-update version' output looks good" '
+		echo "$VERSION" >expected &&
+		test_cmp expected actual
+	'
+}
