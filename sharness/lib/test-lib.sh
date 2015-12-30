@@ -57,6 +57,9 @@ test_fsh() {
 LOCAL_IPFS_UPDATE="../bin/ipfs-update"
 GUEST_IPFS_UPDATE="sharness/bin/ipfs-update"
 
+LOCAL_FS_REPO_MIG="../bin/fs-repo-migrations"
+GUEST_FS_REPO_MIG="sharness/bin/fs-repo-migrations"
+
 # Install an IPFS version on a docker container
 test_install_version() {
 	VERSION="$1"
