@@ -2,4 +2,5 @@ lib/sharness/
 test-results/
 trash directory.*.sh/
 bin/fs-repo-migrations
+bin/ipfs-update
 BUILD-OPTIONS
