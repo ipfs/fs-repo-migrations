@@ -10,6 +10,7 @@ import (
 	gomigrate "github.com/ipfs/fs-repo-migrations/go-migrate"
 	mg0 "github.com/ipfs/fs-repo-migrations/ipfs-0-to-1/migration"
 	mg1 "github.com/ipfs/fs-repo-migrations/ipfs-1-to-2/migration"
+	homedir "github.com/ipfs/fs-repo-migrations/ipfs-2-to-3/Godeps/_workspace/src/github.com/mitchellh/go-homedir"
 	mg2 "github.com/ipfs/fs-repo-migrations/ipfs-2-to-3/migration"
 	mfsr "github.com/ipfs/fs-repo-migrations/mfsr"
 )
@@ -26,13 +27,17 @@ func GetIpfsDir() (string, error) {
 		return ipfspath, nil
 	}
 
-	home := os.Getenv("HOME")
+	home, err := homedir.Dir()
+	if err != nil {
+		return "", err
+	}
+
 	if home == "" {
 		return "", fmt.Errorf("could not determine IPFS_PATH, home dir not set")
 	}
 
 	v0defaultDir := path.Join(home, ".go-ipfs")
-	_, err := os.Stat(v0defaultDir)
+	_, err = os.Stat(v0defaultDir)
 	if err == nil {
 		return v0defaultDir, nil
 	}
