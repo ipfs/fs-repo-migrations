@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	cli "github.com/codegangsta/cli"
-	util "github.com/ipfs/ipfs-update/util"
-	stump "github.com/whyrusleeping/stump"
+	cli "github.com/ipfs/fs-repo-migrations/Godeps/_workspace/src/github.com/codegangsta/cli"
+	util "github.com/ipfs/fs-repo-migrations/Godeps/_workspace/src/github.com/ipfs/ipfs-update/util"
+	stump "github.com/ipfs/fs-repo-migrations/Godeps/_workspace/src/github.com/whyrusleeping/stump"
 )
 
 func main() {
