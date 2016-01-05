@@ -1,0 +1,4 @@
+
+
+install:
+	go install

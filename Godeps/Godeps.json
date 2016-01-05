@@ -1,0 +1,38 @@
+{
+	"ImportPath": "github.com/ipfs/fs-repo-migrations",
+	"GoVersion": "go1.5.2",
+	"Packages": [
+		"./sharness/dependencies/ipfs-update"
+	],
+	"Deps": [
+		{
+			"ImportPath": "github.com/codegangsta/cli",
+			"Comment": "1.2.0-179-g0302d39",
+			"Rev": "0302d3914d2a6ad61404584cdae6e6dbc9c03599"
+		},
+		{
+			"ImportPath": "github.com/ipfs/go-ipfs-api",
+			"Rev": "3859005e44f71e8317fb7464d6ff1570dbab7757"
+		},
+		{
+			"ImportPath": "github.com/ipfs/ipfs-update/test-dist",
+			"Rev": "9b31c27fc34d3f64a98eec377e8295fe00edde4c"
+		},
+		{
+			"ImportPath": "github.com/ipfs/ipfs-update/util",
+			"Rev": "9b31c27fc34d3f64a98eec377e8295fe00edde4c"
+		},
+		{
+			"ImportPath": "github.com/whyrusleeping/go-multipart-files",
+			"Rev": "3be93d9f6b618f2b8564bfb1d22f1e744eabbae2"
+		},
+		{
+			"ImportPath": "github.com/whyrusleeping/stump",
+			"Rev": "bdc01b1f13fc5bed17ffbf4e0ed7ea17fd220ee6"
+		},
+		{
+			"ImportPath": "github.com/whyrusleeping/tar-utils",
+			"Rev": "e8a5890cfc9d59a203361237581468780d945b6e"
+		}
+	]
+}
