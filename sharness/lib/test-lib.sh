@@ -28,6 +28,9 @@ TEST_TRASH_DIR=$(pwd)
 TEST_SCRIPTS_DIR=$(dirname "$TEST_TRASH_DIR")
 APP_ROOT_DIR=$(dirname "$TEST_SCRIPTS_DIR")
 
+TEST_DIR_BASENAME=$(basename "$TEST_TRASH_DIR")
+GUEST_TEST_DIR="sharness/$TEST_DIR_BASENAME"
+
 CERTIFS='/etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt'
 
 # This writes a docker ID on stdout
