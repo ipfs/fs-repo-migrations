@@ -11,10 +11,13 @@ SHARNESSDIR = sharness
 AGGREGATE = $(LIBDIR)/$(SHARNESSDIR)/aggregate-results.sh
 
 # Binaries generated
-BINS = bin/fs-repo-migrations bin/ipfs-update
+BINS = bin/fs-repo-migrations bin/ipfs-0-to-1 bin/ipfs-1-to-2 bin/ipfs-2-to-3 bin/ipfs-update
 
 # Source files location
 FS_REPO_SRC = ../
+IPFS_0_TO_1_SRC = ../ipfs-0-to-1
+IPFS_1_TO_2_SRC = ../ipfs-1-to-2
+IPFS_2_TO_3_SRC = ../ipfs-2-to-3
 IPFS_UPDATE_SRC = ./dependencies/ipfs-update
 
 # User might want to override those on the command line
@@ -54,6 +57,18 @@ bin/fs-repo-migrations: $(call find_go_files, $(FS_REPO_SRC)) BUILD-OPTIONS
 bin/ipfs-update: $(call find_go_files, $(IPFS_UPDATE_SRC)) BUILD-OPTIONS
 	@echo "*** installing $@ ***"
 	go build $(GOFLAGS) -o $@ $(IPFS_UPDATE_SRC)
+
+bin/ipfs-0-to-1: $(call find_go_files, $(IPFS_0_TO_1_SRC)) BUILD-OPTIONS
+	@echo "*** installing $@ ***"
+	go build $(GOFLAGS) -o $@ $(IPFS_0_TO_1_SRC)
+
+bin/ipfs-1-to-2: $(call find_go_files, $(IPFS_1_TO_2_SRC)) BUILD-OPTIONS
+	@echo "*** installing $@ ***"
+	go build $(GOFLAGS) -o $@ $(IPFS_1_TO_2_SRC)
+
+bin/ipfs-2-to-3: $(call find_go_files, $(IPFS_2_TO_3_SRC)) BUILD-OPTIONS
+	@echo "*** installing $@ ***"
+	go build $(GOFLAGS) -o $@ $(IPFS_2_TO_3_SRC)
 
 BUILD-OPTIONS: FORCE
 	@bin/checkflags '$@' '$(GOFLAGS)' '*** new Go flags ***'
