@@ -63,6 +63,10 @@ GUEST_IPFS_UPDATE="sharness/bin/ipfs-update"
 LOCAL_FS_REPO_MIG="../bin/fs-repo-migrations"
 GUEST_FS_REPO_MIG="sharness/bin/fs-repo-migrations"
 
+GUEST_IPFS_0_TO_1="sharness/bin/ipfs-0-to-1"
+GUEST_IPFS_1_TO_2="sharness/bin/ipfs-1-to-2"
+GUEST_IPFS_2_TO_3="sharness/bin/ipfs-2-to-3"
+
 # Install an IPFS version on a docker container
 test_install_version() {
 	VERSION="$1"

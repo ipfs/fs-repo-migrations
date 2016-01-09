@@ -67,6 +67,26 @@ test_expect_success "ipfs cat output looks good" '
 	test_cmp expected actual
 '
 
+test_expect_success "'ipfs-2-to-3 -revert' succeeds" '
+	exec_docker "$DOCID" "$GUEST_IPFS_2_TO_3 -revert -path=/root/.ipfs" >actual
+'
+
+test_expect_success "'ipfs-2-to-3 -revert' output looks good" '
+	grep "writing keys:" actual ||
+	test_fsh cat actual
+'
+
+test_install_version "v0.3.10"
+
+test_expect_success "ipfs cat succeeds with hashes from previous version" '
+	exec_docker "$DOCID" "ipfs cat \"$MARS\" \"$VENUS\"" >actual
+'
+
+test_expect_success "ipfs cat output looks good" '
+	cat mountdir/planets/mars.txt mountdir/planets/venus.txt >expected &&
+	test_cmp expected actual
+'
+
 test_expect_success "stop docker container" '
 	stop_docker "$DOCID"
 '
