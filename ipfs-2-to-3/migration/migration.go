@@ -55,7 +55,7 @@ func (m Migration) Apply(opts migrate.Options) error {
 		return err
 	}
 
-	if err := transferPins(opts.Path, opts.Verbose); err != nil {
+	if err := transferPins(opts.Path); err != nil {
 		return err
 	}
 
@@ -71,6 +71,7 @@ func (m Migration) Apply(opts migrate.Options) error {
 }
 
 func (m Migration) Revert(opts migrate.Options) error {
+	log.Verbose = opts.Verbose
 	lk, err := lock.Lock2(opts.Path)
 	if err != nil {
 		return err
@@ -82,7 +83,7 @@ func (m Migration) Revert(opts migrate.Options) error {
 		return err
 	}
 
-	if err := revertPins(opts.Path, opts.Verbose); err != nil {
+	if err := revertPins(opts.Path); err != nil {
 		return err
 	}
 
@@ -91,9 +92,8 @@ func (m Migration) Revert(opts migrate.Options) error {
 	if err != nil {
 		return err
 	}
-	if opts.Verbose {
-		fmt.Println("lowered version number to 2")
-	}
+	log.VLog("lowered version number to 2")
+	log.Log("revert completed successfuly")
 
 	return nil
 }
@@ -133,7 +133,7 @@ func constructDagServ(ds dstore.ThreadSafeDatastore) (dag.DAGService, error) {
 	return dag.NewDAGService(bserve), nil
 }
 
-func transferPins(repopath string, verbose bool) error {
+func transferPins(repopath string) error {
 	log.Log("beginning pin transfer")
 	ds, err := openDatastore(repopath)
 	if err != nil {
@@ -176,10 +176,10 @@ func transferPins(repopath string, verbose bool) error {
 	}
 	log.Log("pinner synced to disk")
 
-	return cleanupOldPins(ds, verbose)
+	return cleanupOldPins(ds)
 }
 
-func cleanupOldPins(ds dstore.Datastore, verbose bool) error {
+func cleanupOldPins(ds dstore.Datastore) error {
 	log.Log("cleaning old pins")
 	err := cleanupKeyspace(ds, recursePinDatastoreKey)
 	if err != nil {
@@ -228,7 +228,7 @@ func cleanupKeyspace(ds dstore.Datastore, k dstore.Key) error {
 	return nil
 }
 
-func revertPins(repopath string, verbose bool) error {
+func revertPins(repopath string) error {
 	ds, err := openDatastore(repopath)
 	if err != nil {
 		return err
