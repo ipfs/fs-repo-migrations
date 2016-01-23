@@ -19,6 +19,7 @@ import (
 	mount "github.com/ipfs/fs-repo-migrations/ipfs-2-to-3/Godeps/_workspace/src/github.com/jbenet/go-datastore/mount"
 	dsq "github.com/ipfs/fs-repo-migrations/ipfs-2-to-3/Godeps/_workspace/src/github.com/jbenet/go-datastore/query"
 	sync "github.com/ipfs/fs-repo-migrations/ipfs-2-to-3/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
+	context "github.com/ipfs/fs-repo-migrations/ipfs-2-to-3/Godeps/_workspace/src/golang.org/x/net/context"
 	mfsr "github.com/ipfs/fs-repo-migrations/mfsr"
 	log "github.com/ipfs/fs-repo-migrations/stump"
 )
@@ -252,14 +253,53 @@ func revertPins(repopath string, verbose bool) error {
 		return err
 	}
 
-	if err := writeOldIndirPins(ds, indirectPinDatastoreKey, pinner.IndirectKeys()); err != nil {
+	ikeys, err := indirectPins(pinner, dserv)
+	if err != nil {
+		return err
+	}
+
+	if err := writeOldIndirPins(ds, indirectPinDatastoreKey, ikeys); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func writeOldIndirPins(to dstore.Datastore, k dstore.Key, pins map[u.Key]uint64) error {
+func indirectPins(pinner newpin.Pinner, dserv dag.DAGService) (map[u.Key]int, error) {
+	out := make(map[u.Key]int)
+	var mapkeys func(nd *dag.Node) error
+	mapkeys = func(nd *dag.Node) error {
+		for _, lnk := range nd.Links {
+			k := u.Key(lnk.Hash)
+			out[k]++
+
+			child, err := dserv.Get(context.Background(), k)
+			if err != nil {
+				return err
+			}
+
+			if err := mapkeys(child); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
+	for _, k := range pinner.RecursiveKeys() {
+		nd, err := dserv.Get(context.Background(), k)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := mapkeys(nd); err != nil {
+			return nil, err
+		}
+	}
+	return out, nil
+}
+
+func writeOldIndirPins(to dstore.Datastore, k dstore.Key, pins map[u.Key]int) error {
+	fmt.Println("INDIRECT PINS: ", pins)
 	refs := make(map[string]int)
 	for k, v := range pins {
 		refs[k.String()] = int(v)
