@@ -178,7 +178,7 @@ func transferPins(repopath string, verbose bool) error {
 	log.Log("pinner synced to disk")
 
 	// ensure that the 'empty object' exists
-	_, err := dserv.Add(new(dag.Node))
+	_, err = dserv.Add(new(dag.Node))
 	if err != nil {
 		return err
 	}
