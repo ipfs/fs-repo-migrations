@@ -102,6 +102,32 @@ test_expect_success "list of pinned object hasn't changed" '
 	test_sort_cmp all_actual1 all_actual2
 '
 
+test_expect_success "objects are still there" '
+	exec_docker "$DOCID" "ipfs cat $HASH_FILE6" >FILE6_b &&
+	exec_docker "$DOCID" "ipfs cat $HASH_FILE5" >FILE5_b &&
+	exec_docker "$DOCID" "ipfs cat $HASH_FILE4" >FILE4_b &&
+	exec_docker "$DOCID" "ipfs cat $HASH_FILE3" >FILE3_b &&
+	exec_docker "$DOCID" "ipfs cat $HASH_FILE2" >FILE2_b &&
+	exec_docker "$DOCID" "ipfs cat $HASH_FILE1" >FILE1_b &&
+	exec_docker "$DOCID" "ipfs ls $HASH_DIR3"   >DIR3_b &&
+	exec_docker "$DOCID" "ipfs ls $HASH_DIR4"   >DIR4_b &&
+	exec_docker "$DOCID" "ipfs ls $HASH_DIR2"   >DIR2_b &&
+	exec_docker "$DOCID" "ipfs ls $HASH_DIR1"   >DIR1_b
+'
+
+test_expect_success "objects haven't changed" '
+	test_cmp FILE6_a FILE6_b &&
+	test_cmp FILE5_a FILE5_b &&
+	test_cmp FILE4_a FILE4_b &&
+	test_cmp FILE3_a FILE3_b &&
+	test_cmp FILE2_a FILE2_b &&
+	test_cmp FILE1_a FILE1_b &&
+	test_cmp DIR3_a DIR3_b &&
+	test_cmp DIR4_a DIR4_b &&
+	test_cmp DIR2_a DIR2_b &&
+	test_cmp DIR1_a DIR1_b
+'
+
 test_expect_success "'ipfs-2-to-3 -revert' succeeds" '
 	exec_docker "$DOCID" "$GUEST_IPFS_2_TO_3 -verbose -revert -path=/root/.ipfs" >actual
 '
@@ -122,6 +148,32 @@ test_expect_success "added dir is still pinned recursively" '
 test_expect_success "list of pinned object hasn't changed" '
 	exec_docker "$DOCID" "ipfs pin ls --type=all" > all_actual3 &&
 	test_sort_cmp all_actual1 all_actual3
+'
+
+test_expect_success "objects are still there" '
+	exec_docker "$DOCID" "ipfs cat $HASH_FILE6" >FILE6_c &&
+	exec_docker "$DOCID" "ipfs cat $HASH_FILE5" >FILE5_c &&
+	exec_docker "$DOCID" "ipfs cat $HASH_FILE4" >FILE4_c &&
+	exec_docker "$DOCID" "ipfs cat $HASH_FILE3" >FILE3_c &&
+	exec_docker "$DOCID" "ipfs cat $HASH_FILE2" >FILE2_c &&
+	exec_docker "$DOCID" "ipfs cat $HASH_FILE1" >FILE1_c &&
+	exec_docker "$DOCID" "ipfs ls $HASH_DIR3"   >DIR3_c &&
+	exec_docker "$DOCID" "ipfs ls $HASH_DIR4"   >DIR4_c &&
+	exec_docker "$DOCID" "ipfs ls $HASH_DIR2"   >DIR2_c &&
+	exec_docker "$DOCID" "ipfs ls $HASH_DIR1"   >DIR1_c
+'
+
+test_expect_success "objects haven't changed" '
+	test_cmp FILE6_a FILE6_c &&
+	test_cmp FILE5_a FILE5_c &&
+	test_cmp FILE4_a FILE4_c &&
+	test_cmp FILE3_a FILE3_c &&
+	test_cmp FILE2_a FILE2_c &&
+	test_cmp FILE1_a FILE1_c &&
+	test_cmp DIR3_a DIR3_c &&
+	test_cmp DIR4_a DIR4_c &&
+	test_cmp DIR2_a DIR2_c &&
+	test_cmp DIR1_a DIR1_c
 '
 
 test_expect_success "stop docker container" '
