@@ -72,6 +72,8 @@ func (m Migration) Apply(opts migrate.Options) error {
 }
 
 func (m Migration) Revert(opts migrate.Options) error {
+	log.Verbose = opts.Verbose
+	log.Log("reverting migration")
 	lk, err := lock.Lock2(opts.Path)
 	if err != nil {
 		return err
@@ -236,29 +238,35 @@ func cleanupKeyspace(ds dstore.Datastore, k dstore.Key) error {
 }
 
 func revertPins(repopath string, verbose bool) error {
+	log.VLog("  - reverting pins")
 	ds, err := openDatastore(repopath)
 	if err != nil {
 		return err
 	}
 
+	log.VLog("  - construct dagservice")
 	dserv, err := constructDagServ(ds)
 	if err != nil {
 		return err
 	}
 
+	log.VLog("  - load pinner")
 	pinner, err := newpin.LoadPinner(ds, dserv)
 	if err != nil {
 		return err
 	}
 
+	log.VLog("  - write old recursive keys")
 	if err := writeOldKeys(ds, recursePinDatastoreKey, pinner.RecursiveKeys()); err != nil {
 		return err
 	}
 
+	log.VLog("  - write old direct keys")
 	if err := writeOldKeys(ds, directPinDatastoreKey, pinner.DirectKeys()); err != nil {
 		return err
 	}
 
+	log.VLog("  - write old indirect pins")
 	ikeys, err := indirectPins(pinner, dserv)
 	if err != nil {
 		return err

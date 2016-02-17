@@ -3,7 +3,6 @@ package merkledag
 
 import (
 	"fmt"
-	"sync"
 
 	blocks "github.com/ipfs/fs-repo-migrations/ipfs-2-to-3/Godeps/_workspace/src/github.com/ipfs/go-ipfs/blocks"
 	bserv "github.com/ipfs/fs-repo-migrations/ipfs-2-to-3/Godeps/_workspace/src/github.com/ipfs/go-ipfs/blockservice"
@@ -20,6 +19,7 @@ type DAGService interface {
 	AddRecursive(*Node) error
 	Get(context.Context, u.Key) (*Node, error)
 	Remove(*Node) error
+	RemoveRecursive(*Node) error
 
 	// GetDAG returns, in order, all the single leve child
 	// nodes of the passed in node.
@@ -86,9 +86,14 @@ func (n *dagService) Get(ctx context.Context, k u.Key) (*Node, error) {
 	if n == nil {
 		return nil, fmt.Errorf("dagService is nil")
 	}
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 
 	b, err := n.Blocks.GetBlock(ctx, k)
 	if err != nil {
+		if err == bserv.ErrNotFound {
+			return nil, ErrNotFound
+		}
 		return nil, err
 	}
 
@@ -96,10 +101,10 @@ func (n *dagService) Get(ctx context.Context, k u.Key) (*Node, error) {
 }
 
 // Remove deletes the given node and all of its children from the BlockService
-func (n *dagService) Remove(nd *Node) error {
+func (n *dagService) RemoveRecursive(nd *Node) error {
 	for _, l := range nd.Links {
 		if l.Node != nil {
-			n.Remove(l.Node)
+			n.RemoveRecursive(l.Node)
 		}
 	}
 	k, err := nd.Key()
@@ -109,41 +114,17 @@ func (n *dagService) Remove(nd *Node) error {
 	return n.Blocks.DeleteBlock(k)
 }
 
-// FetchGraph asynchronously fetches all nodes that are children of the given
-// node, and returns a channel that may be waited upon for the fetch to complete
-func FetchGraph(ctx context.Context, root *Node, serv DAGService) chan struct{} {
-	log.Warning("Untested.")
-	var wg sync.WaitGroup
-	done := make(chan struct{})
-
-	for _, l := range root.Links {
-		wg.Add(1)
-		go func(lnk *Link) {
-
-			// Signal child is done on way out
-			defer wg.Done()
-			select {
-			case <-ctx.Done():
-				return
-			}
-
-			nd, err := lnk.GetNode(ctx, serv)
-			if err != nil {
-				log.Debug(err)
-				return
-			}
-
-			// Wait for children to finish
-			<-FetchGraph(ctx, nd, serv)
-		}(l)
+func (n *dagService) Remove(nd *Node) error {
+	k, err := nd.Key()
+	if err != nil {
+		return err
 	}
+	return n.Blocks.DeleteBlock(k)
+}
 
-	go func() {
-		wg.Wait()
-		done <- struct{}{}
-	}()
-
-	return done
+// FetchGraph fetches all nodes that are children of the given node
+func FetchGraph(ctx context.Context, root *Node, serv DAGService) error {
+	return EnumerateChildrenAsync(ctx, serv, root, u.NewKeySet())
 }
 
 // FindLinks searches this nodes links for the given key,
@@ -181,7 +162,7 @@ func (ds *dagService) GetNodes(ctx context.Context, keys []u.Key) []NodeGetter {
 
 	promises := make([]NodeGetter, len(keys))
 	sendChans := make([]chan<- *Node, len(keys))
-	for i, _ := range keys {
+	for i := range keys {
 		promises[i], sendChans[i] = newNodePromise(ctx)
 	}
 
@@ -267,4 +248,105 @@ func (np *nodePromise) Get(ctx context.Context) (*Node, error) {
 		return nil, ctx.Err()
 	}
 	return np.cache, nil
+}
+
+// EnumerateChildren will walk the dag below the given root node and add all
+// unseen children to the passed in set.
+// TODO: parallelize to avoid disk latency perf hits?
+func EnumerateChildren(ctx context.Context, ds DAGService, root *Node, set u.KeySet) error {
+	for _, lnk := range root.Links {
+		k := u.Key(lnk.Hash)
+		if !set.Has(k) {
+			set.Add(k)
+			child, err := ds.Get(ctx, k)
+			if err != nil {
+				return err
+			}
+			err = EnumerateChildren(ctx, ds, child, set)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func EnumerateChildrenAsync(ctx context.Context, ds DAGService, root *Node, set u.KeySet) error {
+	toprocess := make(chan []u.Key, 8)
+	nodes := make(chan *Node, 8)
+	errs := make(chan error, 1)
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	defer close(toprocess)
+
+	go fetchNodes(ctx, ds, toprocess, nodes, errs)
+
+	nodes <- root
+	live := 1
+
+	for {
+		select {
+		case nd, ok := <-nodes:
+			if !ok {
+				return nil
+			}
+			// a node has been fetched
+			live--
+
+			var keys []u.Key
+			for _, lnk := range nd.Links {
+				k := u.Key(lnk.Hash)
+				if !set.Has(k) {
+					set.Add(k)
+					live++
+					keys = append(keys, k)
+				}
+			}
+
+			if live == 0 {
+				return nil
+			}
+
+			if len(keys) > 0 {
+				select {
+				case toprocess <- keys:
+				case <-ctx.Done():
+					return ctx.Err()
+				}
+			}
+		case err := <-errs:
+			return err
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+}
+
+func fetchNodes(ctx context.Context, ds DAGService, in <-chan []u.Key, out chan<- *Node, errs chan<- error) {
+	defer close(out)
+
+	get := func(g NodeGetter) {
+		nd, err := g.Get(ctx)
+		if err != nil {
+			select {
+			case errs <- err:
+			case <-ctx.Done():
+			}
+			return
+		}
+
+		select {
+		case out <- nd:
+		case <-ctx.Done():
+			return
+		}
+	}
+
+	for ks := range in {
+		ng := ds.GetNodes(ctx, ks)
+		for _, g := range ng {
+			go get(g)
+		}
+	}
 }
