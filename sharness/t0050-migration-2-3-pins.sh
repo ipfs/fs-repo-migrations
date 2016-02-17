@@ -128,6 +128,10 @@ test_expect_success "objects haven't changed" '
 	test_cmp DIR1_a DIR1_b
 '
 
+test_expect_success "'ipfs repo gc' succeeds" '
+	exec_docker "$DOCID" "ipfs repo gc"
+'
+
 test_expect_success "'ipfs-2-to-3 -revert' succeeds" '
 	exec_docker "$DOCID" "$GUEST_IPFS_2_TO_3 -verbose -revert -path=/root/.ipfs" >actual
 '
@@ -174,6 +178,10 @@ test_expect_success "objects haven't changed" '
 	test_cmp DIR4_a DIR4_c &&
 	test_cmp DIR2_a DIR2_c &&
 	test_cmp DIR1_a DIR1_c
+'
+
+test_expect_success "'ipfs repo gc' succeeds" '
+	exec_docker "$DOCID" "ipfs repo gc"
 '
 
 test_expect_success "stop docker container" '
