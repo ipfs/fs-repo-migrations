@@ -6,6 +6,7 @@ import (
 
 type KeySet interface {
 	Add(Key)
+	Has(Key) bool
 	Remove(Key)
 	Keys() []Key
 }
@@ -43,4 +44,11 @@ func (wl *ks) Keys() []Key {
 		keys = append(keys, k)
 	}
 	return keys
+}
+
+func (wl *ks) Has(k Key) bool {
+	wl.lock.Lock()
+	defer wl.lock.Unlock()
+	_, ok := wl.data[k]
+	return ok
 }
