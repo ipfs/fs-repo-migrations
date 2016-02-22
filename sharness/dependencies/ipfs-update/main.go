@@ -8,14 +8,19 @@ import (
 	"strings"
 
 	cli "github.com/codegangsta/cli"
+	config "github.com/ipfs/ipfs-update/config"
 	util "github.com/ipfs/ipfs-update/util"
 	stump "github.com/whyrusleeping/stump"
 )
 
+func init() {
+	stump.ErrOut = os.Stderr
+}
+
 func main() {
 	app := cli.NewApp()
 	app.Usage = "update ipfs"
-	app.Version = "0.1.0"
+	app.Version = config.CurrentVersionNumber
 
 	app.Flags = []cli.Flag{
 		cli.BoolFlag{
