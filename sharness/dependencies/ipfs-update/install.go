@@ -10,9 +10,9 @@ import (
 	"runtime"
 	"strings"
 
-	test "github.com/ipfs/ipfs-update/test-dist"
-	util "github.com/ipfs/ipfs-update/util"
-	stump "github.com/whyrusleeping/stump"
+	test "github.com/ipfs/fs-repo-migrations/Godeps/_workspace/src/github.com/ipfs/ipfs-update/test-dist"
+	util "github.com/ipfs/fs-repo-migrations/Godeps/_workspace/src/github.com/ipfs/ipfs-update/util"
+	stump "github.com/ipfs/fs-repo-migrations/Godeps/_workspace/src/github.com/whyrusleeping/stump"
 )
 
 func (i *Install) getTmpPath() (string, error) {
