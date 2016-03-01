@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"strings"
 
-	util "github.com/ipfs/fs-repo-migrations/Godeps/_workspace/src/github.com/ipfs/ipfs-update/util"
-	stump "github.com/ipfs/fs-repo-migrations/Godeps/_workspace/src/github.com/whyrusleeping/stump"
+	util "github.com/ipfs/ipfs-update/util"
+	stump "github.com/whyrusleeping/stump"
 )
 
 func CheckMigration() error {

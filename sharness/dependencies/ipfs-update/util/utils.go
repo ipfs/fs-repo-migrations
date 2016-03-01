@@ -12,13 +12,14 @@ import (
 	"strings"
 
 	api "github.com/ipfs/go-ipfs-api"
+	config "github.com/ipfs/ipfs-update/config"
 	stump "github.com/whyrusleeping/stump"
 )
 
 var (
 	GlobalGatewayUrl = "https://ipfs.io"
 	LocalApiUrl      = "http://localhost:5001"
-	IpfsVersionPath  = "/ipns/update.ipfs.io"
+	IpfsVersionPath  = "/ipns/dist.ipfs.io"
 )
 
 const fetchSizeLimit = 1024 * 1024 * 512
@@ -39,11 +40,27 @@ func ApiEndpoint(ipfspath string) (string, error) {
 	return parts[2] + ":" + parts[4], nil
 }
 
+func httpGet(url string) (*http.Response, error) {
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("http.NewRequest error: %s", err)
+	}
+
+	req.Header.Set("User-Agent", config.GetUserAgent())
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("http.DefaultClient.Do error: %s", err)
+	}
+
+	return resp, nil
+}
+
 func httpFetch(url string) (io.ReadCloser, error) {
 	stump.VLog("fetching url: %s", url)
-	resp, err := http.Get(url)
+	resp, err := httpGet(url)
 	if err != nil {
-		return nil, fmt.Errorf("http.Get error: %s", err)
+		return nil, err
 	}
 
 	if resp.StatusCode >= 400 {
@@ -136,7 +153,7 @@ func HasDaemonRunning() bool {
 
 func RunCmd(p, bin string, args ...string) (string, error) {
 	cmd := exec.Command(bin, args...)
-	cmd.Env = []string{"IPFS_PATH=" + p}
+	cmd.Env = append(os.Environ(), "IPFS_PATH="+p)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return "", fmt.Errorf("%s: %s", err, string(out))
