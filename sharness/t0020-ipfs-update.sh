@@ -9,7 +9,8 @@ test_expect_success "ipfs-update binary is here" '
 '
 
 test_expect_success "'ipfs-update versions' works" '
-	"$LOCAL_IPFS_UPDATE" versions >actual
+	"$LOCAL_IPFS_UPDATE" versions >actual ||
+	test_fsh cat actual
 '
 
 test_expect_success "'ipfs-update versions' output looks good" '
