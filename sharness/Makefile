@@ -68,7 +68,7 @@ bin/ipfs-update: $(call find_go_files, $(IPFS_UPDATE_SRC)) BUILD-OPTIONS
 bin/random-files:
 	@echo "*** installing $@ ***"
 	go get github.com/jbenet/go-random-files
-	go build -o $@ github.com/jbenet/go-random-files/random-files
+	go build $(GOFLAGS) -o $@ github.com/jbenet/go-random-files/random-files
 
 bin/go-sleep:
 	@echo "*** installing $@ ***"
