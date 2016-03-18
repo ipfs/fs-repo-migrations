@@ -11,7 +11,7 @@ SHARNESSDIR = sharness
 AGGREGATE = $(LIBDIR)/$(SHARNESSDIR)/aggregate-results.sh
 
 # Binaries generated
-BINS = bin/fs-repo-migrations bin/ipfs-0-to-1 bin/ipfs-1-to-2 bin/ipfs-2-to-3 bin/ipfs-update
+BINS = bin/fs-repo-migrations bin/ipfs-0-to-1 bin/ipfs-1-to-2 bin/ipfs-2-to-3 bin/ipfs-update bin/random-files
 
 # Source files location
 FS_REPO_SRC = ../
@@ -57,6 +57,11 @@ bin/fs-repo-migrations: $(call find_go_files, $(FS_REPO_SRC)) BUILD-OPTIONS
 bin/ipfs-update: $(call find_go_files, $(IPFS_UPDATE_SRC)) BUILD-OPTIONS
 	@echo "*** installing $@ ***"
 	go build $(GOFLAGS) -o $@ $(IPFS_UPDATE_SRC)
+
+bin/random-files:
+	@echo "*** installing $@ ***"
+	go get github.com/jbenet/go-random-files
+	go build -o $@ github.com/jbenet/go-random-files/random-files
 
 bin/ipfs-0-to-1: $(call find_go_files, $(IPFS_0_TO_1_SRC)) BUILD-OPTIONS
 	@echo "*** installing $@ ***"
