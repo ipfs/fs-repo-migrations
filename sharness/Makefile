@@ -11,8 +11,14 @@ SHARNESSDIR = sharness
 AGGREGATE = $(LIBDIR)/$(SHARNESSDIR)/aggregate-results.sh
 
 # Binaries generated
-BINS = bin/fs-repo-migrations bin/ipfs-0-to-1 bin/ipfs-1-to-2		\
-	bin/ipfs-2-to-3 bin/ipfs-update bin/random-files bin/go-sleep
+BINS =
+BINS += bin/fs-repo-migrations
+BINS += bin/ipfs-0-to-1
+BINS += bin/ipfs-1-to-2
+BINS += bin/ipfs-2-to-3
+BINS += bin/ipfs-update
+BINS += bin/random-files
+BINS += bin/go-sleep
 
 # Source files location
 FS_REPO_SRC = ../
