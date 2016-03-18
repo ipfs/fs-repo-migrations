@@ -13,14 +13,40 @@ drun() {
 	exec_docker "$DOCID" "$@"
 }
 
+test_docker_wait_for_file() {
+	docid="$1"
+	loops="$2"
+	delay="$3"
+	file="$4"
+	fwaitc=0
+	while ! exec_docker "$docid" "test -f '$file'"
+	do
+		if test $fwaitc -ge $loops
+		then
+			echo "Error: timed out waiting for file: $file"
+			return 1
+		fi
+
+		go-sleep $delay
+		fwaitc=$(expr $fwaitc + 1)
+	done
+}
+
 test_install_version "v0.3.11"
 
 test_expect_success "'ipfs init' succeeds" '
-	exec_docker "$DOCID" "IPFS_PATH=/root/.ipfs BITS=2048 ipfs init" >actual 2>&1 ||
+	export IPFS_PATH=/root/.ipfs &&
+	exec_docker "$DOCID" "IPFS_PATH=$IPFS_PATH BITS=2048 ipfs init" >actual 2>&1 ||
 	test_fsh cat actual
 '
 
-# START DAEMON HERE
+test_expect_success "'ipfs daemon' succeeds" '
+	exec_docker "$DOCID" "ipfs daemon >actual_daemon 2>daemon_err &"
+'
+
+test_expect_success "api file shows up" '
+	test_docker_wait_for_file "$DOCID" 20 100ms "$IPFS_PATH/api"
+'
 
 test_expect_success "make a couple files" '
 	#drun "random-files -depth=6 -dirs=7 -files=10 manyfiles" > filenames
