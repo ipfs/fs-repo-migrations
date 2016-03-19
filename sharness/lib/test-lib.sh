@@ -144,3 +144,87 @@ test_init_daemon() {
 		exec_docker "$docid" "ipfs config Bootstrap --json null"
 	'
 }
+
+test_docker_wait_for_file() {
+	docid="$1"
+	loops="$2"
+	delay="$3"
+	file="$4"
+	fwaitc=0
+	while ! exec_docker "$docid" "test -f '$file'"
+	do
+		if test $fwaitc -ge $loops
+		then
+			echo "Error: timed out waiting for file: $file"
+			return 1
+		fi
+
+		go-sleep $delay
+		fwaitc=$(expr $fwaitc + 1)
+	done
+}
+
+major_number() {
+    vers="$1"
+
+    # Hack around 'expr' exiting with code 1 when it outputs 0
+    case "$vers" in
+        0) echo "0" ;;
+        0.*) echo "0" ;;
+        *) expr "$vers" : "\([^.]*\).*" || return 1
+    esac
+}
+
+check_at_least_version() {
+    MIN_VERS="$1"
+    CUR_VERS="$2"
+    PROG_NAME="$3"
+
+    # Get major, minor and fix numbers for each version
+    MIN_MAJ=$(major_number "$MIN_VERS") || die "No major version number in '$MIN_VERS' for '$PROG_NAME'"
+    CUR_MAJ=$(major_number "$CUR_VERS") || die "No major version number in '$CUR_VERS' for '$PROG_NAME'"
+
+    if MIN_MIN=$(expr "$MIN_VERS" : "[^.]*\.\([^.]*\).*"); then
+        MIN_FIX=$(expr "$MIN_VERS" : "[^.]*\.[^.]*\.\([^.]*\).*") || MIN_FIX="0"
+    else
+        MIN_MIN="0"
+        MIN_FIX="0"
+    fi
+    if CUR_MIN=$(expr "$CUR_VERS" : "[^.]*\.\([^.]*\).*"); then
+        CUR_FIX=$(expr "$CUR_VERS" : "[^.]*\.[^.]*\.\([^.]*\).*") || CUR_FIX="0"
+    else
+        CUR_MIN="0"
+        CUR_FIX="0"
+    fi
+
+    # Compare versions
+    test "$CUR_MAJ" -lt "$MIN_MAJ" && return 1
+    test "$CUR_MAJ" -gt "$MIN_MAJ" && return 0
+    test "$CUR_MIN" -lt "$MIN_MIN" && return 1
+    test "$CUR_MIN" -gt "$MIN_MIN" && return 0
+    test "$CUR_FIX" -ge "$MIN_FIX"
+}
+
+# Print the repo version corresponding to an IPFS_VERSION passed as
+# argument.
+test_get_repo_version() {
+	IPFS_VERSION="$1"
+
+	REPO_VERSION=1
+
+	check_at_least_version "0.3.0" "$IPFS_VERSION" "ipfs" && REPO_VERSION=2
+
+	check_at_least_version "0.4.0" "$IPFS_VERSION" "ipfs" && REPO_VERSION=3
+
+	echo "$REPO_VERSION"
+}
+
+test_repo_version() {
+	IPFS_VERSION="$1"
+
+	test_expect_success "repository version looks good" '
+		test_get_repo_version "$IPFS_VERSION" >expected &&
+		exec_docker "$DOCID" "cat \"$IPFS_PATH/version\"" >actual &&
+		test_cmp expected actual
+	'
+}
