@@ -89,8 +89,12 @@ GUEST_RANDOM_FILES="sharness/bin/random-files"
 test_install_version() {
 	VERSION="$1"
 
+	# We have to change the PATH as ipfs-update might call fs-repo-migrations
 	test_expect_success "'ipfs-update install' works for $VERSION" '
-		exec_docker "$DOCID" "PATH=sharness/bin:$PATH; $GUEST_IPFS_UPDATE --verbose install $VERSION" >actual 2>&1 ||
+		DOCPWD=$(exec_docker "$DOCID" "pwd") &&
+		DOCPATH=$(exec_docker "$DOCID" "echo \$PATH") &&
+		NEWPATH="$DOCPWD/sharness/bin:$DOCPATH" &&
+		exec_docker "$DOCID" "export PATH=\"$NEWPATH\" && $GUEST_IPFS_UPDATE --verbose install $VERSION" >actual 2>&1 ||
 		test_fsh cat actual
 	'
 
