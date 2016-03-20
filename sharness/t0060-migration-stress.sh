@@ -4,6 +4,15 @@ test_description="Test migration 2 to 3 with lots of objects"
 
 . lib/test-lib.sh
 
+# setup vars for tests
+DEPTH=6
+PINTOTAL=2000
+if [ ! -z "$CI" ]; then
+	DEPTH=3
+	PINTOTAL=200
+fi
+
+PINEACH=$(expr $PINTOTAL / 2)
 
 test_expect_success "start a docker container" '
 	DOCID=$(start_docker)
@@ -39,7 +48,7 @@ test_init_daemon "$DOCID"
 test_start_daemon "$DOCID"
 
 test_expect_success "make a couple files" '
-	drun "$GUEST_RANDOM_FILES -depth=6 -dirs=7 -files=10 manyfiles" > filenames
+	drun "$GUEST_RANDOM_FILES -depth=$DEPTH -dirs=7 -files=10 manyfiles" > filenames
 '
 
 test_expect_success "add a few files" '
@@ -51,9 +60,9 @@ test_expect_success "unpin root so we can do things ourselves" '
 '
 
 test_expect_success "select random subset to pin recursively and directly" '
-	sort -R hashes | head -n2000 > topin &&
-	head -n1000 topin > recurpins &&
-	tail -n1000 topin > directpins 
+	sort -R hashes | head -n$PINTOTAL > topin &&
+	head -n$PINEACH topin > recurpins &&
+	tail -n$PINEACH topin > directpins
 '
 
 pin_hashes() {
