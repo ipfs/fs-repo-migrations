@@ -18,7 +18,7 @@ FS_REPO_SRC = ../
 IPFS_0_TO_1_SRC = ../ipfs-0-to-1
 IPFS_1_TO_2_SRC = ../ipfs-1-to-2
 IPFS_2_TO_3_SRC = ../ipfs-2-to-3
-IPFS_UPDATE_SRC = ./dependencies/ipfs-update
+IPFS_UPDATE_SRC = ../Godeps/_workspace/src/github.com/ipfs/ipfs-update
 
 # User might want to override those on the command line
 GOFLAGS =
