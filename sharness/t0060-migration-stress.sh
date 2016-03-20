@@ -52,7 +52,7 @@ test_expect_success "make a couple files" '
 '
 
 test_expect_success "add a few files" '
-	drun "ipfs add -r -q manyfiles" > hashes
+	drun "ipfs add -r -q manyfiles" | tee hashes
 '
 
 test_expect_success "unpin root so we can do things ourselves" '
