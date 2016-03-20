@@ -30,6 +30,12 @@ test_install_version "v0.4.0-dev"
 test_repo_version "0.4.0"
 
 test_install_version "v0.3.8"
+
+# By design reverting a migration has to be run manually
+test_expect_success "'ipfs-2-to-3 -revert' succeeds" '
+	exec_docker "$DOCID" "$GUEST_IPFS_2_TO_3 -revert -path=/root/.ipfs" >actual
+'
+
 test_repo_version "0.3.8"
 
 test_install_version "v0.3.10"
