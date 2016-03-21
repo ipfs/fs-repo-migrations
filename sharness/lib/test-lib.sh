@@ -81,12 +81,14 @@ GUEST_IPFS_0_TO_1="sharness/bin/ipfs-0-to-1"
 GUEST_IPFS_1_TO_2="sharness/bin/ipfs-1-to-2"
 GUEST_IPFS_2_TO_3="sharness/bin/ipfs-2-to-3"
 
+GUEST_RANDOM_FILES="sharness/bin/random-files"
+
 # Install an IPFS version on a docker container
 test_install_version() {
 	VERSION="$1"
 
 	test_expect_success "'ipfs-update install' works for $VERSION" '
-		exec_docker "$DOCID" "$GUEST_IPFS_UPDATE --verbose install $VERSION" >actual 2>&1 ||
+		exec_docker "$DOCID" "PATH=sharness/bin:$PATH; $GUEST_IPFS_UPDATE --verbose install $VERSION" >actual 2>&1 ||
 		test_fsh cat actual
 	'
 
@@ -103,5 +105,36 @@ test_install_version() {
 	test_expect_success "'ipfs-update version' output looks good" '
 		echo "$VERSION" >expected &&
 		test_cmp expected actual
+	'
+}
+
+test_start_daemon() {
+	docid="$1"
+	test_expect_success "'ipfs daemon' succeeds" '
+		exec_docker "$docid" "ipfs daemon >actual_daemon 2>daemon_err &"
+	'
+
+	test_expect_success "api file shows up" '
+		test_docker_wait_for_file "$docid" 20 100ms "$IPFS_PATH/api"
+	'
+}
+
+test_stop_daemon() {
+	docid="$1"
+	test_expect_success "kill ipfs daemon" '
+		exec_docker "$docid" "pkill ipfs"
+	'
+}
+
+test_init_daemon() {
+	docid="$1"
+	test_expect_success "'ipfs init' succeeds" '
+		export IPFS_PATH=/root/.ipfs &&
+		exec_docker "$docid" "IPFS_PATH=$IPFS_PATH BITS=2048 ipfs init" >actual 2>&1 ||
+		test_fsh cat actual
+	'
+
+	test_expect_success "clear nodes bootstrapping" '
+		exec_docker "$docid" "ipfs config Bootstrap --json null"
 	'
 }
