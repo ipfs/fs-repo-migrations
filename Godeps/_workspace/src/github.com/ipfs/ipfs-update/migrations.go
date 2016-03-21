@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"strings"
 
-	util "github.com/ipfs/fs-repo-migrations/Godeps/_workspace/src/github.com/ipfs/ipfs-update/util"
-	stump "github.com/ipfs/fs-repo-migrations/Godeps/_workspace/src/github.com/whyrusleeping/stump"
+	util "github.com/ipfs/ipfs-update/util"
+	stump "github.com/whyrusleeping/stump"
 )
 
 func CheckMigration() error {
@@ -92,16 +92,25 @@ func GetMigrations() error {
 	// first, check if go is installed
 	_, err := exec.LookPath("go")
 	if err == nil {
-		return getMigrationsGoGet()
+		err := getMigrationsGoGet()
+		if err == nil {
+			return nil
+		}
+		stump.VLog("'go get' migrations failed: %s", err)
 	}
 
-	// TODO: try and fetch from gobuilder
+	// TODO: try and fetch from dist.ipfs.io
 	stump.Log("could not find or install fs-repo-migrations, please manually install it")
 	stump.Log("before running ipfs-update again.")
 	return fmt.Errorf("failed to find migrations binary")
 }
 
 func getMigrationsGoGet() error {
+	stump.VLog("  - checking that GOPATH is set")
+	if os.Getenv("GOPATH") == "" {
+		return fmt.Errorf("GOPATH not set, cannot install migrations with go tool")
+	}
+
 	stump.VLog("  - fetching migrations using 'go get'")
 	cmd := exec.Command("go", "get", "-u", "github.com/ipfs/fs-repo-migrations")
 	out, err := cmd.CombinedOutput()

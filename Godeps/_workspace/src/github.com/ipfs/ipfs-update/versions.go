@@ -6,9 +6,9 @@ import (
 	"os/exec"
 	"strings"
 
-	api "github.com/ipfs/fs-repo-migrations/Godeps/_workspace/src/github.com/ipfs/go-ipfs-api"
-	util "github.com/ipfs/fs-repo-migrations/Godeps/_workspace/src/github.com/ipfs/ipfs-update/util"
-	stump "github.com/ipfs/fs-repo-migrations/Godeps/_workspace/src/github.com/whyrusleeping/stump"
+	api "github.com/ipfs/go-ipfs-api"
+	util "github.com/ipfs/ipfs-update/util"
+	stump "github.com/whyrusleeping/stump"
 )
 
 func GetVersions(ipfspath string) ([]string, error) {

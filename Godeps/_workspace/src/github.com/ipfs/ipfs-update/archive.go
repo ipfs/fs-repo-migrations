@@ -8,7 +8,7 @@ import (
 	"io"
 	"os"
 
-	stump "github.com/ipfs/fs-repo-migrations/Godeps/_workspace/src/github.com/whyrusleeping/stump"
+	stump "github.com/whyrusleeping/stump"
 )
 
 func unpackArchive(path, out, atype string) error {
