@@ -2,9 +2,25 @@
 	"ImportPath": "github.com/ipfs/fs-repo-migrations",
 	"GoVersion": "go1.5.2",
 	"Packages": [
-		"./sharness/dependencies/ipfs-update"
+		"./sharness/dependencies/ipfs-update/"
 	],
 	"Deps": [
+		{
+			"ImportPath": "github.com/anacrolix/jitter",
+			"Rev": "92923cc3f46b286365effc2cbe72e5d736df820c"
+		},
+		{
+			"ImportPath": "github.com/anacrolix/missinggo",
+			"Rev": "1800c9915b35e9cd91f4c30862b33395939c9e74"
+		},
+		{
+			"ImportPath": "github.com/anacrolix/utp",
+			"Rev": "9cb4fcf35c913df77d2e95eb17c5c513eb16794a"
+		},
+		{
+			"ImportPath": "github.com/bradfitz/iter",
+			"Rev": "454541ec3da2a73fc34fd049b19ee5777bf19345"
+		},
 		{
 			"ImportPath": "github.com/codegangsta/cli",
 			"Comment": "1.2.0-179-g0302d39",
@@ -15,12 +31,37 @@
 			"Rev": "3859005e44f71e8317fb7464d6ff1570dbab7757"
 		},
 		{
+			"ImportPath": "github.com/ipfs/ipfs-update/config",
+			"Comment": "v1.0.0-8-g9454979",
+			"Rev": "945497939abe8c73f81d88a7f3770a36ac93da23"
+		},
+		{
 			"ImportPath": "github.com/ipfs/ipfs-update/test-dist",
-			"Rev": "9b31c27fc34d3f64a98eec377e8295fe00edde4c"
+			"Comment": "v1.0.0-8-g9454979",
+			"Rev": "945497939abe8c73f81d88a7f3770a36ac93da23"
 		},
 		{
 			"ImportPath": "github.com/ipfs/ipfs-update/util",
-			"Rev": "9b31c27fc34d3f64a98eec377e8295fe00edde4c"
+			"Comment": "v1.0.0-8-g9454979",
+			"Rev": "945497939abe8c73f81d88a7f3770a36ac93da23"
+		},
+		{
+			"ImportPath": "github.com/jbenet/go-base58",
+			"Rev": "6237cf65f3a6f7111cd8a42be3590df99a66bc7d"
+		},
+		{
+			"ImportPath": "github.com/jbenet/go-multiaddr",
+			"Comment": "0.1.2-51-gc9585c5",
+			"Rev": "c9585c5fcae588cdcc6794bc5d157d9b251869c8"
+		},
+		{
+			"ImportPath": "github.com/jbenet/go-multiaddr-net",
+			"Rev": "4a8bd8f8baf45afcf2bb385bbc17e5208d5d4c71"
+		},
+		{
+			"ImportPath": "github.com/jbenet/go-multihash",
+			"Comment": "0.1.0-39-ge8d2374",
+			"Rev": "e8d2374934f16a971d1e94a864514a21ac74bf7f"
 		},
 		{
 			"ImportPath": "github.com/whyrusleeping/go-multipart-files",
@@ -33,6 +74,10 @@
 		{
 			"ImportPath": "github.com/whyrusleeping/tar-utils",
 			"Rev": "e8a5890cfc9d59a203361237581468780d945b6e"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/sha3",
+			"Rev": "1f22c0103821b9390939b6776727195525381532"
 		}
 	]
 }
