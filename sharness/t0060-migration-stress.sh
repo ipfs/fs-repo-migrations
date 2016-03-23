@@ -5,11 +5,14 @@ test_description="Test migration 2 to 3 with lots of objects"
 . lib/test-lib.sh
 
 # setup vars for tests
-DEPTH=6
-PINTOTAL=2000
-if [ ! -z "$CI" ]; then
-	DEPTH=3
-	PINTOTAL=200
+
+DEPTH=3
+PINTOTAL=200
+
+if test_have_prereq EXPENSIVE
+then
+	DEPTH=6
+	PINTOTAL=2000
 fi
 
 PINEACH=$(expr $PINTOTAL / 2)

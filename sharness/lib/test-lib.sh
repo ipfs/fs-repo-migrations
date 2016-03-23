@@ -21,6 +21,8 @@ test "$TEST_VERBOSE" = 1 && verbose=t && echo '# TEST_VERBOSE='"$TEST_VERBOSE"
 
 # Please put fs-repo-migrations specific shell functions and variables below
 
+test "$TEST_EXPENSIVE" = 1 && test_set_prereq EXPENSIVE
+
 DEFAULT_DOCKER_IMG="debian"
 DOCKER_IMG="$DEFAULT_DOCKER_IMG"
 
