@@ -7,15 +7,25 @@ test_description="Test migration 2 to 3 with lots of objects"
 # setup vars for tests
 
 DEPTH=3
-PINTOTAL=200
+NBDIR=3
+NBFILE=6
+PINTOTAL=20
 
 if test_have_prereq EXPENSIVE
 then
 	DEPTH=6
+	NBDIR=7
+	NBFILE=10
 	PINTOTAL=2000
 fi
 
 PINEACH=$(expr $PINTOTAL / 2)
+
+echo "DEPTH: $DEPTH"
+echo "NBDIR: $NBDIR"
+echo "NBFILE: $NBFILE"
+echo "PINTOTAL: $PINTOTAL"
+echo "PINEACH: $PINEACH"
 
 test_expect_success "start a docker container" '
 	DOCID=$(start_docker)
@@ -51,7 +61,8 @@ test_init_daemon "$DOCID"
 test_start_daemon "$DOCID"
 
 test_expect_success "make a couple files" '
-	drun "$GUEST_RANDOM_FILES -depth=$DEPTH -dirs=7 -files=10 manyfiles" > filenames
+	drun "rm -rf manyfiles" &&
+	drun "$GUEST_RANDOM_FILES -depth=$DEPTH -dirs=$NBDIR -files=$NBFILE manyfiles" > filenames
 '
 
 test_expect_success "add a few files" '
