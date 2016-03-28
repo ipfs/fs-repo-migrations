@@ -5,14 +5,27 @@ test_description="Test migration 2 to 3 with lots of objects"
 . lib/test-lib.sh
 
 # setup vars for tests
-DEPTH=6
-PINTOTAL=2000
-if [ ! -z "$CI" ]; then
-	DEPTH=3
-	PINTOTAL=200
+
+DEPTH=3
+NBDIR=3
+NBFILE=6
+PINTOTAL=20
+
+if test_have_prereq EXPENSIVE
+then
+	DEPTH=6
+	NBDIR=7
+	NBFILE=10
+	PINTOTAL=2000
 fi
 
 PINEACH=$(expr $PINTOTAL / 2)
+
+echo "DEPTH: $DEPTH"
+echo "NBDIR: $NBDIR"
+echo "NBFILE: $NBFILE"
+echo "PINTOTAL: $PINTOTAL"
+echo "PINEACH: $PINEACH"
 
 test_expect_success "start a docker container" '
 	DOCID=$(start_docker)
@@ -48,7 +61,8 @@ test_init_daemon "$DOCID"
 test_start_daemon "$DOCID"
 
 test_expect_success "make a couple files" '
-	drun "$GUEST_RANDOM_FILES -depth=$DEPTH -dirs=7 -files=10 manyfiles" > filenames
+	drun "rm -rf manyfiles" &&
+	drun "$GUEST_RANDOM_FILES -depth=$DEPTH -dirs=$NBDIR -files=$NBFILE manyfiles" > filenames
 '
 
 test_expect_success "add a few files" '
@@ -178,6 +192,91 @@ test_expect_success "no pinned objects are missing from local refs" '
 	comm -23 all_pinned_refs post_gc_refs > missing_pinned_objects &&
 	test_can_fetch_buggy_hashes missing_pinned_objects
 '
+
+test_expect_success "make a couple more files" '
+	drun "$GUEST_RANDOM_FILES -depth=$DEPTH -dirs=$NBDIR -files=$NBFILE many_more_files" > more_filenames
+'
+
+test_expect_success "add the new files" '
+	drun "ipfs add -r -q many_more_files" | tee more_hashes
+'
+
+test_expect_success "unpin root so we can do things ourselves" '
+	drun "ipfs pin rm $(tail -n1 more_hashes)"
+'
+
+test_expect_success "select random subset to pin recursively and directly" '
+	sort -R more_hashes | head -n$PINTOTAL > more_topin &&
+	head -n$PINEACH more_topin > more_recurpins &&
+	tail -n$PINEACH more_topin > more_directpins
+'
+
+test_expect_success "pin some objects recursively" '
+	pin_hashes more_recurpins
+'
+
+test_expect_success "pin some objects directly" '
+	pin_hashes more_directpins "-r=false"
+'
+
+test_expect_success "get full ref list" '
+	drun "ipfs refs local" | sort > more_start_refs
+'
+
+test_expect_success "get pin lists" '
+	drun "ipfs pin ls --type=recursive" | sort > more_start_rec_pins &&
+	drun "ipfs pin ls --type=direct" | sort > more_start_dir_pins &&
+	drun "ipfs pin ls --type=indirect" | sort > more_start_ind_pins
+'
+
+test_expect_success "'ipfs-2-to-3 -revert' succeeds" '
+	drun "$GUEST_IPFS_2_TO_3 -revert -path=/root/.ipfs" >actual
+'
+
+test_expect_success "'ipfs-2-to-3 -revert' output looks good" '
+	grep "writing keys:" actual ||
+	test_fsh cat actual
+'
+
+test_install_version "v0.3.11"
+
+test_start_daemon $DOCID
+
+test_expect_success "list all refs after reverting migration" '
+	drun "ipfs refs local" | sort > after_revert_refs
+'
+
+test_expect_success "list all pins after reverting migration" '
+	drun "ipfs pin ls --type=recursive" | sort > after_revert_rec_pins &&
+	drun "ipfs pin ls --type=direct" | sort > after_revert_dir_pins &&
+	drun "ipfs pin ls --type=indirect" | sort > after_revert_ind_pins
+'
+
+test_expect_success "refs look right" '
+	comm -23 more_start_refs after_revert_refs > missing_refs &&
+	test_cmp missing_refs empty_refs_file
+'
+
+test_expect_success "pins all look the same" '
+	test_cmp more_start_rec_pins after_revert_rec_pins &&
+	test_cmp more_start_dir_pins after_revert_dir_pins &&
+	test_cmp more_start_ind_pins after_revert_ind_pins
+'
+
+test_expect_success "manually compute gc set" '
+	cat after_revert_rec_pins after_revert_dir_pins after_revert_ind_pins | sort > after_revert_all_pinned
+'
+
+test_expect_success "run a gc" '
+	drun "ipfs repo gc" | sort > gc_out
+'
+
+test_expect_success "no pinned objects were gc'ed" '
+	comm -12 gc_out after_revert_all_pinned > gced_pinned_objects &&
+	test_cmp empty_refs_file gced_pinned_objects
+'
+
+test_stop_daemon $DOCID
 
 test_expect_success "stop docker container" '
 	stop_docker "$DOCID"
