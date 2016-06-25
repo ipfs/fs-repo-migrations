@@ -12,13 +12,17 @@ import (
 	mg1 "github.com/ipfs/fs-repo-migrations/ipfs-1-to-2/migration"
 	homedir "github.com/ipfs/fs-repo-migrations/ipfs-2-to-3/Godeps/_workspace/src/github.com/mitchellh/go-homedir"
 	mg2 "github.com/ipfs/fs-repo-migrations/ipfs-2-to-3/migration"
+	mg3 "github.com/ipfs/fs-repo-migrations/ipfs-3-to-4/migration"
 	mfsr "github.com/ipfs/fs-repo-migrations/mfsr"
 )
+
+var CurrentVersion = 4
 
 var migrations = []gomigrate.Migration{
 	&mg0.Migration{},
 	&mg1.Migration{},
 	&mg2.Migration{},
+	&mg3.Migration{},
 }
 
 func GetIpfsDir() (string, error) {
@@ -120,14 +124,14 @@ func YesNoPrompt(prompt string) bool {
 }
 
 func main() {
-	target := flag.Int("to", 3, "specify version to upgrade to")
+	target := flag.Int("to", CurrentVersion, "specify version to upgrade to")
 	yes := flag.Bool("y", false, "answer yes to all prompts")
 	version := flag.Bool("v", false, "print highest repo version and exit")
 
 	flag.Parse()
 
 	if *version {
-		fmt.Println(3)
+		fmt.Println(CurrentVersion)
 		return
 	}
 
