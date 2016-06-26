@@ -56,7 +56,7 @@ test_expect_success "'fs-repo-migrations -y' output looks good" '
 	test_fsh cat actual
 '
 
-test_install_version "v0.4.0-dev"
+test_install_version "v0.4.0"
 
 test_expect_success "ipfs cat succeeds with hashes from previous version" '
 	exec_docker "$DOCID" "ipfs cat \"$MARS\" \"$VENUS\"" >actual

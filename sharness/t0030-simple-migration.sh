@@ -54,7 +54,7 @@ test_expect_success "'fs-repo-migrations -y' output looks good" '
 	grep "Migration 2 to 3 succeeded" actual
 '
 
-test_install_version "v0.4.0-dev"
+test_install_version "v0.4.0"
 
 test_expect_success "stop docker container" '
 	stop_docker "$DOCID"

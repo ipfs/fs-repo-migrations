@@ -109,7 +109,7 @@ test_expect_success "get pin lists" '
 
 test_stop_daemon $DOCID
 
-test_install_version "v0.4.0-dev"
+test_install_version "v0.4.0"
 
 test_start_daemon $DOCID
 

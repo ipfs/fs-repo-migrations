@@ -89,7 +89,7 @@ test_expect_success "'fs-repo-migrations -y' output looks good" '
 	test_fsh cat actual
 '
 
-test_install_version "v0.4.0-dev"
+test_install_version "v0.4.0"
 
 test_expect_success "added dir is still pinned recursively" '
 	exec_docker "$DOCID" "ipfs pin ls --type=recursive" > recurse_actual2 &&
