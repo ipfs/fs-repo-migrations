@@ -1,7 +1,6 @@
 package mg3
 
 import (
-	"encoding/base32"
 	"fmt"
 	"path"
 	"strings"
@@ -17,8 +16,10 @@ import (
 	mount "github.com/ipfs/fs-repo-migrations/ipfs-2-to-3/Godeps/_workspace/src/github.com/jbenet/go-datastore/mount"
 	dsq "github.com/ipfs/fs-repo-migrations/ipfs-2-to-3/Godeps/_workspace/src/github.com/jbenet/go-datastore/query"
 	sync "github.com/ipfs/fs-repo-migrations/ipfs-2-to-3/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
+	nuflatfs "github.com/ipfs/fs-repo-migrations/ipfs-3-to-4/flatfs"
 	mfsr "github.com/ipfs/fs-repo-migrations/mfsr"
 	log "github.com/ipfs/fs-repo-migrations/stump"
+	base32 "github.com/whyrusleeping/base32"
 )
 
 type Migration struct{}
@@ -33,7 +34,7 @@ func (m Migration) Reversible() bool {
 
 type validFunc func(string) bool
 type mkKeyFunc func(util.Key) dstore.Key
-type txFunc func(dstore.Datastore, []byte, mkKeyFunc) error
+type txFunc func(dstore.Datastore, dstore.Key, []byte, mkKeyFunc) error
 
 func validateNewKey(s string) bool {
 	parts := strings.Split(s, "/")
@@ -42,7 +43,7 @@ func validateNewKey(s string) bool {
 	}
 
 	kpart := s[2+len(parts[1]):]
-	v, err := base32.StdEncoding.DecodeString(kpart)
+	v, err := base32.RawStdEncoding.DecodeString(kpart)
 	if err == nil && len(v) == 34 {
 		return true
 	}
@@ -50,12 +51,10 @@ func validateNewKey(s string) bool {
 	return false
 }
 
-func makeOldKey(k util.Key) dstore.Key {
-	return dstore.NewKey("/blocks/" + string(k))
-}
-
-func makeOldPKKey(k util.Key) dstore.Key {
-	return dstore.NewKey("/pk/" + string(k))
+func oldKeyFunc(prefix string) func(util.Key) dstore.Key {
+	return func(k util.Key) dstore.Key {
+		return dstore.NewKey(prefix + string(k))
+	}
 }
 
 func validateOldKey(s string) bool {
@@ -65,7 +64,7 @@ func validateOldKey(s string) bool {
 	}
 
 	kpart := s[2+len(parts[1]):]
-	v, err := base32.StdEncoding.DecodeString(kpart)
+	v, err := base32.RawStdEncoding.DecodeString(kpart)
 	if err == nil && len(v) == 34 {
 		// already transfered to new format
 		return false
@@ -74,12 +73,10 @@ func validateOldKey(s string) bool {
 	return true
 }
 
-func makeNewKey(k util.Key) dstore.Key {
-	return dstore.NewKey("/blocks/" + base32.StdEncoding.EncodeToString([]byte(k)))
-}
-
-func makeNewPKKey(k util.Key) dstore.Key {
-	return dstore.NewKey("/pk/" + base32.StdEncoding.EncodeToString([]byte(k)))
+func newKeyFunc(prefix string) func(util.Key) dstore.Key {
+	return func(k util.Key) dstore.Key {
+		return dstore.NewKey(prefix + base32.RawStdEncoding.EncodeToString([]byte(k)))
+	}
 }
 
 func (m Migration) Apply(opts migrate.Options) error {
@@ -100,18 +97,23 @@ func (m Migration) Apply(opts migrate.Options) error {
 		return err
 	}
 
-	ds, err := openDatastore(opts.Path)
+	dsold, dsnew, err := openDatastores(opts.Path)
 	if err != nil {
 		return err
 	}
 
 	log.Log("transfering blocks to new key format")
-	if err := rewriteKeys(ds, "blocks", makeNewKey, validateOldKey, transferBlock); err != nil {
+	if err := rewriteKeys(dsold, dsnew, "blocks", newKeyFunc("/blocks/"), validateOldKey, transferBlock); err != nil {
 		return err
 	}
 
 	log.Log("transferring stored public key records")
-	if err := rewriteKeys(ds, "pk", makeNewPKKey, validateOldKey, transferPubKey); err != nil {
+	if err := rewriteKeys(dsold, dsnew, "pk", newKeyFunc("/pk/"), validateOldKey, transferPubKey); err != nil {
+		return err
+	}
+
+	log.Log("transferring stored ipns records")
+	if err := rewriteKeys(dsold, dsnew, "ipns", newKeyFunc("/ipns/"), validateOldKey, transferIpnsEntries); err != nil {
 		return err
 	}
 
@@ -139,18 +141,23 @@ func (m Migration) Revert(opts migrate.Options) error {
 		return err
 	}
 
-	ds, err := openDatastore(opts.Path)
+	oldds, newds, err := openDatastores(opts.Path)
 	if err != nil {
 		return err
 	}
 
 	log.Log("reverting blocks to old key format")
-	if err := rewriteKeys(ds, "blocks", makeOldKey, validateNewKey, transferBlock); err != nil {
+	if err := rewriteKeys(newds, oldds, "blocks", oldKeyFunc("/blocks/"), validateNewKey, transferBlock); err != nil {
 		return err
 	}
 
 	log.Log("reverting stored public key records")
-	if err := rewriteKeys(ds, "pk", makeOldPKKey, validateNewKey, transferPubKey); err != nil {
+	if err := rewriteKeys(newds, oldds, "pk", oldKeyFunc("/pk/"), validateNewKey, transferPubKey); err != nil {
+		return err
+	}
+
+	log.Log("reverting stored ipns records")
+	if err := rewriteKeys(newds, oldds, "ipns", oldKeyFunc("/ipns/"), validateNewKey, transferIpnsEntries); err != nil {
 		return err
 	}
 
@@ -166,36 +173,53 @@ func (m Migration) Revert(opts migrate.Options) error {
 	return nil
 }
 
-func openDatastore(repopath string) (dstore.ThreadSafeDatastore, error) {
+func openDatastores(repopath string) (a, b dstore.ThreadSafeDatastore, e error) {
 	log.VLog("  - opening datastore at %q", repopath)
 	ldbpath := path.Join(repopath, "datastore")
 	ldb, err := leveldb.NewDatastore(ldbpath, nil)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	blockspath := path.Join(repopath, "blocks")
-	fds, err := flatfs.New(blockspath, 4)
+	nfds, err := nuflatfs.New(blockspath, 4, true)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return sync.MutexWrap(mount.New([]mount.Mount{
+	ofds, err := flatfs.New(blockspath, 4)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	oldds := sync.MutexWrap(mount.New([]mount.Mount{
 		{
 			Prefix:    dstore.NewKey("/blocks"),
-			Datastore: fds,
+			Datastore: ofds,
 		},
 		{
 			Prefix:    dstore.NewKey("/"),
 			Datastore: ldb,
 		},
-	})), nil
+	}))
+
+	newds := sync.MutexWrap(mount.New([]mount.Mount{
+		{
+			Prefix:    dstore.NewKey("/blocks"),
+			Datastore: nfds,
+		},
+		{
+			Prefix:    dstore.NewKey("/"),
+			Datastore: ldb,
+		},
+	}))
+	return oldds, newds, nil
 }
 
-func rewriteKeys(ds dstore.Datastore, pref string, mkKey mkKeyFunc, valid validFunc, transfer txFunc) error {
+func rewriteKeys(oldds, newds dstore.Datastore, pref string, mkKey mkKeyFunc, valid validFunc, transfer txFunc) error {
 
 	log.Log("gathering keys...")
-	res, err := ds.Query(dsq.Query{
+	res, err := oldds.Query(dsq.Query{
 		Prefix:   pref,
 		KeysOnly: true,
 	})
@@ -232,7 +256,7 @@ func rewriteKeys(ds dstore.Datastore, pref string, mkKey mkKeyFunc, valid validF
 		}
 
 		curk := dstore.NewKey(e.Key)
-		blk, err := ds.Get(curk)
+		blk, err := oldds.Get(curk)
 		if err != nil {
 			return err
 		}
@@ -243,12 +267,12 @@ func rewriteKeys(ds dstore.Datastore, pref string, mkKey mkKeyFunc, valid validF
 			continue
 		}
 
-		err = transfer(ds, blkd, mkKey)
+		err = transfer(newds, curk, blkd, mkKey)
 		if err != nil {
 			return err
 		}
 
-		err = ds.Delete(curk)
+		err = oldds.Delete(curk)
 		if err != nil {
 			return err
 		}
@@ -257,7 +281,7 @@ func rewriteKeys(ds dstore.Datastore, pref string, mkKey mkKeyFunc, valid validF
 	return nil
 }
 
-func transferBlock(ds dstore.Datastore, data []byte, mkKey mkKeyFunc) error {
+func transferBlock(ds dstore.Datastore, oldk dstore.Key, data []byte, mkKey mkKeyFunc) error {
 	b := blocks.NewBlock(data)
 	dsk := mkKey(b.Key())
 	err := ds.Put(dsk, b.Data)
@@ -268,8 +292,17 @@ func transferBlock(ds dstore.Datastore, data []byte, mkKey mkKeyFunc) error {
 	return nil
 }
 
-func transferPubKey(ds dstore.Datastore, data []byte, mkKey mkKeyFunc) error {
+func transferPubKey(ds dstore.Datastore, oldk dstore.Key, data []byte, mkKey mkKeyFunc) error {
 	k := util.Key(util.Hash(data))
 	dsk := mkKey(k)
+	return ds.Put(dsk, data)
+}
+
+func transferIpnsEntries(ds dstore.Datastore, oldk dstore.Key, data []byte, mkkey mkKeyFunc) error {
+	if len(oldk.String()) != 40 {
+		log.Log(" - skipping malformed ipns record: %q", oldk)
+		return nil
+	}
+	dsk := dstore.NewKey("/ipns/" + base32.RawStdEncoding.EncodeToString([]byte(oldk.String()[6:])))
 	return ds.Put(dsk, data)
 }
