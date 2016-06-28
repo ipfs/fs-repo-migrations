@@ -16,10 +16,10 @@ import (
 	mount "github.com/ipfs/fs-repo-migrations/ipfs-2-to-3/Godeps/_workspace/src/github.com/jbenet/go-datastore/mount"
 	dsq "github.com/ipfs/fs-repo-migrations/ipfs-2-to-3/Godeps/_workspace/src/github.com/jbenet/go-datastore/query"
 	sync "github.com/ipfs/fs-repo-migrations/ipfs-2-to-3/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
+	base32 "github.com/ipfs/fs-repo-migrations/ipfs-3-to-4/base32"
 	nuflatfs "github.com/ipfs/fs-repo-migrations/ipfs-3-to-4/flatfs"
 	mfsr "github.com/ipfs/fs-repo-migrations/mfsr"
 	log "github.com/ipfs/fs-repo-migrations/stump"
-	base32 "github.com/whyrusleeping/base32"
 )
 
 type Migration struct{}
@@ -182,7 +182,7 @@ func openDatastores(repopath string) (a, b dstore.ThreadSafeDatastore, e error) 
 	}
 
 	blockspath := path.Join(repopath, "blocks")
-	nfds, err := nuflatfs.New(blockspath, 4, true)
+	nfds, err := nuflatfs.New(blockspath, 7, true)
 	if err != nil {
 		return nil, nil, err
 	}
