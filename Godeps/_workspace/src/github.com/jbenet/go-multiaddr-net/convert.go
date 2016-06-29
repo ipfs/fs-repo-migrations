@@ -37,7 +37,7 @@ func FromNetAddr(a net.Addr) (ma.Multiaddr, error) {
 		}
 
 		// Encapsulate
-		return ipm.Encapsulate(tcpm), nil
+		return ma.Encapsulate(ipm, tcpm), nil
 
 	case "udp", "upd4", "udp6":
 		ac, ok := a.(*net.UDPAddr)
@@ -58,7 +58,7 @@ func FromNetAddr(a net.Addr) (ma.Multiaddr, error) {
 		}
 
 		// Encapsulate
-		return ipm.Encapsulate(udpm), nil
+		return ma.Encapsulate(ipm, udpm), nil
 
 	case "utp", "utp4", "utp6":
 		acc, ok := a.(*utp.Addr)
@@ -85,7 +85,7 @@ func FromNetAddr(a net.Addr) (ma.Multiaddr, error) {
 		}
 
 		// Encapsulate
-		return ipm.Encapsulate(utpm), nil
+		return ma.Encapsulate(ipm, utpm), nil
 
 	case "ip", "ip4", "ip6":
 		ac, ok := a.(*net.IPAddr)

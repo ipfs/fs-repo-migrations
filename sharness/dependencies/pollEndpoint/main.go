@@ -10,9 +10,9 @@ import (
 	"os"
 	"time"
 
-	logging "gx/ipfs/QmNQynaz7qfriSUJkiEZUrm2Wen1u3Kj9goZzWtrPyu7XR/go-log"
-	manet "gx/ipfs/QmPpRcbNUXauP3zWZ1NJMLWpe4QnmEHrd2ba2D3yqWznw7/go-multiaddr-net"
-	ma "gx/ipfs/QmYzDkkgAEmrcNzFCiYo6L1dTX4EAG1gZkbtdbd9trL4vd/go-multiaddr"
+	ma "github.com/ipfs/fs-repo-migrations/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
+	manet "github.com/ipfs/fs-repo-migrations/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
+	logging "github.com/ipfs/fs-repo-migrations/ipfs-2-to-3/Godeps/_workspace/src/github.com/whyrusleeping/go-logging"
 )
 
 var (
@@ -23,7 +23,7 @@ var (
 	verbose  = flag.Bool("v", false, "verbose logging")
 )
 
-var log = logging.Logger("pollEndpoint")
+var log = logging.MustGetLogger("pollEndpoint")
 
 func main() {
 	flag.Parse()
@@ -43,7 +43,7 @@ func main() {
 	}
 
 	if *verbose { // lower log level
-		logging.SetDebugLogging()
+		logging.LogLevel("debug")
 	}
 
 	// construct url to dial
