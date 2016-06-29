@@ -157,7 +157,7 @@ func (m Migration) Revert(opts migrate.Options) error {
 	}
 
 	log.Log("reverting stored ipns records")
-	if err := rewriteKeys(newds, oldds, "ipns", oldKeyFunc("/ipns/"), validateNewKey, transferIpnsEntries); err != nil {
+	if err := rewriteKeys(newds, oldds, "ipns", oldKeyFunc("/ipns/"), validateNewKey, revertIpnsEntries); err != nil {
 		return err
 	}
 
@@ -305,5 +305,19 @@ func transferIpnsEntries(ds dstore.Datastore, oldk dstore.Key, data []byte, mkke
 		return nil
 	}
 	dsk := dstore.NewKey("/ipns/" + base32.RawStdEncoding.EncodeToString([]byte(oldk.String()[6:])))
+	return ds.Put(dsk, data)
+}
+
+func revertIpnsEntries(ds dstore.Datastore, oldk dstore.Key, data []byte, mkkey mkKeyFunc) error {
+	if len(oldk.String()) != 61 {
+		log.Log(" - skipping malformed ipns record: %q", oldk)
+		return nil
+	}
+	dec, err := base32.RawStdEncoding.DecodeString(oldk.String()[6:])
+	if err != nil {
+		return err
+	}
+
+	dsk := dstore.NewKey("/ipns/" + string(dec))
 	return ds.Put(dsk, data)
 }
