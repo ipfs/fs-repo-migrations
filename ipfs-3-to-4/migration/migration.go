@@ -182,7 +182,7 @@ func openDatastores(repopath string) (a, b dstore.ThreadSafeDatastore, e error) 
 	}
 
 	blockspath := path.Join(repopath, "blocks")
-	nfds, err := nuflatfs.New(blockspath, 7, true)
+	nfds, err := nuflatfs.New(blockspath, 5, true)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -277,6 +277,7 @@ func rewriteKeys(oldds, newds dstore.Datastore, pref string, mkKey mkKeyFunc, va
 			return err
 		}
 	}
+	fmt.Println()
 
 	return nil
 }

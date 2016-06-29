@@ -48,7 +48,7 @@ test_expect_success "ipfs cat output looks good" '
 '
 
 test_expect_success "'fs-repo-migrations -y' works" '
-	exec_docker "$DOCID" "$GUEST_FS_REPO_MIG -y" >actual
+	exec_docker "$DOCID" "$GUEST_FS_REPO_MIG -y -to=3" >actual
 '
 
 test_expect_success "'fs-repo-migrations -y' output looks good" '
