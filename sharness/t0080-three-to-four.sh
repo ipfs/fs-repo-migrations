@@ -244,8 +244,23 @@ test_expect_success "pin some objects directly" '
 	pin_hashes directpins "-r=false"
 '
 
+test_expect_success "add some files with the path clean bug" '
+	printf ba | ipfs add -q > buggy_hashes &&
+	printf bbd | ipfs add -q >> buggy_hashes &&
+	printf cdbd | ipfs add -q >> buggy_hashes &&
+	printf aabdb | ipfs add -q >> buggy_hashes &&
+	printf bccac | ipfs add -q >> buggy_hashes &&
+	sort buggy_hashes -o buggy_hashes
+
+'
+
 test_expect_success "get full ref list" '
 	ipfs refs local | sort > start_refs
+'
+
+test_expect_success "ensure buggy hashes dont show up in ref list" '
+	comm -12 start_refs buggy_hashes > badrefs &&
+	test ! -s badrefs
 '
 
 test_expect_success "get pin lists" '
@@ -253,6 +268,7 @@ test_expect_success "get pin lists" '
 	ipfs pin ls --type=direct | sort > start_dir_pins &&
 	ipfs pin ls --type=indirect | sort > start_ind_pins
 '
+
 
 test_kill_ipfs_daemon
 
