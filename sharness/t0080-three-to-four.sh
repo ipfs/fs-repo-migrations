@@ -1,10 +1,12 @@
 #!/bin/sh
 
-test_description="Test migration 2 to 3 with lots of objects"
+test_description="Test migration 3 to 4 with lots of objects"
 
 . lib/test-lib.sh
 
 # setup vars for tests
+
+export IPFS_DIST_PATH="/ipfs/QmUGSSMCcPTeLCyrjKdozh2XY9VUdJVYxA6LjyJjLPcXST"
 
 DEPTH=3
 NBDIR=3
@@ -27,50 +29,28 @@ echo "NBFILE: $NBFILE"
 echo "PINTOTAL: $PINTOTAL"
 echo "PINEACH: $PINEACH"
 
-test_expect_success "start a docker container" '
-	DOCID=$(start_docker)
-'
+export GOPATH="$(pwd)/gopath"
+mkdir -p gopath/bin
+export PATH="../bin:$GOPATH/bin:$PATH"
 
-drun() {
-	exec_docker "$DOCID" "$@"
-}
 
-test_docker_wait_for_file() {
-	docid="$1"
-	loops="$2"
-	delay="$3"
-	file="$4"
-	fwaitc=0
-	while ! exec_docker "$docid" "test -f '$file'"
-	do
-		if test $fwaitc -ge $loops
-		then
-			echo "Error: timed out waiting for file: $file"
-			return 1
-		fi
+test_install_ipfs_nd "v0.4.2"
 
-		go-sleep $delay
-		fwaitc=$(expr $fwaitc + 1)
-	done
-}
+test_init_ipfs_nd
 
-test_install_version "v0.3.11"
-
-test_init_daemon "$DOCID"
-
-test_start_daemon "$DOCID"
+test_launch_ipfs_daemon
 
 test_expect_success "make a couple files" '
-	drun "rm -rf manyfiles" &&
-	drun "$GUEST_RANDOM_FILES -depth=$DEPTH -dirs=$NBDIR -files=$NBFILE manyfiles" > filenames
+	rm -rf manyfiles &&
+	random-files -depth=$DEPTH -dirs=$NBDIR -files=$NBFILE manyfiles > filenames
 '
 
 test_expect_success "add a few files" '
-	drun "ipfs add -r -q manyfiles" | tee hashes
+	ipfs add -r -q manyfiles | tee hashes
 '
 
 test_expect_success "unpin root so we can do things ourselves" '
-	drun "ipfs pin rm $(tail -n1 hashes)"
+	ipfs pin rm $(tail -n1 hashes)
 '
 
 test_expect_success "select random subset to pin recursively and directly" '
@@ -83,7 +63,7 @@ pin_hashes() {
 	hashes_file="$1"
 	opts="$2"
 	for h in `cat $hashes_file`; do
-		if ! drun "ipfs pin add $opts $h"; then
+		if ! ipfs pin add $opts $h; then
 			return 1
 		fi
 	done
@@ -97,30 +77,46 @@ test_expect_success "pin some objects directly" '
 	pin_hashes directpins "-r=false"
 '
 
+test_expect_success "add some files with the path clean bug" '
+	printf ba | ipfs add -q > buggy_hashes &&
+	printf bbd | ipfs add -q >> buggy_hashes &&
+	printf cdbd | ipfs add -q >> buggy_hashes &&
+	printf aabdb | ipfs add -q >> buggy_hashes &&
+	printf bccac | ipfs add -q >> buggy_hashes &&
+	echo 0243397916 | ipfs add -q >> buggy_hashes && # produces /../ in binary key
+	sort buggy_hashes -o buggy_hashes
+
+'
+
 test_expect_success "get full ref list" '
-	drun "ipfs refs local" | sort > start_refs
+	ipfs refs local | sort > start_refs
+'
+
+test_expect_success "ensure buggy hashes dont show up in ref list" '
+	comm -12 start_refs buggy_hashes > badrefs &&
+	test ! -s badrefs
 '
 
 test_expect_success "get pin lists" '
-	drun "ipfs pin ls --type=recursive" | sort > start_rec_pins &&
-	drun "ipfs pin ls --type=direct" | sort > start_dir_pins &&
-	drun "ipfs pin ls --type=indirect" | sort > start_ind_pins
+	ipfs pin ls --type=recursive | sort > start_rec_pins &&
+	ipfs pin ls --type=direct | sort > start_dir_pins &&
+	ipfs pin ls --type=indirect | sort > start_ind_pins
 '
 
-test_stop_daemon $DOCID
+test_kill_ipfs_daemon
 
-test_install_version "v0.4.0"
+test_install_ipfs_nd "v0.4.3-dev"
 
-test_start_daemon $DOCID
+test_launch_ipfs_daemon
 
 test_expect_success "list all refs after migration" '
-	drun "ipfs refs local" | sort > after_refs
+	ipfs refs local | sort > after_refs
 '
 
 test_expect_success "list all pins after migration" '
-	drun "ipfs pin ls --type=recursive" | sort > after_rec_pins &&
-	drun "ipfs pin ls --type=direct" | sort > after_dir_pins &&
-	drun "ipfs pin ls --type=indirect" | sort > after_ind_pins
+	ipfs pin ls --type=recursive | sort > after_rec_pins &&
+	ipfs pin ls --type=direct | sort > after_dir_pins &&
+	ipfs pin ls --type=indirect | sort > after_ind_pins
 '
 
 test_expect_success "refs look right" '
@@ -140,7 +136,7 @@ test_expect_success "manually compute gc set" '
 '
 
 test_expect_success "run a gc" '
-	drun "ipfs repo gc" | sort > gc_out	
+	ipfs repo gc | sort > gc_out	
 '
 
 test_expect_success "no pinned objects were gc'ed" '
@@ -149,9 +145,9 @@ test_expect_success "no pinned objects were gc'ed" '
 '
 
 test_expect_success "list all pins after gc" '
-	drun "ipfs pin ls --type=recursive" | sort > gc_rec_pins &&
-	drun "ipfs pin ls --type=direct" | sort > gc_dir_pins &&
-	drun "ipfs pin ls --type=indirect" | sort > gc_ind_pins
+	ipfs pin ls --type=recursive | sort > gc_rec_pins &&
+	ipfs pin ls --type=direct | sort > gc_dir_pins &&
+	ipfs pin ls --type=indirect | sort > gc_ind_pins
 '
 
 test_expect_success "pins all look the same" '
@@ -161,7 +157,7 @@ test_expect_success "pins all look the same" '
 '
 
 test_expect_success "fetch all refs" '
-	drun "ipfs refs local" | sort | uniq > post_gc_refs
+	ipfs refs local | sort | uniq > post_gc_refs
 '
 
 first_elems() {
@@ -172,37 +168,35 @@ test_expect_success "get just hashes of pins" '
 	first_elems all_pinned | sort | uniq > all_pinned_refs
 '
 
-test_stop_daemon $DOCID
+test_kill_ipfs_daemon
 
 test_can_fetch_buggy_hashes() {
 	ref_file="$1"
 	for ref in `cat $ref_file`; do
-		if ! drun "ipfs block get $ref" > /dev/null; then
+		if ! ipfs block get $ref > /dev/null; then
 			echo "FAILURE: $ref"
 			return 1
 		fi
 	done
 }
 
-# the refs we're testing here are a result of the go-datastore path bug.
-# The byte representation of the hash ends in a '/' character, which gets trimmed
-# by go-datastore. This does not imply that there is any data lost, just that
-# we cant enumerate those refs properly
+# this bug was fixed in 0.4.3
 test_expect_success "no pinned objects are missing from local refs" '
 	comm -23 all_pinned_refs post_gc_refs > missing_pinned_objects &&
-	test_can_fetch_buggy_hashes missing_pinned_objects
+	printf "" > empty_file &&
+	test_cmp empty_file missing_pinned_objects
 '
 
 test_expect_success "make a couple more files" '
-	drun "$GUEST_RANDOM_FILES -depth=$DEPTH -dirs=$NBDIR -files=$NBFILE many_more_files" > more_filenames
+	random-files -depth=$DEPTH -dirs=$NBDIR -files=$NBFILE many_more_files > more_filenames
 '
 
 test_expect_success "add the new files" '
-	drun "ipfs add -r -q many_more_files" | tee more_hashes
+	ipfs add -r -q many_more_files | tee more_hashes
 '
 
 test_expect_success "unpin root so we can do things ourselves" '
-	drun "ipfs pin rm $(tail -n1 more_hashes)"
+	ipfs pin rm $(tail -n1 more_hashes)
 '
 
 test_expect_success "select random subset to pin recursively and directly" '
@@ -220,41 +214,51 @@ test_expect_success "pin some objects directly" '
 '
 
 test_expect_success "get full ref list" '
-	drun "ipfs refs local" | sort > more_start_refs
+	ipfs refs local | sort > more_start_refs
 '
 
 test_expect_success "get pin lists" '
-	drun "ipfs pin ls --type=recursive" | sort > more_start_rec_pins &&
-	drun "ipfs pin ls --type=direct" | sort > more_start_dir_pins &&
-	drun "ipfs pin ls --type=indirect" | sort > more_start_ind_pins
+	ipfs pin ls --type=recursive | sort > more_start_rec_pins &&
+	ipfs pin ls --type=direct | sort > more_start_dir_pins &&
+	ipfs pin ls --type=indirect | sort > more_start_ind_pins
 '
 
-test_expect_success "'ipfs-2-to-3 -revert' succeeds" '
-	drun "$GUEST_IPFS_2_TO_3 -revert -path=/root/.ipfs" >actual
+test_expect_success "'ipfs-3-to-4 -revert' succeeds" '
+	ipfs-3-to-4 -revert -path="$IPFS_PATH" >actual
 '
 
-test_expect_success "'ipfs-2-to-3 -revert' output looks good" '
-	grep "writing keys:" actual ||
+test_expect_success "'ipfs-3-to-4 -revert' output looks good" '
+	grep "reverting blocks" actual ||
 	test_fsh cat actual
 '
 
-test_install_version "v0.3.11"
+test_install_ipfs_nd "v0.4.2"
 
-test_start_daemon $DOCID
+test_launch_ipfs_daemon
 
 test_expect_success "list all refs after reverting migration" '
-	drun "ipfs refs local" | sort > after_revert_refs
+	ipfs refs local | sort > after_revert_refs
 '
 
 test_expect_success "list all pins after reverting migration" '
-	drun "ipfs pin ls --type=recursive" | sort > after_revert_rec_pins &&
-	drun "ipfs pin ls --type=direct" | sort > after_revert_dir_pins &&
-	drun "ipfs pin ls --type=indirect" | sort > after_revert_ind_pins
+	ipfs pin ls --type=recursive | sort > after_revert_rec_pins &&
+	ipfs pin ls --type=direct | sort > after_revert_dir_pins &&
+	ipfs pin ls --type=indirect | sort > after_revert_ind_pins
 '
+
+test_can_fetch_buggy_hashes() {
+	ref_file="$1"
+	for ref in `cat $ref_file`; do
+		if ! ipfs block get $ref > /dev/null; then
+			echo "FAILURE: $ref"
+			return 1
+		fi
+	done
+}
 
 test_expect_success "refs look right" '
 	comm -23 more_start_refs after_revert_refs > missing_refs &&
-	test_cmp missing_refs empty_refs_file
+	test_can_fetch_buggy_hashes missing_refs
 '
 
 test_expect_success "pins all look the same" '
@@ -268,7 +272,7 @@ test_expect_success "manually compute gc set" '
 '
 
 test_expect_success "run a gc" '
-	drun "ipfs repo gc" | sort > gc_out
+	ipfs repo gc | sort > gc_out
 '
 
 test_expect_success "no pinned objects were gc'ed" '
@@ -276,10 +280,6 @@ test_expect_success "no pinned objects were gc'ed" '
 	test_cmp empty_refs_file gced_pinned_objects
 '
 
-test_stop_daemon $DOCID
-
-test_expect_success "stop docker container" '
-	stop_docker "$DOCID"
-'
+test_kill_ipfs_daemon 
 
 test_done

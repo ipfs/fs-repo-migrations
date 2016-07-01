@@ -262,7 +262,7 @@ func testFileAdd(tdir, bin string) error {
 	stump.VLog("  - checking that we can add and cat a file")
 	text := "hello world! This node should work"
 	data := bytes.NewBufferString(text)
-	c := exec.Command(bin, "add", "-q")
+	c := exec.Command(bin, "add", "-q", "--progress=false")
 	c.Env = []string{"IPFS_PATH=" + tdir}
 	c.Stdin = data
 	out, err := c.CombinedOutput()

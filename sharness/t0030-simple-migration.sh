@@ -13,7 +13,7 @@ test_expect_success "'fs-repo-migrations -v' works" '
 '
 
 test_expect_success "'fs-repo-migrations -v' output looks good" '
-	echo "3" >expected &&
+	echo "4" >expected &&
 	test_cmp expected actual
 '
 
@@ -30,7 +30,7 @@ test_expect_success "'fs-repo-migrations -v' works" '
 '
 
 test_expect_success "'fs-repo-migrations -v' output looks good" '
-	echo "3" >expected &&
+	echo "4" >expected &&
 	test_cmp expected actual
 '
 
@@ -47,14 +47,14 @@ test_expect_success ".ipfs/ has been created" '
 '
 
 test_expect_success "'fs-repo-migrations -y' works" '
-	exec_docker "$DOCID" "$GUEST_FS_REPO_MIG -y" >actual
+	exec_docker "$DOCID" "$GUEST_FS_REPO_MIG -y -to=3" >actual
 '
 
 test_expect_success "'fs-repo-migrations -y' output looks good" '
 	grep "Migration 2 to 3 succeeded" actual
 '
 
-test_install_version "v0.4.0-dev"
+test_install_version "v0.4.0"
 
 test_expect_success "stop docker container" '
 	stop_docker "$DOCID"

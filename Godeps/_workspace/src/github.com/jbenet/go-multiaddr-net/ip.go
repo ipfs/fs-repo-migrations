@@ -63,7 +63,7 @@ func IsIPLoopback(m ma.Multiaddr) bool {
 	}
 
 	// /ip6/::1
-	if IP6Loopback.Equal(m) || IP6LinkLocalLoopback.Equal(m) {
+	if ma.Equal(IP6Loopback, m) || ma.Equal(IP6LinkLocalLoopback, m) {
 		return true
 	}
 
@@ -81,5 +81,5 @@ func IsIP6LinkLocal(m ma.Multiaddr) bool {
 // IsIPUnspecified returns whether a Multiaddr is am Unspecified IP address
 // This means either /ip4/0.0.0.0 or /ip6/::
 func IsIPUnspecified(m ma.Multiaddr) bool {
-	return IP4Unspecified.Equal(m) || IP6Unspecified.Equal(m)
+	return ma.Equal(IP4Unspecified, m) || ma.Equal(IP6Unspecified, m)
 }

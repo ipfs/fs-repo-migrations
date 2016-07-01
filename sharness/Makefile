@@ -16,16 +16,20 @@ BINS += bin/fs-repo-migrations
 BINS += bin/ipfs-0-to-1
 BINS += bin/ipfs-1-to-2
 BINS += bin/ipfs-2-to-3
+BINS += bin/ipfs-3-to-4
 BINS += bin/ipfs-update
 BINS += bin/random-files
 BINS += bin/go-sleep
+BINS += bin/pollEndpoint
 
 # Source files location
 FS_REPO_SRC = ../
 IPFS_0_TO_1_SRC = ../ipfs-0-to-1
 IPFS_1_TO_2_SRC = ../ipfs-1-to-2
 IPFS_2_TO_3_SRC = ../ipfs-2-to-3
+IPFS_3_TO_4_SRC = ../ipfs-3-to-4
 IPFS_UPDATE_SRC = ../Godeps/_workspace/src/github.com/ipfs/ipfs-update
+POLL_ENDPOINT_SRC = ./dependencies/pollEndpoint
 
 # User might want to override those on the command line
 GOFLAGS =
@@ -86,6 +90,14 @@ bin/ipfs-1-to-2: $(call find_go_files, $(IPFS_1_TO_2_SRC)) BUILD-OPTIONS
 bin/ipfs-2-to-3: $(call find_go_files, $(IPFS_2_TO_3_SRC)) BUILD-OPTIONS
 	@echo "*** installing $@ ***"
 	go build $(GOFLAGS) -o $@ $(IPFS_2_TO_3_SRC)
+
+bin/ipfs-3-to-4: $(call find_go_files, $(IPFS_3_TO_4_SRC)) BUILD-OPTIONS
+	@echo "*** installing $@ ***"
+	go build $(GOFLAGS) -o $@ $(IPFS_3_TO_4_SRC)
+
+bin/pollEndpoint: $(call find_go_files, $(POLL_ENDPOINT_SRC)) BUILD-OPTIONS
+	@echo "*** installing $@ ***"
+	go build $(GOFLAGS) -o $@ $(POLL_ENDPOINT_SRC)
 
 BUILD-OPTIONS: FORCE
 	@bin/checkflags '$@' '$(GOFLAGS)' '*** new Go flags ***'

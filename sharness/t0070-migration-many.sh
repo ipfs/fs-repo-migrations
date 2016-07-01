@@ -26,7 +26,7 @@ test_repo_version "0.3.7"
 test_install_version "v0.3.10"
 test_repo_version "0.3.10"
 
-test_install_version "v0.4.0-dev"
+test_install_version "v0.4.0"
 test_repo_version "0.4.0"
 
 test_install_version "v0.3.8"
