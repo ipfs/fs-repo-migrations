@@ -162,6 +162,10 @@ func (m Migration) Revert(opts migrate.Options) error {
 		return err
 	}
 
+	if err := cleanEmptyDirs(filepath.Join(opts.Path, "blocks")); err != nil {
+		return err
+	}
+
 	log.Log("reverting stored public key records")
 	if err := rewriteKeys(newds, oldds, "pk", oldKeyFunc("/pk/"), validateNewKey, transferPubKey); err != nil {
 		return err
@@ -387,6 +391,38 @@ func transferBlocks(flatfsdir string) error {
 
 	fmt.Println()
 
+	err := cleanEmptyDirs(flatfsdir)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	return nil
+}
+
+func cleanEmptyDirs(dir string) error {
+	children, err := ioutil.ReadDir(dir)
+	if err != nil {
+		return err
+	}
+
+	for _, c := range children {
+		if !c.IsDir() {
+			continue
+		}
+
+		cdir := filepath.Join(dir, c.Name())
+		blocks, err := ioutil.ReadDir(cdir)
+		if err != nil {
+			return err
+		}
+
+		if len(blocks) == 0 {
+			err := os.Remove(cdir)
+			if err != nil {
+				return err
+			}
+		}
+	}
 	return nil
 }
 
