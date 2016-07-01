@@ -1,8 +1,12 @@
 package mg3
 
 import (
+	"encoding/hex"
 	"fmt"
+	"io/ioutil"
+	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -16,6 +20,7 @@ import (
 	mount "github.com/ipfs/fs-repo-migrations/ipfs-2-to-3/Godeps/_workspace/src/github.com/jbenet/go-datastore/mount"
 	dsq "github.com/ipfs/fs-repo-migrations/ipfs-2-to-3/Godeps/_workspace/src/github.com/jbenet/go-datastore/query"
 	sync "github.com/ipfs/fs-repo-migrations/ipfs-2-to-3/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
+	rename "github.com/ipfs/fs-repo-migrations/ipfs-2-to-3/Godeps/_workspace/src/github.com/jbenet/go-os-rename"
 	base32 "github.com/ipfs/fs-repo-migrations/ipfs-3-to-4/base32"
 	nuflatfs "github.com/ipfs/fs-repo-migrations/ipfs-3-to-4/flatfs"
 	mfsr "github.com/ipfs/fs-repo-migrations/mfsr"
@@ -103,9 +108,15 @@ func (m Migration) Apply(opts migrate.Options) error {
 	}
 
 	log.Log("transfering blocks to new key format")
-	if err := rewriteKeys(dsold, dsnew, "blocks", newKeyFunc("/blocks/"), validateOldKey, transferBlock); err != nil {
+	if err := transferBlocks(filepath.Join(opts.Path, "blocks")); err != nil {
 		return err
 	}
+
+	/*
+		if err := rewriteKeys(dsold, dsnew, "blocks", newKeyFunc("/blocks/"), validateOldKey, transferBlock); err != nil {
+			return err
+		}
+	*/
 
 	log.Log("transferring stored public key records")
 	if err := rewriteKeys(dsold, dsnew, "pk", newKeyFunc("/pk/"), validateOldKey, transferPubKey); err != nil {
@@ -234,24 +245,12 @@ func rewriteKeys(oldds, newds dstore.Datastore, pref string, mkKey mkKeyFunc, va
 
 	log.Log("got %d keys, beginning transfer. This will take some time.", len(entries))
 
-	before := time.Now()
-	var skipped int
-	for i, e := range entries {
-		fmt.Printf("\r[%d / %d]", i, len(entries))
-		if skipped > 0 {
-			fmt.Printf(" (skipped: %d)", skipped)
-		}
-		if i%10 == 9 {
-			took := time.Now().Sub(before)
-			av := took / time.Duration(i)
-			estim := av * time.Duration(len(entries)-i)
-			est := strings.Split(estim.String(), ".")[0]
-
-			fmt.Printf("  Approx time remaining: %ss  ", est)
-		}
+	prog := NewProgress(len(entries))
+	for _, e := range entries {
+		prog.Next()
 
 		if !valid(e.Key) {
-			skipped++
+			prog.Skip()
 			continue
 		}
 
@@ -320,4 +319,108 @@ func revertIpnsEntries(ds dstore.Datastore, oldk dstore.Key, data []byte, mkkey 
 
 	dsk := dstore.NewKey("/ipns/" + string(dec))
 	return ds.Put(dsk, data)
+}
+
+func transferBlocks(flatfsdir string) error {
+	var keys []string
+	filepath.Walk(flatfsdir, func(p string, i os.FileInfo, err error) error {
+		if i.IsDir() {
+			return nil
+		}
+
+		if err != nil {
+			return err
+		}
+
+		rel := p[len(flatfsdir)+1:]
+		if !strings.HasPrefix(rel, "1220") {
+			fmt.Println("skipping: ", rel)
+			return nil
+		}
+
+		if !strings.HasSuffix(rel, ".data") {
+			fmt.Println("skipping (no .data): ", rel)
+			return nil
+		}
+
+		keys = append(keys, p)
+		return nil
+	})
+
+	prog := NewProgress(len(keys))
+	for _, p := range keys {
+		prog.Next()
+		rel := p[len(flatfsdir)+1:]
+
+		_, fi := filepath.Split(rel[:len(rel)-5])
+		k, err := hex.DecodeString(fi)
+		if err != nil {
+			fmt.Printf("failed to decode: %s\n", p)
+			return err
+		}
+
+		if len(k) != 34 {
+			data, err := ioutil.ReadFile(p)
+			if err != nil {
+				return err
+			}
+
+			key := blocks.NewBlock(data).Key()
+			k = []byte(key)
+		}
+
+		nname := base32.RawStdEncoding.EncodeToString(k) + ".data"
+		dirname := nname[:5]
+		nfiname := filepath.Join(flatfsdir, dirname, nname)
+
+		err = os.MkdirAll(filepath.Join(flatfsdir, dirname), 0755)
+		if err != nil {
+			return err
+		}
+
+		err = rename.Rename(p, nfiname)
+		if err != nil {
+			return err
+		}
+	}
+
+	fmt.Println()
+
+	return nil
+}
+
+type progress struct {
+	total   int
+	current int
+	skipped int
+
+	start time.Time
+}
+
+func NewProgress(total int) *progress {
+	return &progress{
+		total: total,
+		start: time.Now(),
+	}
+}
+
+func (p *progress) Skip() {
+	p.skipped++
+}
+
+func (p *progress) Next() {
+	p.current++
+	fmt.Printf("\r[%d / %d]", p.current, p.total)
+	if p.skipped > 0 {
+		fmt.Printf(" (skipped: %d)", p.skipped)
+	}
+
+	if p.current%10 == 9 {
+		took := time.Now().Sub(p.start)
+		av := took / time.Duration(p.current)
+		estim := av * time.Duration(p.total-p.current)
+		est := strings.Split(estim.String(), ".")[0]
+
+		fmt.Printf("  Approx time remaining: %ss  ", est)
+	}
 }
