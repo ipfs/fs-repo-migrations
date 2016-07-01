@@ -83,6 +83,7 @@ test_expect_success "add some files with the path clean bug" '
 	printf cdbd | ipfs add -q >> buggy_hashes &&
 	printf aabdb | ipfs add -q >> buggy_hashes &&
 	printf bccac | ipfs add -q >> buggy_hashes &&
+	echo 0243397916 | ipfs add -q >> buggy_hashes && # produces /../ in binary key
 	sort buggy_hashes -o buggy_hashes
 
 '

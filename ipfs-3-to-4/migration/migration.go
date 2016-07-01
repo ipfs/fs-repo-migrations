@@ -333,11 +333,6 @@ func transferBlocks(flatfsdir string) error {
 		}
 
 		rel := p[len(flatfsdir)+1:]
-		if !strings.HasPrefix(rel, "1220") {
-			fmt.Println("skipping: ", rel)
-			return nil
-		}
-
 		if !strings.HasSuffix(rel, ".data") {
 			fmt.Println("skipping (no .data): ", rel)
 			return nil
@@ -351,6 +346,12 @@ func transferBlocks(flatfsdir string) error {
 	for _, p := range keys {
 		prog.Next()
 		rel := p[len(flatfsdir)+1:]
+
+		justkey := rel[:len(rel)-5]
+		if validateNewKey(justkey) {
+			prog.Skip()
+			fmt.Printf("skipping %s, already in new format\n", justkey)
+		}
 
 		_, fi := filepath.Split(rel[:len(rel)-5])
 		k, err := hex.DecodeString(fi)
