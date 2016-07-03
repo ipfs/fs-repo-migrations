@@ -17,7 +17,7 @@ func (f *Flags) Setup() {
 	flag.BoolVar(&f.Force, "f", false, "whether to force a migration (ignores warnings)")
 	flag.BoolVar(&f.Revert, "revert", false, "whether to apply the migration backwards")
 	flag.BoolVar(&f.Verbose, "verbose", false, "enable verbose logging")
-	flag.StringVar(&f.Path, "path", "", "file path to migrate for fs based migrations")
+	flag.StringVar(&f.Path, "path", "", "file path to migrate for fs based migrations (required)")
 }
 
 func (f *Flags) Parse() {

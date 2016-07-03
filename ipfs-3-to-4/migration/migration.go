@@ -327,7 +327,16 @@ func revertIpnsEntries(ds dstore.Datastore, oldk dstore.Key, data []byte, mkkey 
 
 func transferBlocks(flatfsdir string) error {
 	var keys []string
+	dots := 0
 	filepath.Walk(flatfsdir, func(p string, i os.FileInfo, err error) error {
+		if dots%200 == 0 {
+			fmt.Printf("\r                         \renumerating keys")
+		}
+		if dots%40 == 39 {
+			fmt.Printf(".")
+		}
+		dots++
+
 		if i.IsDir() {
 			return nil
 		}
