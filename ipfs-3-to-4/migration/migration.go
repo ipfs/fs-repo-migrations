@@ -329,10 +329,10 @@ func transferBlocks(flatfsdir string) error {
 	var keys []string
 	dots := 0
 	filepath.Walk(flatfsdir, func(p string, i os.FileInfo, err error) error {
-		if dots%100 == 0 {
-			fmt.Printf("\renumerating keys      ")
+		if dots%200 == 0 {
+			fmt.Printf("\r                         \renumerating keys")
 		}
-		if dots%20 == 19 {
+		if dots%40 == 39 {
 			fmt.Printf(".")
 		}
 		dots++
