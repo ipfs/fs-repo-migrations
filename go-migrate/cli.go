@@ -11,12 +11,14 @@ type Flags struct {
 	Revert  bool
 	Path    string // file path to migrate for fs based migrations
 	Verbose bool
+	Help    bool
 }
 
 func (f *Flags) Setup() {
 	flag.BoolVar(&f.Force, "f", false, "whether to force a migration (ignores warnings)")
 	flag.BoolVar(&f.Revert, "revert", false, "whether to apply the migration backwards")
 	flag.BoolVar(&f.Verbose, "verbose", false, "enable verbose logging")
+	flag.BoolVar(&f.Help, "help", false, "display help message")
 	flag.StringVar(&f.Path, "path", "", "file path to migrate for fs based migrations (required)")
 }
 
@@ -28,6 +30,11 @@ func Run(m Migration) error {
 	f := Flags{}
 	f.Setup()
 	f.Parse()
+
+	if f.Help {
+		flag.Usage()
+		os.Exit(0)
+	}
 
 	if f.Path == "" {
 		flag.Usage()
