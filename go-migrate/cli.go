@@ -31,7 +31,7 @@ func Run(m Migration) error {
 
 	if f.Path == "" {
 		flag.Usage()
-		return nil
+		return fmt.Errorf("missing or empty path; flag '-path <ipfs_path>' is required")
 	}
 
 	if !m.Reversible() {

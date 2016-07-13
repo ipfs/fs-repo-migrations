@@ -223,6 +223,10 @@ test_expect_success "get pin lists" '
 	ipfs pin ls --type=indirect | sort > more_start_ind_pins
 '
 
+test_expect_success "'ipfs-3-to-4 -revert' fails without -path" '
+	test_must_fail ipfs-3-to-4 -revert
+'
+
 test_expect_success "'ipfs-3-to-4 -revert' succeeds" '
 	ipfs-3-to-4 -revert -path="$IPFS_PATH" >actual
 '
