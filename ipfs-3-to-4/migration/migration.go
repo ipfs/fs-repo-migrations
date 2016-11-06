@@ -345,6 +345,10 @@ func transferBlocks(flatfsdir string) error {
 			return err
 		}
 
+		if len(p) <= len(flatfsdir)+1 {
+			return nil
+		}
+
 		rel := p[len(flatfsdir)+1:]
 		if !strings.HasSuffix(rel, ".data") {
 			fmt.Println("skipping (no .data): ", rel)
