@@ -43,11 +43,8 @@ type txFunc func(dstore.Datastore, dstore.Key, []byte, mkKeyFunc) error
 
 func validateNewKey(s string) bool {
 	parts := strings.Split(s, "/")
-	if len(parts) < 3 {
-		return false
-	}
 
-	kpart := s[2+len(parts[1]):]
+	kpart := parts[len(parts)-1]
 	v, err := base32.RawStdEncoding.DecodeString(kpart)
 	if err == nil && len(v) == 34 {
 		return true
@@ -368,6 +365,7 @@ func transferBlocks(flatfsdir string) error {
 		if validateNewKey(justkey) {
 			prog.Skip()
 			fmt.Printf("skipping %s, already in new format\n", justkey)
+			continue
 		}
 
 		_, fi := filepath.Split(rel[:len(rel)-5])
