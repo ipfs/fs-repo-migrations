@@ -19,7 +19,7 @@ First, go to your repo for IPFS, check out the right branch, and re-install.
 ```sh
 cd $GOPATH/src/github.com/ipfs/go-ipfs
 git checkout master # (or the version you want)
-go install ./cmd/ipfs
+make install
 ```
 
 Then to backup your repo:
