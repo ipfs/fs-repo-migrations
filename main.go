@@ -13,16 +13,18 @@ import (
 	homedir "github.com/ipfs/fs-repo-migrations/ipfs-2-to-3/Godeps/_workspace/src/github.com/mitchellh/go-homedir"
 	mg2 "github.com/ipfs/fs-repo-migrations/ipfs-2-to-3/migration"
 	mg3 "github.com/ipfs/fs-repo-migrations/ipfs-3-to-4/migration"
+	mg4 "github.com/ipfs/fs-repo-migrations/ipfs-4-to-5/migration"
 	mfsr "github.com/ipfs/fs-repo-migrations/mfsr"
 )
 
-var CurrentVersion = 4
+var CurrentVersion = 5
 
 var migrations = []gomigrate.Migration{
 	&mg0.Migration{},
 	&mg1.Migration{},
 	&mg2.Migration{},
 	&mg3.Migration{},
+	&mg4.Migration{},
 }
 
 func GetIpfsDir() (string, error) {
