@@ -45,7 +45,7 @@ func (m Migration) Apply(opts migrate.Options) error {
 
 	repo := mfsr.RepoPath(opts.Path)
 
-	log.VLog("  - verifying version is '3'")
+	log.VLog("  - verifying version is '4'")
 	if err := repo.CheckVersion("4"); err != nil {
 		return err
 	}
@@ -56,23 +56,35 @@ func (m Migration) Apply(opts migrate.Options) error {
 		return err
 	}
 
-	log.Log("Upgrading datastore format to have sharding specification file")
+	revert1 := func(e error) error {
+		err := os.Rename(ffspath, basepath)
+		if err != nil {
+			log.Error(err)
+		}
+		return e
+	}
+
+	log.Log("> Upgrading datastore format to have sharding specification file")
 	if err := flatfs.UpgradeV0toV1(ffspath, 5); err != nil {
-		return err
+		return revert1(err)
 	}
 
 	tempffs := filepath.Join(opts.Path, "blocks-v5")
-	log.Log("creating a new flatfs datastore with new format")
+	log.Log("> creating a new flatfs datastore with new format")
 	if err := flatfs.Create(tempffs, flatfs.NextToLast(2)); err != nil {
 		if err2 := revertStep2(ffspath); err2 != nil {
 			log.Error(err2)
 		}
-		return err
+		return revert1(err)
 	}
 
 	revert3 := func(mainerr error) error {
 		log.Error("failed to convert flatfs datastore: %s", mainerr)
 		log.Log("attempting to revert...")
+
+		if _, err := os.Stat(filepath.Join(ffspath, "SHARDING")); os.IsNotExist(err) {
+			flatfs.UpgradeV0toV1(ffspath, 5)
+		}
 
 		if err := flatfs.Move(tempffs, ffspath, os.Stdout); err != nil {
 			log.Error("reverting flatfs conversion failed: %s", err)
@@ -88,15 +100,15 @@ func (m Migration) Apply(opts migrate.Options) error {
 			log.Error(err)
 		}
 
-		return mainerr
+		return revert1(mainerr)
 	}
 
-	log.Log("converting current flatfs datastore to new format")
+	log.Log("> converting current flatfs datastore to new format")
 	if err := flatfs.Move(ffspath, tempffs, os.Stdout); err != nil {
 		return revert3(err)
 	}
 
-	log.Log("moving new datastore into place")
+	log.Log("> moving new datastore into place")
 	if err := os.Remove(ffspath); err != nil {
 		return revert3(fmt.Errorf("removing supposedly empty old flatfs dir: %s", err))
 	}
@@ -110,6 +122,7 @@ func (m Migration) Apply(opts migrate.Options) error {
 		return revert3(mainerr)
 	}
 
+	log.Log("> moving transferred datastore back into place")
 	if err := os.Rename(tempffs, basepath); err != nil {
 		return revert4(fmt.Errorf("moving new datastore into place of the old one: %s", err))
 	}
