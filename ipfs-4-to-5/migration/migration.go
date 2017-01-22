@@ -12,7 +12,7 @@ import (
 	mfsr "github.com/ipfs/fs-repo-migrations/mfsr"
 	log "github.com/ipfs/fs-repo-migrations/stump"
 
-	flatfs "github.com/ipfs/go-ds-flatfs"
+	flatfs "github.com/ipfs/fs-repo-migrations/ipfs-4-to-5/go-ds-flatfs"
 )
 
 type Migration struct{}

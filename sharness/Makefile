@@ -17,6 +17,7 @@ BINS += bin/ipfs-0-to-1
 BINS += bin/ipfs-1-to-2
 BINS += bin/ipfs-2-to-3
 BINS += bin/ipfs-3-to-4
+BINS += bin/ipfs-4-to-5
 BINS += bin/ipfs-update
 BINS += bin/random-files
 BINS += bin/go-sleep
@@ -28,6 +29,7 @@ IPFS_0_TO_1_SRC = ../ipfs-0-to-1
 IPFS_1_TO_2_SRC = ../ipfs-1-to-2
 IPFS_2_TO_3_SRC = ../ipfs-2-to-3
 IPFS_3_TO_4_SRC = ../ipfs-3-to-4
+IPFS_4_TO_5_SRC = ../ipfs-4-to-5
 IPFS_UPDATE_SRC = ../Godeps/_workspace/src/github.com/ipfs/ipfs-update
 POLL_ENDPOINT_SRC = ./dependencies/pollEndpoint
 
@@ -94,6 +96,10 @@ bin/ipfs-2-to-3: $(call find_go_files, $(IPFS_2_TO_3_SRC)) BUILD-OPTIONS
 bin/ipfs-3-to-4: $(call find_go_files, $(IPFS_3_TO_4_SRC)) BUILD-OPTIONS
 	@echo "*** installing $@ ***"
 	go build $(GOFLAGS) -o $@ $(IPFS_3_TO_4_SRC)
+
+bin/ipfs-4-to-5: $(call find_go_files, $(IPFS_4_TO_5_SRC)) BUILD-OPTIONS
+	@echo "*** installing $@ ***"
+	go build $(GOFLAGS) -o $@ $(IPFS_4_TO_5_SRC)
 
 bin/pollEndpoint: $(call find_go_files, $(POLL_ENDPOINT_SRC)) BUILD-OPTIONS
 	@echo "*** installing $@ ***"
