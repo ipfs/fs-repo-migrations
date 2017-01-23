@@ -53,7 +53,16 @@ func (m Migration) Apply(opts migrate.Options) error {
 	basepath := filepath.Join(opts.Path, "blocks")
 	ffspath := filepath.Join(opts.Path, "blocks-v4")
 	if err := os.Rename(basepath, ffspath); err != nil {
-		return err
+		if os.IsNotExist(err) {
+			fi, err2 := os.Stat(ffspath)
+			if err2 == nil && fi.IsDir() {
+				log.Log("... blocks already renamed to blocks-v4, continuing")
+				err = nil
+			}
+		}
+		if err != nil {
+			return err
+		}
 	}
 
 	revert1 := func(e error) error {
@@ -66,16 +75,31 @@ func (m Migration) Apply(opts migrate.Options) error {
 
 	log.Log("> Upgrading datastore format to have sharding specification file")
 	if err := flatfs.UpgradeV0toV1(ffspath, 5); err != nil {
-		return revert1(err)
+		if os.IsExist(err) {
+			id, err2 := flatfs.ReadShardFunc(ffspath)
+			if err2 == nil && id.String() == flatfs.Prefix(5).String() {
+				log.Log("... datastore already has sharding specification file, continuing")
+				err = nil
+			}
+		}
+		if err != nil {
+			return revert1(err)
+		}
 	}
 
 	tempffs := filepath.Join(opts.Path, "blocks-v5")
 	log.Log("> creating a new flatfs datastore with new format")
 	if err := flatfs.Create(tempffs, flatfs.NextToLast(2)); err != nil {
-		if err2 := revertStep2(ffspath); err2 != nil {
-			log.Error(err2)
+		if err == flatfs.ErrDatastoreExists {
+			log.Log("... new flatfs datastore already exists continuing")
+			err = nil
 		}
-		return revert1(err)
+		if err != nil {
+			if err2 := revertStep2(ffspath); err2 != nil {
+				log.Error(err2)
+			}
+			return revert1(err)
+		}
 	}
 
 	revert3 := func(mainerr error) error {
