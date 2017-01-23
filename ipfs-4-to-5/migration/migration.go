@@ -25,6 +25,10 @@ func (m Migration) Reversible() bool {
 	return true
 }
 
+func (m Migration) SupportNoRevert() bool {
+	return true
+}
+
 func revertStep2(ffspath string) error {
 	if err := flatfs.DowngradeV1toV0(ffspath); err != nil {
 		return fmt.Errorf("reverting flatfsv1 upgrade: %s", err)
@@ -66,6 +70,9 @@ func (m Migration) Apply(opts migrate.Options) error {
 	}
 
 	revert1 := func(e error) error {
+		if opts.NoRevert {
+			return e
+		}
 		err := os.Rename(ffspath, basepath)
 		if err != nil {
 			log.Error(err)
@@ -104,6 +111,9 @@ func (m Migration) Apply(opts migrate.Options) error {
 
 	revert3 := func(mainerr error) error {
 		log.Error("failed to convert flatfs datastore: %s", mainerr)
+		if opts.NoRevert {
+			return mainerr
+		}
 		log.Log("attempting to revert...")
 
 		if _, err := os.Stat(filepath.Join(ffspath, "SHARDING")); os.IsNotExist(err) {
@@ -138,6 +148,9 @@ func (m Migration) Apply(opts migrate.Options) error {
 	}
 
 	revert4 := func(mainerr error) error {
+		if opts.NoRevert {
+			return mainerr
+		}
 		if err := os.Mkdir(ffspath, 0755); err != nil {
 			log.Error("recreating flatfs directory: %s", err)
 			return err

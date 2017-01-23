@@ -29,6 +29,13 @@ type Migration interface {
 	Revert(Options) error
 }
 
+type SupportNoRevert interface {
+	Migration
+
+	// Supports the NoRevert option
+	SupportNoRevert() bool
+}
+
 func SplitVersion(s string) (from int, to int) {
 	_, err := fmt.Scanf(s, "%d-to-%d", &from, &to)
 	if err != nil {

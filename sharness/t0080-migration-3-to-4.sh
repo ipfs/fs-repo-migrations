@@ -105,6 +105,10 @@ test_expect_success "get pin lists" '
 
 test_kill_ipfs_daemon
 
+test_expect_success "'ipfs-3-to-4 -no-revert' fails" '
+	test_must_fail ipfs-3-to-4 -no-revert -path="$IPFS_PATH"
+'
+
 test_install_ipfs_nd "v0.4.3-dev"
 
 test_launch_ipfs_daemon
