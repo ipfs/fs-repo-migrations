@@ -24,6 +24,10 @@ func (f *Flags) Setup() {
 	flag.BoolVar(&f.NoRevert, "no-revert", false, "do not attempt to automatically revert on failure")
 }
 
+var SupportNoRevert = map[string]bool{
+	"4-to-5": true,
+}
+
 func (f *Flags) Parse() {
 	flag.Parse()
 }
@@ -52,10 +56,8 @@ func Run(m Migration) error {
 		}
 	}
 
-	if f.NoRevert {
-		if nr, ok := m.(SupportNoRevert); !ok || !nr.SupportNoRevert() {
-			return fmt.Errorf("migration %s does not support the '-no-revert' option", m.Versions())
-		}
+	if f.NoRevert && !SupportNoRevert[m.Versions()] {
+		return fmt.Errorf("migration %s does not support the '-no-revert' option", m.Versions())
 	}
 
 	if f.Revert {

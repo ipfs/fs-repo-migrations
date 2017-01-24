@@ -25,10 +25,6 @@ func (m Migration) Reversible() bool {
 	return true
 }
 
-func (m Migration) SupportNoRevert() bool {
-	return true
-}
-
 func revertStep2(ffspath string) error {
 	if err := flatfs.DowngradeV1toV0(ffspath); err != nil {
 		return fmt.Errorf("reverting flatfsv1 upgrade: %s", err)
