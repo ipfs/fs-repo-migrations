@@ -1,12 +1,12 @@
 #!/bin/sh
 
-test_description="Test migration 3 to 4 with lots of objects"
+test_description="Test migration 4 to 5 with lots of objects"
 
 . lib/test-lib.sh
 
 # setup vars for tests
 
-export IPFS_DIST_PATH="/ipfs/QmUGSSMCcPTeLCyrjKdozh2XY9VUdJVYxA6LjyJjLPcXST"
+export IPFS_DIST_PATH="/ipfs/QmRgeXaMTu426NcVvTNywAR7HyFBFGhvRc9FuTtKx3Hfno"
 
 DEPTH=3
 NBDIR=3
@@ -34,7 +34,7 @@ mkdir -p gopath/bin
 export PATH="../bin:$GOPATH/bin:$PATH"
 
 
-test_install_ipfs_nd "v0.4.2"
+test_install_ipfs_nd "v0.4.4"
 
 test_init_ipfs_nd
 
@@ -77,24 +77,8 @@ test_expect_success "pin some objects directly" '
 	pin_hashes directpins "-r=false"
 '
 
-test_expect_success "add some files with the path clean bug" '
-	printf ba | ipfs add -q > buggy_hashes &&
-	printf bbd | ipfs add -q >> buggy_hashes &&
-	printf cdbd | ipfs add -q >> buggy_hashes &&
-	printf aabdb | ipfs add -q >> buggy_hashes &&
-	printf bccac | ipfs add -q >> buggy_hashes &&
-	echo 0243397916 | ipfs add -q >> buggy_hashes && # produces /../ in binary key
-	sort buggy_hashes -o buggy_hashes
-
-'
-
 test_expect_success "get full ref list" '
 	ipfs refs local | sort > start_refs
-'
-
-test_expect_success "ensure buggy hashes dont show up in ref list" '
-	comm -12 start_refs buggy_hashes > badrefs &&
-	test ! -s badrefs
 '
 
 test_expect_success "get pin lists" '
@@ -105,11 +89,7 @@ test_expect_success "get pin lists" '
 
 test_kill_ipfs_daemon
 
-test_expect_success "'ipfs-3-to-4 -no-revert' fails" '
-	test_must_fail ipfs-3-to-4 -no-revert -path="$IPFS_PATH"
-'
-
-test_install_ipfs_nd "v0.4.3-dev"
+test_install_ipfs_nd "v0.4.5-pre2"
 
 test_launch_ipfs_daemon
 
@@ -227,20 +207,20 @@ test_expect_success "get pin lists" '
 	ipfs pin ls --type=indirect | sort > more_start_ind_pins
 '
 
-test_expect_success "'ipfs-3-to-4 -revert' fails without -path" '
-	test_must_fail ipfs-3-to-4 -revert
+test_expect_success "'ipfs-4-to-5 -revert' fails without -path" '
+	test_must_fail ipfs-4-to-5 -revert
 '
 
-test_expect_success "'ipfs-3-to-4 -revert' succeeds" '
-	ipfs-3-to-4 -revert -path="$IPFS_PATH" >actual
+test_expect_success "'ipfs-4-to-5 -revert' succeeds" '
+	ipfs-4-to-5 -revert -path="$IPFS_PATH" >actual
 '
 
-test_expect_success "'ipfs-3-to-4 -revert' output looks good" '
-	grep "reverting blocks" actual ||
+test_expect_success "'ipfs-4-to-5 -revert' output looks good" '
+	grep "Moving Keys" actual ||
 	test_fsh cat actual
 '
 
-test_install_ipfs_nd "v0.4.2"
+test_install_ipfs_nd "v0.4.4"
 
 test_launch_ipfs_daemon
 
@@ -254,19 +234,9 @@ test_expect_success "list all pins after reverting migration" '
 	ipfs pin ls --type=indirect | sort > after_revert_ind_pins
 '
 
-test_can_fetch_buggy_hashes() {
-	ref_file="$1"
-	for ref in `cat $ref_file`; do
-		if ! ipfs block get $ref > /dev/null; then
-			echo "FAILURE: $ref"
-			return 1
-		fi
-	done
-}
-
 test_expect_success "refs look right" '
-	comm -23 more_start_refs after_revert_refs > missing_refs &&
-	test_can_fetch_buggy_hashes missing_refs
+	comm -23 more_start_refs after_revert_refs > missing_refs
+	test_cmp missing_refs empty_refs_file
 '
 
 test_expect_success "pins all look the same" '

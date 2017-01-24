@@ -7,11 +7,12 @@ import (
 )
 
 type Flags struct {
-	Force   bool
-	Revert  bool
-	Path    string // file path to migrate for fs based migrations
-	Verbose bool
-	Help    bool
+	Force    bool
+	Revert   bool
+	Path     string // file path to migrate for fs based migrations
+	Verbose  bool
+	Help     bool
+	NoRevert bool
 }
 
 func (f *Flags) Setup() {
@@ -20,6 +21,11 @@ func (f *Flags) Setup() {
 	flag.BoolVar(&f.Verbose, "verbose", false, "enable verbose logging")
 	flag.BoolVar(&f.Help, "help", false, "display help message")
 	flag.StringVar(&f.Path, "path", "", "file path to migrate for fs based migrations (required)")
+	flag.BoolVar(&f.NoRevert, "no-revert", false, "do not attempt to automatically revert on failure")
+}
+
+var SupportNoRevert = map[string]bool{
+	"4-to-5": true,
 }
 
 func (f *Flags) Parse() {
@@ -43,11 +49,15 @@ func Run(m Migration) error {
 
 	if !m.Reversible() {
 		if f.Revert {
-			return fmt.Errorf("migration %d is irreversible", m.Versions())
+			return fmt.Errorf("migration %s is irreversible", m.Versions())
 		}
 		if !f.Force {
-			return fmt.Errorf("migration %d is irreversible (use -f to proceed)", m.Versions())
+			return fmt.Errorf("migration %s is irreversible (use -f to proceed)", m.Versions())
 		}
+	}
+
+	if f.NoRevert && !SupportNoRevert[m.Versions()] {
+		return fmt.Errorf("migration %s does not support the '-no-revert' option", m.Versions())
 	}
 
 	if f.Revert {
