@@ -1,0 +1,49 @@
+#!/bin/sh
+
+test_description="Simple fs-repo-migrations backwards tests"
+
+. lib/test-lib.sh
+
+test_expect_success "start a docker container" '
+  DOCID=$(start_docker)
+'
+
+test_expect_success "fs-repo-migrations binary is on the container" '
+  exec_docker "$DOCID" "test -f $GUEST_FS_REPO_MIG"
+'
+
+test_install_version "v0.4.5"
+
+test_expect_success "'ipfs init' succeeds" '
+  exec_docker "$DOCID" "IPFS_PATH=/root/.ipfs BITS=2048 ipfs init" >actual 2>&1 ||
+  test_fsh cat actual
+'
+
+test_expect_success ".ipfs/ has been created" '
+  exec_docker "$DOCID" "test -d  /root/.ipfs && test -f /root/.ipfs/config"
+  exec_docker "$DOCID" "test -d  /root/.ipfs/datastore && test -d /root/.ipfs/blocks"
+'
+
+test_expect_failure "'fs-repo-migrations -y' fails (no --revert-ok) flag" '
+  exec_docker "$DOCID" "$GUEST_FS_REPO_MIG -y -to=3" 2>actual
+'
+
+test_expect_success "'fs-repo-migrations -y' failure output looks good" '
+  grep "attempt to run backward migration" actual &&
+  grep "--revert-ok" actual
+'
+
+test_expect_success "'fs-repo-migrations -y --revert-ok' works" '
+  exec_docker "$DOCID" "$GUEST_FS_REPO_MIG -y -to=3 --revert-ok" >actual
+'
+
+test_expect_success "'fs-repo-migrations -y' output looks good" '
+  grep "Migration 5 to 4 succeeded" actual &&
+  grep "Migration 4 to 3 succeeded" actual
+'
+
+test_expect_success "stop docker container" '
+  stop_docker "$DOCID"
+'
+
+test_done
