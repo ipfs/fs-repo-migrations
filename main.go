@@ -65,7 +65,7 @@ func GetIpfsDir() (string, error) {
 	return "", err
 }
 
-func runMigration(from int, to int, backward bool) error {
+func runMigration(from int, to int) error {
 	fmt.Printf("===> Running migration %d to %d...\n", from, to)
 	path, err := GetIpfsDir()
 	if err != nil {
@@ -92,14 +92,13 @@ func runMigration(from int, to int, backward bool) error {
 }
 
 func doMigrate(from, to int) error {
-	backward := from > to
 	step := 1
-	if backward {
+	if from > to {
 		step = -1
 	}
 
 	for cur := from; cur != to; cur += step {
-		err := runMigration(cur, cur + step, backward)
+		err := runMigration(cur, cur + step)
 		if err != nil {
 			return err
 		}
