@@ -7,17 +7,16 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/ipfs/fs-repo-migrations/ipfs-2-to-3/Godeps/_workspace/src/github.com/jbenet/go-os-rename"
 	"github.com/ipfs/fs-repo-migrations/ipfs-4-to-5/go-datastore"
 	"github.com/ipfs/fs-repo-migrations/ipfs-4-to-5/go-datastore/query"
-	"github.com/ipfs/fs-repo-migrations/ipfs-2-to-3/Godeps/_workspace/src/github.com/jbenet/go-os-rename"
 )
-
 
 const (
 	extension = ".data"
@@ -45,7 +44,7 @@ var (
 
 func Create(path string, fun *ShardIdV1) error {
 
-	err := os.Mkdir(path, 0777)
+	err := os.Mkdir(path, 0755)
 	if err != nil && !os.IsExist(err) {
 		return err
 	}
@@ -115,13 +114,13 @@ func (fs *Datastore) ShardStr() string {
 
 func (fs *Datastore) encode(key datastore.Key) (dir, file string) {
 	noslash := key.String()[1:]
-	dir = path.Join(fs.path, fs.getDir(noslash))
-	file = path.Join(dir, noslash+extension)
+	dir = filepath.Join(fs.path, fs.getDir(noslash))
+	file = filepath.Join(dir, noslash+extension)
 	return dir, file
 }
 
 func (fs *Datastore) decode(file string) (key datastore.Key, ok bool) {
-	if path.Ext(file) != extension {
+	if filepath.Ext(file) != extension {
 		return datastore.Key{}, false
 	}
 	name := file[:len(file)-len(extension)]
@@ -146,7 +145,7 @@ func (fs *Datastore) makeDir(dir string) error {
 }
 
 func (fs *Datastore) makeDirNoSync(dir string) error {
-	if err := os.Mkdir(dir, 0777); err != nil {
+	if err := os.Mkdir(dir, 0755); err != nil {
 		// EEXIST is safe to ignore here, that just means the prefix
 		// directory already existed.
 		if !os.IsExist(err) {
@@ -175,7 +174,7 @@ func (fs *Datastore) Put(key datastore.Key, value interface{}) error {
 			break
 		}
 
-		fmt.Printf("too many open files, retrying in %dms\n", 100*i)
+		log.Printf("too many open files, retrying in %dms\n", 100*i)
 		time.Sleep(time.Millisecond * 100 * time.Duration(i))
 	}
 	return err
@@ -430,7 +429,7 @@ func (fs *Datastore) walk(path string, reschan chan query.Result) error {
 
 		key, ok := fs.decode(fn)
 		if !ok {
-			fmt.Println("failed to decode entry in flatfs")
+			log.Println("failed to decode entry in flatfs: ", fn)
 			continue
 		}
 

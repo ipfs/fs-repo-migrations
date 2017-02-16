@@ -87,6 +87,12 @@ test_expect_success "get pin lists" '
 	ipfs pin ls --type=indirect | sort > start_ind_pins
 '
 
+test_expect_success "put some unexpected files in the flatfs dir" '
+	echo "foo" > "$IPFS_PATH/blocks/CIQBE/put-123451" &&
+	echo "bar" > "$IPFS_PATH/blocks/CIQKA/put-123451" &&
+	echo "nonsense" > "$IPFS_PATH/blocks/badbad"
+'
+
 test_kill_ipfs_daemon
 
 test_install_ipfs_nd "v0.4.5-pre2"

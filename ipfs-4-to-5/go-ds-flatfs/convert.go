@@ -4,10 +4,13 @@
 package flatfs
 
 import (
+	"errors"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/ipfs/fs-repo-migrations/ipfs-2-to-3/Godeps/_workspace/src/github.com/jbenet/go-os-rename"
 	"github.com/ipfs/fs-repo-migrations/ipfs-4-to-5/go-datastore"
@@ -110,15 +113,45 @@ func Move(oldPath string, newPath string, out io.Writer) error {
 		if err != nil {
 			return err
 		}
-		if inf.IsDir() || fn == SHARDING_FN || fn == README_FN {
-			// we are an empty directory or generated file so just remove it
+		if inf.IsDir() {
+			indir, err := os.Open(oldPath)
+			if err != nil {
+				return err
+			}
+			defer indir.Close()
+
+			names, err := indir.Readdirnames(-1)
+			if err != nil {
+				return err
+			}
+
+			for _, n := range names {
+				p := filepath.Join(oldPath, n)
+				// part of unfinished write transaction
+				// remove it
+				if strings.HasPrefix(n, "put-") {
+					err := os.Remove(p)
+					if err != nil {
+						return err
+					}
+				} else {
+					return errors.New("unknown file in flatfs: " + p)
+				}
+			}
+
+			err = os.Remove(oldPath)
+			if err != nil {
+				return err
+			}
+		} else if fn == SHARDING_FN || fn == README_FN {
+			// generated file so just remove it
 			err := os.Remove(oldPath)
 			if err != nil {
 				return err
 			}
 		} else {
 			// else we found something unexpected, so to be safe just move it
-			fmt.Printf("found unexpected file in datastore directory: \"%s\", moving anyway", fn)
+			log.Printf("found unexpected file in datastore directory: \"%s\", moving anyway\n", fn)
 			newPath := filepath.Join(newDS.path, fn)
 			err := osrename.Rename(oldPath, newPath)
 			if err != nil {
