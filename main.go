@@ -145,6 +145,7 @@ func main() {
 	target := flag.Int("to", CurrentVersion, "specify version to upgrade to")
 	yes := flag.Bool("y", false, "answer yes to all prompts")
 	version := flag.Bool("v", false, "print highest repo version and exit")
+	revertOk := flag.Bool("revert-ok", false, "allow running migrations backward")
 
 	flag.Parse()
 
@@ -167,6 +168,11 @@ func main() {
 	vnum, err := GetVersion(ipfsdir)
 	if err != nil {
 		fmt.Println("ipfs migration: ", err)
+		os.Exit(1)
+	}
+
+	if vnum > *target && !*revertOk {
+		fmt.Println("ipfs migration: attempt to run backward migration\nTo allow, run this command again with --revert-ok")
 		os.Exit(1)
 	}
 
