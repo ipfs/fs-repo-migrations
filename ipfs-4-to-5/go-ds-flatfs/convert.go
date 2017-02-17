@@ -118,9 +118,9 @@ func Move(oldPath string, newPath string, out io.Writer) error {
 			if err != nil {
 				return err
 			}
-			defer indir.Close()
 
 			names, err := indir.Readdirnames(-1)
+			indir.Close()
 			if err != nil {
 				return err
 			}
