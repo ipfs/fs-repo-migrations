@@ -1,16 +1,12 @@
 # Running Repo Migrations
 
-How to run [fs-repo](https://github.com/ipfs/specs/tree/master/repo/fs-repo) migrations for [ipfs](https://github.com/ipfs/ipfs).
+This document explains how to run [fs-repo](https://github.com/ipfs/specs/tree/master/repo/fs-repo) migrations for [ipfs](https://github.com/ipfs/ipfs).
 
-We have changed the internal, on-disk format we use to store data. In order to avoid losing your data, we're taking extra care to provide a stable migration tool that upgrades old versions of the repo to the new ones. You'll need to run the migration if you find an error like this:
+Note that running migrations is a task automatically performed by the `ipfs` when starting the `ipfs` daemon after an upgrade or running the `ipfs-update` tool, so you would normally not need to run the `fs-repo-migrations` tool.
 
-```
-> ipfs daemon
-Error: ipfs repo found in old '.go-ipfs' location, please run migration tool.
-Please see https://github.com/ipfs/fs-repo-migrations/blob/master/run.md
-```
+The `fs-migrations-tool` comes into play when the internal, on-disk format `ipfs` uses to store data changes. In order to avoid losing data, this tool upgrades old versions of the repo to the new ones.
 
-Soon, we hope to run these entirely automatically. But for now, we ask you to run these manually in case something goes wrong. It's very easy. See the quick steps below. If you run into any trouble, please feel free to open an issue in this repository: [issues](https://github.com/ipfs/fs-repo-migrations/issues).
+If you run into any trouble, please feel free to [open an issue in this repository](https://github.com/ipfs/fs-repo-migrations/issues).
 
 ## Step 0. Back up your repo (optional)
 
@@ -31,7 +27,7 @@ cp -r ~/.ipfs ~/.ipfs.bak
 
 ## Step 2. Run the Migration
 
-Now, run the migration tool.
+Now, run the migration tool:
 
 ```sh
 # if you installed from Go, tool is in your global $PATH
@@ -41,11 +37,10 @@ fs-repo-migrations
 ./fs-repo-migrations
 ```
 
-
 ## Step 3. Done! Run IPFS.
 
 If the migration completed without error, then you're done! Try running the new ipfs:
 
 ```
-ipfs
+ipfs daemon
 ```
