@@ -88,6 +88,8 @@ test_expect_success "get pin lists" '
 '
 
 test_expect_success "put some unexpected files in the flatfs dir" '
+	mkdir -p "$IPFS_PATH/blocks/CIQBE" &&
+	mkdir -p "$IPFS_PATH/blocks/CIQKA" &&
 	echo "foo" > "$IPFS_PATH/blocks/CIQBE/put-123451" &&
 	echo "bar" > "$IPFS_PATH/blocks/CIQKA/put-123451" &&
 	echo "nonsense" > "$IPFS_PATH/blocks/badbad"
@@ -126,7 +128,7 @@ test_expect_success "manually compute gc set" '
 '
 
 test_expect_success "run a gc" '
-	ipfs repo gc | sort > gc_out	
+	ipfs repo gc | sort > gc_out
 '
 
 test_expect_success "no pinned objects were gc'ed" '
@@ -264,6 +266,6 @@ test_expect_success "no pinned objects were gc'ed" '
 	test_cmp empty_refs_file gced_pinned_objects
 '
 
-test_kill_ipfs_daemon 
+test_kill_ipfs_daemon
 
 test_done
