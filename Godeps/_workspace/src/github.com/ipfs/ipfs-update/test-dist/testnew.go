@@ -20,15 +20,13 @@ import (
 func runCmd(p, bin string, args ...string) (string, error) {
 	cmd := exec.Command(bin, args...)
 	cmd.Env = []string{"IPFS_PATH=" + p}
+	stump.VLog("  - running: %s", cmd.Args)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return "", fmt.Errorf("%s: %s", err, string(out))
 	}
 
-	if out[len(out)-1] == '\n' {
-		return string(out[:len(out)-1]), nil
-	}
-	return string(out), nil
+	return strings.TrimSpace(string(out)), nil
 }
 
 type daemon struct {
@@ -79,6 +77,13 @@ func tweakConfig(ipfspath string) error {
 	addrs["Gateway"] = ""
 	addrs["Swarm"] = []string{"/ip4/0.0.0.0/tcp/0"}
 
+	_, ok = cfg["Bootstrap"].([]interface{})
+	if !ok {
+		fmt.Println(cfg["Bootstrap"])
+		return fmt.Errorf("no bootstrap field in config")
+	}
+	cfg["Bootstrap"] = []interface{}{}
+
 	out, err := json.Marshal(cfg)
 	if err != nil {
 		return err
@@ -93,7 +98,7 @@ func tweakConfig(ipfspath string) error {
 }
 
 func StartDaemon(p, bin string) (io.Closer, error) {
-	cmd := exec.Command(bin, "daemon")
+	cmd := exec.Command(bin, "daemon", "--debug")
 
 	stdout, err := os.Create(filepath.Join(p, "daemon.stdout"))
 	if err != nil {
@@ -137,7 +142,7 @@ func waitForApi(ipfspath string) error {
 	for i := 0; i < nloops; i++ {
 		ep, err := util.ApiEndpoint(ipfspath)
 		if err == nil {
-			stump.VLog("  - found api file")
+			stump.VLog("  - found api file: %s", ep)
 			endpoint = ep
 			success = true
 			break
@@ -155,10 +160,13 @@ func waitForApi(ipfspath string) error {
 	}
 
 	for i := 0; i < 10; i++ {
-		_, err := net.Dial("tcp", endpoint)
+		c, err := net.Dial("tcp", endpoint)
 		if err == nil {
+			c.Close()
+			stump.VLog("  - Successfully made connection to api endpoint")
 			return nil
 		}
+		stump.VLog("  - connecting to api endpoint failed: %s", err)
 
 		time.Sleep(time.Millisecond * (100 * time.Duration(i+1)))
 	}
@@ -214,8 +222,9 @@ func TestBinary(bin, version string) error {
 		return err
 	}
 
-	if rversion != "ipfs version "+version[1:] {
-		return fmt.Errorf("version didnt match")
+	parts := strings.Fields(rversion)
+	if !versionMatch(parts[len(parts)-1], version[1:]) {
+		return fmt.Errorf("version didnt match (expected '%s', got '%s')", version[1:], parts[len(parts)-1])
 	}
 
 	if util.BeforeVersion("v0.3.8", version) {
@@ -241,21 +250,31 @@ func TestBinary(bin, version string) error {
 		if err != nil {
 			stump.VLog("  - error killing test daemon: %s (continuing anyway)", err)
 		}
-		stump.Log("success!")
 	}()
 
 	// test some basic things against the daemon
 	err = testFileAdd(tdir, bin)
 	if err != nil {
-		return err
+		return fmt.Errorf("test file add: %s", err)
 	}
 
 	err = testRefsList(tdir, bin)
 	if err != nil {
-		return err
+		return fmt.Errorf("test refs list: %s", err)
 	}
+	stump.Log("success! tests all passed.")
 
 	return nil
+}
+
+func versionMatch(a, b string) bool {
+	if strings.HasSuffix(b, "-dev") && strings.Contains(a, "-pre") {
+		af := strings.Split(a, "-")[0]
+		bf := strings.Split(b, "-")[0]
+		return af == bf
+	}
+
+	return a == b
 }
 
 func testFileAdd(tdir, bin string) error {
@@ -272,7 +291,7 @@ func testFileAdd(tdir, bin string) error {
 		return err
 	}
 
-	hash := strings.Trim(string(out), "\n \t")
+	hash := strings.Trim(string(out), "\n \t\r")
 	fiout, err := runCmd(tdir, bin, "cat", hash)
 	if err != nil {
 		return err
