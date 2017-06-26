@@ -129,7 +129,7 @@ test_start_daemon() {
 test_stop_daemon() {
 	docid="$1"
 	test_expect_success "kill ipfs daemon" '
-		exec_docker "$docid" "pkill ipfs"
+		exec_docker "$docid" "kill $(pidof ipfs)"
 	'
 }
 

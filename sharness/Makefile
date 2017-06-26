@@ -48,7 +48,7 @@ clean-test-results:
 
 $(T): clean-test-results deps
 	@echo "*** $@ ***"
-	./$@
+	./$@ -v
 
 aggregate: clean-test-results $(T)
 	@echo "*** $@ ***"
