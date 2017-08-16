@@ -14,7 +14,7 @@ env:
   - TEST_VERBOSE=1
 
 script:
-  - make test
+  - make -k test
 
 # For docker containers
 
