@@ -56,6 +56,7 @@ func (m Migration) Apply(opts migrate.Options) error {
 		// the error return depends on the go version, so check for
 		// both possible errors
 		if os.IsExist(err) {
+			println("kedfjhdfkjhljhlkljhjlkhjhjghjhjfdhjlhjlghhhjhjlshsdjf")
 			_, err2 := os.Stat(basepath)
 			if os.IsNotExist(err2) {
 				err = err2 // continue on to make sure ffspath is a directory
