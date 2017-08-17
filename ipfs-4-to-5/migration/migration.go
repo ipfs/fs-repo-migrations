@@ -53,6 +53,15 @@ func (m Migration) Apply(opts migrate.Options) error {
 	basepath := filepath.Join(opts.Path, "blocks")
 	ffspath := filepath.Join(opts.Path, "blocks-v4")
 	if err := os.Rename(basepath, ffspath); err != nil {
+		// the error return depends on the go version, so check for
+		// both possible errors
+		if os.IsExist(err) {
+			println("kedfjhdfkjhljhlkljhjlkhjhjghjhjfdhjlhjlghhhjhjlshsdjf")
+			_, err2 := os.Stat(basepath)
+			if os.IsNotExist(err2) {
+				err = err2 // continue on to make sure ffspath is a directory
+			}
+		}
 		if os.IsNotExist(err) {
 			fi, err2 := os.Stat(ffspath)
 			if err2 == nil && fi.IsDir() {
