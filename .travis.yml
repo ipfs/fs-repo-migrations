@@ -14,8 +14,8 @@ env:
   - TEST_VERBOSE=1
 
 script:
-  - cd sharness
-  - make
+  - make -C sharness
+  - go test ./ipfs-5-to-6/migration/
 
 # For docker containers
 
