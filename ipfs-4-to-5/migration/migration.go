@@ -53,9 +53,10 @@ func (m Migration) Apply(opts migrate.Options) error {
 	basepath := filepath.Join(opts.Path, "blocks")
 	ffspath := filepath.Join(opts.Path, "blocks-v4")
 	if err := os.Rename(basepath, ffspath); err != nil {
-		if os.IsNotExist(err) {
-			fi, err2 := os.Stat(ffspath)
-			if err2 == nil && fi.IsDir() {
+		// the error returned is unreliable so instead check that the
+		// old path doesn't exist and the new one does and is a directory
+		if _, err2 := os.Stat(basepath); os.IsNotExist(err2) {
+			if fi, err2 := os.Stat(ffspath); err2 == nil && fi.IsDir() {
 				log.Log("... blocks already renamed to blocks-v4, continuing")
 				err = nil
 			}
