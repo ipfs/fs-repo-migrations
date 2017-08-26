@@ -14,8 +14,7 @@ env:
   - TEST_VERBOSE=1
 
 script:
-  - cd sharness
-  - make
+  - make -k test
 
 # For docker containers
 
