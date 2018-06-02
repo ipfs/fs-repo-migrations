@@ -19,10 +19,12 @@ BINS += bin/ipfs-2-to-3
 BINS += bin/ipfs-3-to-4
 BINS += bin/ipfs-4-to-5
 BINS += bin/ipfs-5-to-6
+BINS += bin/ipfs-6-to-7
 BINS += bin/ipfs-update
 BINS += bin/random-files
 BINS += bin/go-sleep
 BINS += bin/pollEndpoint
+BINS += bin/iptb
 
 # Source files location
 FS_REPO_SRC = ../
@@ -32,8 +34,10 @@ IPFS_2_TO_3_SRC = ../ipfs-2-to-3
 IPFS_3_TO_4_SRC = ../ipfs-3-to-4
 IPFS_4_TO_5_SRC = ../ipfs-4-to-5
 IPFS_5_TO_6_SRC = ../ipfs-5-to-6
+IPFS_6_TO_7_SRC = ../ipfs-6-to-7
 IPFS_UPDATE_SRC = ../Godeps/_workspace/src/github.com/ipfs/ipfs-update
 POLL_ENDPOINT_SRC = ./dependencies/pollEndpoint
+IPTB_SRC = ./dependencies/iptb
 
 # User might want to override those on the command line
 GOFLAGS =
@@ -83,6 +87,10 @@ bin/go-sleep:
 	go get github.com/chriscool/go-sleep
 	go build $(GOFLAGS) -o $@ github.com/chriscool/go-sleep
 
+bin/iptb: $(call find_go_files, $(IPTB_SRC)) BUILD-OPTIONS
+	@echo "*** installing $@ ***"
+	go build $(GOFLAGS) -o $@ $(IPTB_SRC)
+
 bin/ipfs-0-to-1: $(call find_go_files, $(IPFS_0_TO_1_SRC)) BUILD-OPTIONS
 	@echo "*** installing $@ ***"
 	go build $(GOFLAGS) -o $@ $(IPFS_0_TO_1_SRC)
@@ -106,6 +114,10 @@ bin/ipfs-4-to-5: $(call find_go_files, $(IPFS_4_TO_5_SRC)) BUILD-OPTIONS
 bin/ipfs-5-to-6: $(call find_go_files, $(IPFS_5_TO_6_SRC)) BUILD-OPTIONS
 	@echo "*** installing $@ ***"
 	go build $(GOFLAGS) -o $@ $(IPFS_5_TO_6_SRC)
+
+bin/ipfs-6-to-7: $(call find_go_files, $(IPFS_6_TO_7_SRC)) BUILD-OPTIONS
+	@echo "*** installing $@ ***"
+	go build $(GOFLAGS) -o $@ $(IPFS_6_TO_7_SRC)
 
 bin/pollEndpoint: $(call find_go_files, $(POLL_ENDPOINT_SRC)) BUILD-OPTIONS
 	@echo "*** installing $@ ***"
