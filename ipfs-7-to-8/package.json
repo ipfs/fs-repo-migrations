@@ -1,0 +1,22 @@
+{
+  "author": "AuHau",
+  "bugs": {},
+  "gx": {
+    "dvcsimport": "github.com/ipfs/fs-repo-migrations/ipfs-7-to-8"
+  },
+  "gxDependencies": [
+    {
+      "author": "whyrusleeping",
+      "hash": "QmekxXDhCxCJRNuzmHreuaT3BsuJcsjcXWNrtV9C8DRHtd",
+      "name": "go-multibase",
+      "version": "0.3.0"
+    }
+  ],
+  "gxVersion": "0.14.0",
+  "language": "go",
+  "license": "",
+  "name": "ipfs-7-to-8",
+  "releaseCmd": "git commit -a -m \"gx publish $VERSION\"",
+  "version": "0.0.0"
+}
+
