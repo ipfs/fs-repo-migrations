@@ -11,7 +11,7 @@ import (
 	mfsr "github.com/ipfs/fs-repo-migrations/mfsr"
 	log "github.com/ipfs/fs-repo-migrations/stump"
 
-	mbase "gx/ipfs/QmekxXDhCxCJRNuzmHreuaT3BsuJcsjcXWNrtV9C8DRHtd/go-multibase"
+	base32 "github.com/ipfs/fs-repo-migrations/ipfs-7-to-8/base32"
 )
 
 type Migration struct{}
@@ -25,9 +25,8 @@ func (m Migration) Reversible() bool {
 }
 
 const keyFilenamePrefix = "key_"
-const encodingBase = mbase.Base32
 
-func is_encoded(name string) bool {
+func isEncoded(name string) bool {
 	if !strings.HasPrefix(name, keyFilenamePrefix) {
 		return false
 	}
@@ -37,37 +36,30 @@ func is_encoded(name string) bool {
 	return err == nil
 }
 
-func decode(name string) (string, error) {
-	if !strings.HasPrefix(name, keyFilenamePrefix) {
-		return "", fmt.Errorf("Key's filename has unexpexcted format")
-	}
-
-	nameWithoutPrefix := name[len(keyFilenamePrefix):]
-	encoding, data, err := mbase.Decode(nameWithoutPrefix)
-
-	if err != nil {
-		return "", err
-	}
-
-	if encoding != encodingBase {
-		return "", fmt.Errorf("Key's filename was encoded in unexpexted base")
-	}
-
-	return string(data[:]), nil
-}
-
 func encode(name string) (string, error) {
 	if name == "" {
-		return "", fmt.Errorf("Key name must be at least one character")
+		return "", fmt.Errorf("key name must be at least one character")
 	}
 
-	encodedName, err := mbase.Encode(encodingBase, []byte(name))
+	encodedName := base32.RawStdEncoding.EncodeToString([]byte(name))
+	return keyFilenamePrefix + strings.ToLower(encodedName), nil
+}
+
+func decode(name string) (string, error) {
+	if !strings.HasPrefix(name, keyFilenamePrefix) {
+		return "", fmt.Errorf("key's filename has unexpected format")
+	}
+
+	nameWithoutPrefix := strings.ToUpper(name[len(keyFilenamePrefix):])
+	data, err := base32.RawStdEncoding.DecodeString(nameWithoutPrefix)
 
 	if err != nil {
 		return "", err
 	}
 
-	return keyFilenamePrefix + encodedName, nil
+	decodedName := string(data[:])
+
+	return decodedName, nil
 }
 
 func (m Migration) Apply(opts migrate.Options) error {
@@ -87,7 +79,7 @@ func (m Migration) Apply(opts migrate.Options) error {
 			continue
 		}
 
-		if is_encoded(info.Name()) {
+		if isEncoded(info.Name()) {
 			log.Log("skipping ", info.Name(), " as it is already encoded!")
 			continue
 		}
@@ -132,7 +124,7 @@ func (m Migration) Revert(opts migrate.Options) error {
 			continue
 		}
 
-		if !is_encoded(info.Name()) {
+		if !isEncoded(info.Name()) {
 			log.Log("skipping", info.Name(), "as it is not encoded!")
 			continue
 		}
@@ -149,9 +141,9 @@ func (m Migration) Revert(opts migrate.Options) error {
 		)
 	}
 
-	err = mfsr.RepoPath(opts.Path).WriteVersion("8")
+	err = mfsr.RepoPath(opts.Path).WriteVersion("7")
 	if err != nil {
-		log.Error("failed to update version file to 8")
+		log.Error("failed to update version file to 7")
 		return err
 	}
 
