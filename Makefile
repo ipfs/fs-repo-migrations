@@ -5,7 +5,7 @@ install:
 test: test_go sharness
 
 test_go:
-	go test ./ipfs-5-to-6/... # go test ./... fails see #66
+	go test ./ipfs-5-to-6/... ./ipfs-7-to-8/... # go test ./... fails see #66
 
 sharness:
 	make -C sharness
