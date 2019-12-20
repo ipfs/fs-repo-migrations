@@ -7,8 +7,6 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
-
-	"github.com/ipfs/go-cid"
 )
 
 var (
@@ -94,17 +92,37 @@ func convert(in io.Reader, out io.Writer, convFunc convFunc) error {
 }
 
 func ver7to8(bootstrap []string) []string {
+	hasSmallKey := false
+	for _, addr := range bootstrap {
+		if ok, _ := isDNSBootstrapPeer(addr); ok {
+			// Already has a dnsaddr key so assume the user has custom config
+			// that we shouldn't override
+			return bootstrap
+		}
+		if ok, _ := isSmallKeyPeer(addr); ok {
+			hasSmallKey = true
+		}
+	}
+
+	if !hasSmallKey {
+		// There are no peers with small keys in the bootstrap list so assume
+		// the user has a custom config that we shouldn't override
+		return bootstrap
+	}
+
 	// Make sure the dnsaddrs bootstrap peers are included
 	var res []string
 	for _, p := range dnsBootstrapPeers {
 		res = append(res, fmt.Sprintf("/dnsaddr/%s/p2p/%s", dnsAddr, p))
 	}
 
-	// Filter out peers that we added above, or that have an ID known to belong
-	// to a peer with a small key
+	// Filter out dnsaddr peers that we added above, or that have an ID known
+	// to belong to a peer with a small key.
+	// If we don't recognize the address format (err != nil), assume that the
+	// user changed it for a reason and leave it in there.
 	for _, addr := range bootstrap {
-		if ok, err := isDNSBootstrapPeer(addr); !ok && err == nil {
-			if ok, err = isSmallKeyPeer(addr); !ok && err == nil {
+		if isDNSAddr, err := isDNSBootstrapPeer(addr); !isDNSAddr || err != nil {
+			if isSmall, err := isSmallKeyPeer(addr); !isSmall || err != nil {
 				// Replace /ipfs with /p2p
 				addr = strings.Replace(addr, "/ipfs", "/p2p", -1)
 				res = append(res, addr)
@@ -116,51 +134,70 @@ func ver7to8(bootstrap []string) []string {
 }
 
 func ver8to7(bootstrap []string) []string {
-	// Make sure the old addresses are included
-	res := append([]string{}, oldBootstrapAddrs...)
-
-	oldPeerIDs := make(map[string]struct{})
-	for _, addr := range oldBootstrapAddrs {
-		pid, err := getAddrPeerID(addr)
-		if err != nil {
-			panic(err)
+	// If the config doesn't have the new DNS addresses then assume it hasn't
+	// been updated to version 8 and bail out
+	hasDNSAddrs := false
+	for _, addr := range bootstrap {
+		if ok, _ := isDNSBootstrapPeer(addr); ok {
+			hasDNSAddrs = true
 		}
-		oldPeerIDs[pid] = struct{}{}
+	}
+	if !hasDNSAddrs {
+		return bootstrap
 	}
 
-	// Filter out old addresses added above, and addresses with the new DNS
-	// addresses
-	for _, btAddr := range bootstrap {
-		pid, err := getAddrPeerID(btAddr)
-		if err == nil {
-			if _, ok := oldPeerIDs[pid]; !ok && !strings.Contains(btAddr, dnsAddr) {
-				res = append(res, btAddr)
-			}
+	// Extract peer IDs from old bootstrap addresses
+	var oldBootstrapPeerIDs []string
+	for _, oldAddr := range oldBootstrapAddrs {
+		if p, err := getAddrPeerID(oldAddr); err == nil {
+			oldBootstrapPeerIDs = append(oldBootstrapPeerIDs, p)
+		}
+	}
+
+	// Make sure the old addresses are included in the result
+	res := append([]string{}, oldBootstrapAddrs...)
+
+	// Filter out old addresses added above
+	for _, addr := range bootstrap {
+		isOldPeer, err := addrPeerIDInList(oldBootstrapPeerIDs, addr)
+
+		// If we don't recognize the address format, just assume the user
+		// has changed it on purpose and include it in the results
+		if !isOldPeer || err != nil {
+			res = append(res, addr)
 		}
 	}
 
 	return res
 }
 
+func parseErr(addr string) error {
+	return fmt.Errorf("Could not parse peer ID from addr '%s'", addr)
+}
+
 func getAddrPeerID(addr string) (string, error) {
 	// eg /ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ
 	parts := strings.Split(addr, "/")
-	if len(parts) == 0 {
-		return "", fmt.Errorf("Could not parse peer ID from addr '%s'", addr)
+	if len(parts) < 2 {
+		return "", parseErr(addr)
 	}
+
+	// Just verify that the address ends with /p2p/something or /ipfs/something
+	peerType := parts[len(parts)-2]
+	if peerType != "p2p" && peerType != "ipfs" {
+		return "", parseErr(addr)
+	}
+
 	last := parts[len(parts)-1]
-	if _, err := cid.Decode(last); err != nil {
-		return "", fmt.Errorf("Could not parse peer ID from addr '%s'", addr)
-	}
 	return last, nil
 }
 
-func addrPeerIDInList(peers []string, addr string) (bool, error) {
+func addrPeerIDInList(peerIDs []string, addr string) (bool, error) {
 	addrID, err := getAddrPeerID(addr)
 	if err != nil {
 		return false, err
 	}
-	for _, p := range peers {
+	for _, p := range peerIDs {
 		if p == addrID {
 			return true, nil
 		}
