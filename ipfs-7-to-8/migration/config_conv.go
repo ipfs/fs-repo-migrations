@@ -123,8 +123,12 @@ func ver7to8(bootstrap []string) []string {
 	for _, addr := range bootstrap {
 		if isDNSAddr, err := isDNSBootstrapPeer(addr); !isDNSAddr || err != nil {
 			if isSmall, err := isSmallKeyPeer(addr); !isSmall || err != nil {
-				// Replace /ipfs with /p2p
-				addr = strings.Replace(addr, "/ipfs", "/p2p", -1)
+				// Change the protocol string from "ipfs" to "p2p".
+				// Make sure we don't break addresses like
+				// /dns4/ipfs-bootstrap.com/...
+				// by matching specifically /ipfs/Qm or /ipfs/1...
+				addr = strings.Replace(addr, "/ipfs/Qm", "/p2p/Qm", -1)
+				addr = strings.Replace(addr, "/ipfs/1", "/p2p/1", -1)
 				res = append(res, addr)
 			}
 		}

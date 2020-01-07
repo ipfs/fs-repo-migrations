@@ -66,10 +66,12 @@ func TestForward(t *testing.T) {
 	bootstrap := []string{
 		// peer with old key (should be filtered out)
 		"/ip4/178.62.158.247/tcp/4001/p2p/QmSoLer265NRgSp2LA3dPaeykiS1J6DifTC88f5uVQKNAd",
-		// peer with unknown key (should be included)
-		"/ip4/178.62.158.248/tcp/4001/p2p/QmSomeNewKeygSp2LA3dPaeykiS1J6DifTC88f5uVQKNAd",
+		// peer with unknown key (should be included, /ipfs/ replaced with /p2p/)
+		"/ip4/178.62.158.248/tcp/4001/ipfs/QmSomeNewKeygSp2LA3dPaeykiS1J6DifTC88f5uV562wK",
 		// unrecognized format (should be included)
 		"/ip4/178.62.158.248/tcp/4001/wut/some-new-format",
+		// peer with /dns/ipfs.my-domain.com (should be included, "ipfs" in domain should not be changed)
+		"/dns4/ipfs-bootstrap.com/tcp/4001/ipfs/Qm1234567KeygSp2LA3dPaeykiS1J6DifTC88f5u123456",
 	}
 	exp := []string{
 		// new dnsaddr peers
@@ -78,9 +80,11 @@ func TestForward(t *testing.T) {
 		"/dnsaddr/bootstrap.libp2p.io/p2p/QmbLHAnMoJPWSCR5Zhtx6BHJX9KiKNN6tpvbUcqanj75Nb",
 		"/dnsaddr/bootstrap.libp2p.io/p2p/QmcZf59bWwK5XFi76CZX8cbJ4BhTzzA3gU1ZjYZcYW3dwt",
 		// peer with unknown key
-		"/ip4/178.62.158.248/tcp/4001/p2p/QmSomeNewKeygSp2LA3dPaeykiS1J6DifTC88f5uVQKNAd",
+		"/ip4/178.62.158.248/tcp/4001/p2p/QmSomeNewKeygSp2LA3dPaeykiS1J6DifTC88f5uV562wK",
 		// unrecognized format
 		"/ip4/178.62.158.248/tcp/4001/wut/some-new-format",
+		// peer with /dns/ipfs.my-domain.com
+		"/dns4/ipfs-bootstrap.com/tcp/4001/p2p/Qm1234567KeygSp2LA3dPaeykiS1J6DifTC88f5u123456",
 	}
 	if res := ver7to8(bootstrap); !arrayMatch(exp, res) {
 		fmt.Println(res)
