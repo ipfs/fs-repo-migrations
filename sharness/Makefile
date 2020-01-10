@@ -20,6 +20,7 @@ BINS += bin/ipfs-3-to-4
 BINS += bin/ipfs-4-to-5
 BINS += bin/ipfs-5-to-6
 BINS += bin/ipfs-6-to-7
+BINS += bin/ipfs-7-to-8
 BINS += bin/ipfs-update
 BINS += bin/random-files
 BINS += bin/go-sleep
@@ -35,6 +36,7 @@ IPFS_3_TO_4_SRC = ../ipfs-3-to-4
 IPFS_4_TO_5_SRC = ../ipfs-4-to-5
 IPFS_5_TO_6_SRC = ../ipfs-5-to-6
 IPFS_6_TO_7_SRC = ../ipfs-6-to-7
+IPFS_7_TO_8_SRC = ../ipfs-7-to-8
 IPFS_UPDATE_SRC = ../Godeps/_workspace/src/github.com/ipfs/ipfs-update
 POLL_ENDPOINT_SRC = ./dependencies/pollEndpoint
 IPTB_SRC = ./dependencies/iptb
@@ -119,6 +121,10 @@ bin/ipfs-6-to-7: $(call find_go_files, $(IPFS_6_TO_7_SRC)) BUILD-OPTIONS
 	@echo "*** installing $@ ***"
 	go build $(GOFLAGS) -o $@ $(IPFS_6_TO_7_SRC)
 
+bin/ipfs-7-to-8: $(call find_go_files, $(IPFS_7_TO_8_SRC)) BUILD-OPTIONS
+	@echo "*** installing $@ ***"
+	go build $(GOFLAGS) -o $@ $(IPFS_7_TO_8_SRC)
+
 bin/pollEndpoint: $(call find_go_files, $(POLL_ENDPOINT_SRC)) BUILD-OPTIONS
 	@echo "*** installing $@ ***"
 	go build $(GOFLAGS) -o $@ $(POLL_ENDPOINT_SRC)
@@ -127,4 +133,3 @@ BUILD-OPTIONS: FORCE
 	@bin/checkflags '$@' '$(GOFLAGS)' '*** new Go flags ***'
 
 .PHONY: all clean clean-test-results $(T) aggregate deps sharness FORCE
-
