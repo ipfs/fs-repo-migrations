@@ -1,8 +1,8 @@
 package goprocessctx
 
 import (
-	goprocess "github.com/jbenet/goprocess"
-	context "golang.org/x/net/context"
+	context "github.com/ipfs/fs-repo-migrations/ipfs-1-to-2/context"
+	goprocess "github.com/ipfs/fs-repo-migrations/ipfs-1-to-2/goprocess"
 )
 
 // WithContext constructs and returns a Process that respects

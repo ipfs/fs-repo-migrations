@@ -6,7 +6,7 @@
 package ratelimit
 
 import (
-	process "github.com/jbenet/goprocess"
+	process "github.com/ipfs/fs-repo-migrations/ipfs-1-to-2/goprocess"
 )
 
 // RateLimiter limits the spawning of children. It does so

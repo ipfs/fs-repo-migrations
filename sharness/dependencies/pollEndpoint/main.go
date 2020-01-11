@@ -10,9 +10,9 @@ import (
 	"os"
 	"time"
 
-	ma "github.com/ipfs/fs-repo-migrations/Godeps/_workspace/src/github.com/jbenet/go-multiaddr"
-	manet "github.com/ipfs/fs-repo-migrations/Godeps/_workspace/src/github.com/jbenet/go-multiaddr-net"
-	logging "github.com/ipfs/fs-repo-migrations/ipfs-2-to-3/Godeps/_workspace/src/github.com/whyrusleeping/go-logging"
+	ma "github.com/multiformats/go-multiaddr"
+	manet "github.com/multiformats/go-multiaddr-net"
+	logging "github.com/whyrusleeping/go-logging"
 )
 
 var (

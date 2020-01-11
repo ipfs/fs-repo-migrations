@@ -59,6 +59,10 @@ Migrations are one of those things that can be extremely painful on users. At th
 - Frozen. After the tool is written, all code must be frozen and vendored.
 - To Spec. The tools must conform to the spec.
 
+### Dependencies
+
+Dependencies must be vendored independently for each migration. Unfortunately, dependencies _must not_ be vendored using go modules because we need to support multiple versions of the same dependency (for different migrations). 
+
 ## Contribute
 
 Feel free to join in. All welcome. Open an [issue](https://github.com/ipfs/fs-repo-migrations/issues)!
