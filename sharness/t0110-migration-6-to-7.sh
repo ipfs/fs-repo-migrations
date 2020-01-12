@@ -8,9 +8,9 @@ test_description="Test migration 6 to 7"
 
 export IPTB_ROOT="$(pwd)/.iptb"
 ipfsi() {
-		dir="$1"
-		shift
-		IPFS_PATH="$IPTB_ROOT/$dir" ipfs "$@"
+    dir="$1"
+    shift
+    IPFS_PATH="$IPTB_ROOT/testbeds/default/$dir" ipfs "$@"
 }
 
 export DEBUG=true
@@ -29,7 +29,7 @@ test_install_ipfs_nd_6_7() {
 test_install_ipfs_nd_6_7 "v0.4.15"
 
 test_expect_success "iptb init" '
-	iptb init -n 2 --bootstrap none --port 0
+	iptb testbed create -type localipfs -count 2 -init
 '
 
 for i in 0 1
@@ -43,8 +43,8 @@ done
 
 test_expect_success "generate keys" '
 	ID1=$(ipfsi 0 id -f"<id>") &&
-	ID2=$(ipfsi 0 key gen --type=rsa --size=512 second) &&
-	ID3=$(ipfsi 0 key gen --type=rsa --size=512 third)
+	ID2=$(ipfsi 0 key gen --type=rsa --size=2048 second) &&
+	ID3=$(ipfsi 0 key gen --type=rsa --size=2048 third)
 '
 
 i=0
@@ -85,7 +85,7 @@ test_resolve_fails() {
 
 test_start_0() {
   test_expect_success "start cluster" '
-		iptb start 0 --args --migrate=true && iptb connect 0 1 && go-sleep 3s
+		iptb start -wait 0 -- --migrate=true && iptb connect 0 1 && go-sleep 3s
 	'
 }
 
@@ -97,7 +97,7 @@ test_stop_0() {
 
 test_start() {
 	test_expect_success "start cluster" '
-    iptb start --args --migrate=true && iptb connect 0 1 && go-sleep 3s
+    iptb start -wait -- --migrate=true && iptb connect 0 1 && go-sleep 3s
 	'
 }
 
@@ -133,12 +133,12 @@ test_resolution
 test_stop
 
 test_expect_success "'ipfs-6-to-7 -revert' fails without -path" '
-	test_must_fail iptb run 0 ipfs-6-to-7 -revert
+  IPFS_PATH="$IPTB_ROOT/testbeds/default/0" test_must_fail ipfs-6-to-7 -revert
 '
 
 test_expect_success "'ipfs-6-to-7 -revert' succeeds" '
-	ipfs-6-to-7 -revert -path="$IPTB_ROOT/0" &&
-	ipfs-6-to-7 -revert -path="$IPTB_ROOT/1"
+	ipfs-6-to-7 -revert -path="$IPTB_ROOT/testbeds/default/0" &&
+	ipfs-6-to-7 -revert -path="$IPTB_ROOT/testbeds/default/1"
 '
 
 test_install_ipfs_nd "v0.4.15"
