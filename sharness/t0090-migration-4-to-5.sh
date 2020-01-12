@@ -31,7 +31,7 @@ echo "PINEACH: $PINEACH"
 
 export GOPATH="$(pwd)/gopath"
 mkdir -p gopath/bin
-export PATH="../bin:$GOPATH/bin:$PATH"
+export PATH="$(pwd)/../bin:$GOPATH/bin:$PATH"
 
 
 test_install_ipfs_nd "v0.4.4"

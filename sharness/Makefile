@@ -6,6 +6,7 @@
 # NOTE: run with TEST_VERBOSE=1 for verbose sharness tests.
 
 T = $(sort $(wildcard t[0-9][0-9][0-9][0-9]-*.sh))
+GO111MODULE = on
 LIBDIR = lib
 SHARNESSDIR = sharness
 AGGREGATE = $(LIBDIR)/$(SHARNESSDIR)/aggregate-results.sh
@@ -37,9 +38,6 @@ IPFS_4_TO_5_SRC = ../ipfs-4-to-5
 IPFS_5_TO_6_SRC = ../ipfs-5-to-6
 IPFS_6_TO_7_SRC = ../ipfs-6-to-7
 IPFS_7_TO_8_SRC = ../ipfs-7-to-8
-IPFS_UPDATE_SRC = ../Godeps/_workspace/src/github.com/ipfs/ipfs-update
-POLL_ENDPOINT_SRC = ./dependencies/pollEndpoint
-IPTB_SRC = ./dependencies/iptb
 
 # User might want to override those on the command line
 GOFLAGS =
@@ -75,23 +73,25 @@ bin/fs-repo-migrations: $(call find_go_files, $(FS_REPO_SRC)) BUILD-OPTIONS
 	@echo "*** installing $@ ***"
 	go build $(GOFLAGS) -o $@ $(FS_REPO_SRC)
 
-bin/ipfs-update: $(call find_go_files, $(IPFS_UPDATE_SRC)) BUILD-OPTIONS
+bin/ipfs-update: BUILD-OPTIONS
 	@echo "*** installing $@ ***"
-	go build $(GOFLAGS) -o $@ $(IPFS_UPDATE_SRC)
+	cd dependencies && go build $(GOFLAGS) -o ../$@ github.com/ipfs/ipfs-update
 
-bin/random-files:
+bin/random-files: BUILD-OPTIONS
 	@echo "*** installing $@ ***"
-	go get github.com/jbenet/go-random-files/random-files
-	go build $(GOFLAGS) -o $@ github.com/jbenet/go-random-files/random-files
+	cd dependencies && go build $(GOFLAGS) -o ../$@ github.com/jbenet/go-random-files/random-files
 
-bin/go-sleep:
+bin/go-sleep: BUILD-OPTIONS
 	@echo "*** installing $@ ***"
-	go get github.com/chriscool/go-sleep
-	go build $(GOFLAGS) -o $@ github.com/chriscool/go-sleep
+	cd dependencies && go build $(GOFLAGS) -o ../$@ github.com/chriscool/go-sleep
 
-bin/iptb: $(call find_go_files, $(IPTB_SRC)) BUILD-OPTIONS
+bin/iptb: BUILD-OPTIONS
 	@echo "*** installing $@ ***"
-	go build $(GOFLAGS) -o $@ $(IPTB_SRC)
+	cd dependencies && go build $(GOFLAGS) -o ../$@ ./iptb
+
+bin/pollEndpoint: BUILD-OPTIONS
+	@echo "*** installing $@ ***"
+	cd dependencies && go build $(GOFLAGS) -o ../$@ ./pollEndpoint
 
 bin/ipfs-0-to-1: $(call find_go_files, $(IPFS_0_TO_1_SRC)) BUILD-OPTIONS
 	@echo "*** installing $@ ***"
@@ -124,10 +124,6 @@ bin/ipfs-6-to-7: $(call find_go_files, $(IPFS_6_TO_7_SRC)) BUILD-OPTIONS
 bin/ipfs-7-to-8: $(call find_go_files, $(IPFS_7_TO_8_SRC)) BUILD-OPTIONS
 	@echo "*** installing $@ ***"
 	go build $(GOFLAGS) -o $@ $(IPFS_7_TO_8_SRC)
-
-bin/pollEndpoint: $(call find_go_files, $(POLL_ENDPOINT_SRC)) BUILD-OPTIONS
-	@echo "*** installing $@ ***"
-	go build $(GOFLAGS) -o $@ $(POLL_ENDPOINT_SRC)
 
 BUILD-OPTIONS: FORCE
 	@bin/checkflags '$@' '$(GOFLAGS)' '*** new Go flags ***'

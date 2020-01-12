@@ -100,8 +100,8 @@ test_install_version() {
 	'
 
 	test_expect_success "'ipfs-update install' output looks good" '
-		grep "fetching ipfs version $VERSION" actual &&
-		grep "installation complete." actual ||
+		grep "fetching go-ipfs version $VERSION" actual &&
+		grep "Installation complete!" actual ||
 		test_fsh cat actual
 	'
 
@@ -244,8 +244,8 @@ test_install_ipfs_nd() {
 	'
 
 	test_expect_success "'ipfs-update install' output looks good" '
-		grep "fetching ipfs version $VERSION" actual &&
-		grep "installation complete." actual ||
+		grep "fetching go-ipfs version $VERSION" actual &&
+		grep "Installation complete!" actual ||
 		test_fsh cat actual
 	'
 

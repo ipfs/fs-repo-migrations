@@ -1,3 +1,9 @@
+GO111MODULE = on
+
+check:
+	@echo "verifying that we have no external dependencies"
+	@test "$$(go list -m all)" = "github.com/ipfs/fs-repo-migrations"
+
 install:
 	go install
 	@echo "fs-repo-migrations now installed, type 'fs-repo-migrations' to run"
