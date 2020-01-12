@@ -17,7 +17,7 @@ export DEBUG=true
 
 export GOPATH="$(pwd)/gopath"
 mkdir -p gopath/bin
-export PATH="../bin:$GOPATH/bin:$PATH"
+export PATH="$(pwd)/../bin:$GOPATH/bin:$PATH"
 
 test_install_ipfs_nd_6_7() {
     # Avoid setting this globally. That way, we *test* the dist path set in go-ipfs
