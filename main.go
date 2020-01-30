@@ -98,7 +98,7 @@ func doMigrate(from, to int) error {
 	}
 
 	for cur := from; cur != to; cur += step {
-		err := runMigration(cur, cur + step)
+		err := runMigration(cur, cur+step)
 		if err != nil {
 			return err
 		}
@@ -143,7 +143,7 @@ func YesNoPrompt(prompt string) bool {
 func main() {
 	target := flag.Int("to", CurrentVersion, "specify version to upgrade to")
 	yes := flag.Bool("y", false, "answer yes to all prompts")
-	version := flag.Bool("v", false, "print highest repo version and exit")
+	version := flag.Bool("v", false, "print highest repo version handled and exit")
 	revertOk := flag.Bool("revert-ok", false, "allow running migrations backward")
 
 	flag.Parse()
