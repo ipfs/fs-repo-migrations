@@ -29,10 +29,10 @@ func Run(m Migration) error {
 
 	if !m.Reversible() {
 		if f.Revert {
-			return fmt.Errorf("migration %d is irreversible", m.Versions())
+			return fmt.Errorf("migration %s is irreversible", m.Versions())
 		}
 		if !f.Force {
-			return fmt.Errorf("migration %d is irreversible (use -f to proceed)", m.Versions())
+			return fmt.Errorf("migration %s is irreversible (use -f to proceed)", m.Versions())
 		}
 	}
 
