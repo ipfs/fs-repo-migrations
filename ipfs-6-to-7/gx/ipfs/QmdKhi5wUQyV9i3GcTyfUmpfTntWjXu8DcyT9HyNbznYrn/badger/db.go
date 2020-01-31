@@ -30,7 +30,7 @@ import (
 
 	"github.com/ipfs/fs-repo-migrations/ipfs-6-to-7/gx/ipfs/QmdKhi5wUQyV9i3GcTyfUmpfTntWjXu8DcyT9HyNbznYrn/badger/options"
 
-	"github.com/ipfs/fs-repo-migrations/ipfs-6-to-7/gx/ipfs/QmTEmsyNnckEq8rEfALfdhLHjrEHGoSGFDrAYReuetn7MC/go-net/trace"
+	"golang.org/x/net/trace"
 
 	"github.com/ipfs/fs-repo-migrations/ipfs-6-to-7/gx/ipfs/QmVmDhyTTUcQXFD1rRQ64fGLMSAoaQvNH3hwuaCFAPq2hy/errors"
 	"github.com/ipfs/fs-repo-migrations/ipfs-6-to-7/gx/ipfs/QmdKhi5wUQyV9i3GcTyfUmpfTntWjXu8DcyT9HyNbznYrn/badger/skl"
