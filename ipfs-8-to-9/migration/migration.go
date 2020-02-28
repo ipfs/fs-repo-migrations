@@ -1,6 +1,7 @@
-package mg6
+package mg8
 
 import (
+	base32 "encoding/base32"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -10,14 +11,12 @@ import (
 	migrate "github.com/ipfs/fs-repo-migrations/go-migrate"
 	mfsr "github.com/ipfs/fs-repo-migrations/mfsr"
 	log "github.com/ipfs/fs-repo-migrations/stump"
-
-	base32 "github.com/ipfs/fs-repo-migrations/ipfs-7-to-8/base32"
 )
 
 type Migration struct{}
 
 func (m Migration) Versions() string {
-	return "7-to-8"
+	return "8-to-9"
 }
 
 func (m Migration) Reversible() bool {
@@ -41,7 +40,7 @@ func encode(name string) (string, error) {
 		return "", fmt.Errorf("key name must be at least one character")
 	}
 
-	encodedName := base32.RawStdEncoding.EncodeToString([]byte(name))
+	encodedName := base32.StdEncoding.EncodeToString([]byte(name))
 	return keyFilenamePrefix + strings.ToLower(encodedName), nil
 }
 
@@ -51,7 +50,7 @@ func decode(name string) (string, error) {
 	}
 
 	nameWithoutPrefix := strings.ToUpper(name[len(keyFilenamePrefix):])
-	data, err := base32.RawStdEncoding.DecodeString(nameWithoutPrefix)
+	data, err := base32.StdEncoding.DecodeString(nameWithoutPrefix)
 
 	if err != nil {
 		return "", err
@@ -96,9 +95,9 @@ func (m Migration) Apply(opts migrate.Options) error {
 		)
 	}
 
-	err = mfsr.RepoPath(opts.Path).WriteVersion("8")
+	err = mfsr.RepoPath(opts.Path).WriteVersion("9")
 	if err != nil {
-		log.Error("failed to update version file to 8")
+		log.Error("failed to update version file to 9")
 		return err
 	}
 
@@ -141,9 +140,9 @@ func (m Migration) Revert(opts migrate.Options) error {
 		)
 	}
 
-	err = mfsr.RepoPath(opts.Path).WriteVersion("7")
+	err = mfsr.RepoPath(opts.Path).WriteVersion("8")
 	if err != nil {
-		log.Error("failed to update version file to 7")
+		log.Error("failed to update version file to 8")
 		return err
 	}
 
