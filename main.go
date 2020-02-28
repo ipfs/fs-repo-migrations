@@ -67,8 +67,8 @@ func GetIpfsDir() (string, error) {
 	return "", err
 }
 
-func runMigration(n int) error {
-	fmt.Printf("===> Running migration %d to %d...\n", n, n+1)
+func runMigration(from int, to int) error {
+	fmt.Printf("===> Running migration %d to %d...\n", from, to)
 	path, err := GetIpfsDir()
 	if err != nil {
 		return err
@@ -78,18 +78,29 @@ func runMigration(n int) error {
 	opts.Path = path
 	opts.Verbose = true
 
-	err = migrations[n].Apply(opts)
-	if err != nil {
-		return fmt.Errorf("migration %d to %d failed: %s", n, n+1, err)
+	if to > from {
+		err = migrations[from].Apply(opts)
+	} else if to < from {
+		err = migrations[to].Revert(opts)
+	} else {
+		// catch this earlier. expected invariant violated.
+		err = fmt.Errorf("attempt to run migration to same version")
 	}
-	fmt.Printf("===> Migration %d to %d succeeded!\n", n, n+1)
+	if err != nil {
+		return fmt.Errorf("migration %d to %d failed: %s", from, to, err)
+	}
+	fmt.Printf("===> Migration %d to %d succeeded!\n", from, to)
 	return nil
 }
 
 func doMigrate(from, to int) error {
-	cur := from
-	for ; cur < to; cur++ {
-		err := runMigration(cur)
+	step := 1
+	if from > to {
+		step = -1
+	}
+
+	for cur := from; cur != to; cur += step {
+		err := runMigration(cur, cur+step)
 		if err != nil {
 			return err
 		}
@@ -134,7 +145,8 @@ func YesNoPrompt(prompt string) bool {
 func main() {
 	target := flag.Int("to", CurrentVersion, "specify version to upgrade to")
 	yes := flag.Bool("y", false, "answer yes to all prompts")
-	version := flag.Bool("v", false, "print highest repo version and exit")
+	version := flag.Bool("v", false, "print highest repo version handled and exit")
+	revertOk := flag.Bool("revert-ok", false, "allow running migrations backward")
 
 	flag.Parse()
 
@@ -160,8 +172,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	if vnum >= *target {
-		fmt.Println("ipfs migration: already at or above target version number")
+	if vnum > *target && !*revertOk {
+		fmt.Println("ipfs migration: attempt to run backward migration\nTo allow, run this command again with --revert-ok")
+		os.Exit(1)
+	}
+
+	if vnum == *target {
+		fmt.Println("ipfs migration: already at target version number")
 		return
 	}
 

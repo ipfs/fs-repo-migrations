@@ -8,7 +8,7 @@ os:
 language: go
 
 go:
-  - 1.10.2
+  - 1.13.x
 
 env:
   - TEST_VERBOSE=1

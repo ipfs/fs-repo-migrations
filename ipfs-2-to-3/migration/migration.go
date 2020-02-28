@@ -335,7 +335,7 @@ func loadOldKeys(from dstore.Datastore, k dstore.Key) ([]u.Key, error) {
 
 	vb, ok := v.([]byte)
 	if !ok {
-		return nil, fmt.Errorf("pinset %s was not stored as []byte")
+		return nil, fmt.Errorf("pinset %s was not stored as []byte", v)
 	}
 
 	var keys []u.Key
