@@ -2,10 +2,10 @@ package main
 
 import (
 	migrate "github.com/ipfs/fs-repo-migrations/go-migrate"
-	mg7 "github.com/ipfs/fs-repo-migrations/ipfs-7-to-8/migration"
+	mg8 "github.com/ipfs/fs-repo-migrations/ipfs-8-to-9/migration"
 )
 
 func main() {
-	m := mg7.Migration{}
+	m := mg8.Migration{}
 	migrate.Main(&m)
 }
