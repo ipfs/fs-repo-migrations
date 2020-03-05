@@ -25,13 +25,10 @@ func (m Migration) Reversible() bool {
 
 const keyFilenamePrefix = "key_"
 
+const keystoreRoot = "keystore"
+
 func isEncoded(name string) bool {
-	if !strings.HasPrefix(name, keyFilenamePrefix) {
-		return false
-	}
-
 	_, err := decode(name)
-
 	return err == nil
 }
 
@@ -52,47 +49,21 @@ func decode(name string) (string, error) {
 	nameWithoutPrefix := strings.ToUpper(name[len(keyFilenamePrefix):])
 	data, err := base32.StdEncoding.DecodeString(nameWithoutPrefix)
 
-	if err != nil {
-		return "", err
-	}
-
-	decodedName := string(data[:])
-
-	return decodedName, nil
+	return string(data), err
 }
 
 func (m Migration) Apply(opts migrate.Options) error {
 	log.Verbose = opts.Verbose
 	log.Log("applying %s repo migration", m.Versions())
 
-	keystoreRoot := filepath.Join(opts.Path, "keystore")
-	fileInfos, err := ioutil.ReadDir(keystoreRoot)
+	err := m.encodeDecode(
+		opts,
+		isEncoded, // skip if already encoded
+		encode,
+	)
 
 	if err != nil {
 		return err
-	}
-
-	for _, info := range fileInfos {
-		if info.IsDir() {
-			log.Log("skipping ", info.Name(), " as it is directory!")
-			continue
-		}
-
-		if isEncoded(info.Name()) {
-			log.Log("skipping ", info.Name(), " as it is already encoded!")
-			continue
-		}
-
-		log.VLog("migrating key's filename: ", info.Name())
-		encodedName, err := encode(info.Name())
-		if err != nil {
-			return err
-		}
-
-		os.Rename(
-			filepath.Join(keystoreRoot, info.Name()),
-			filepath.Join(keystoreRoot, encodedName),
-		)
 	}
 
 	err = mfsr.RepoPath(opts.Path).WriteVersion("9")
@@ -106,11 +77,8 @@ func (m Migration) Apply(opts migrate.Options) error {
 	return nil
 }
 
-func (m Migration) Revert(opts migrate.Options) error {
-	log.Verbose = opts.Verbose
-	log.Log("reverting migration")
-
-	keystoreRoot := filepath.Join(opts.Path, "keystore")
+func (m Migration) encodeDecode(opts migrate.Options, shouldApplyCodec func(string) bool, codec func(string) (string, error)) error {
+	keystoreRoot := filepath.Join(opts.Path, keystoreRoot)
 	fileInfos, err := ioutil.ReadDir(keystoreRoot)
 
 	if err != nil {
@@ -119,25 +87,45 @@ func (m Migration) Revert(opts migrate.Options) error {
 
 	for _, info := range fileInfos {
 		if info.IsDir() {
-			log.Log("skipping", info.Name(), "as it is directory!")
+			log.Log("skipping ", info.Name(), " as it is directory!")
 			continue
 		}
 
-		if !isEncoded(info.Name()) {
-			log.Log("skipping", info.Name(), "as it is not encoded!")
+		if shouldApplyCodec(info.Name()) {
+			log.Log("skipping ", info.Name(), ". Already in expected format!")
 			continue
 		}
 
-		log.VLog("reverting key's filename:", info.Name())
-		decodedName, err := decode(info.Name())
+		log.VLog("Renaming key's filename: ", info.Name())
+		encodedName, err := codec(info.Name())
 		if err != nil {
 			return err
 		}
 
-		os.Rename(
-			filepath.Join(keystoreRoot, info.Name()),
-			filepath.Join(keystoreRoot, decodedName),
-		)
+		src := filepath.Join(keystoreRoot, info.Name())
+		dest := filepath.Join(keystoreRoot, encodedName)
+
+		if err := os.Rename(src, dest); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (m Migration) Revert(opts migrate.Options) error {
+	log.Verbose = opts.Verbose
+	log.Log("reverting migration")
+
+	err := m.encodeDecode(
+		opts,
+		func(name string) bool {
+			return !isEncoded(name) // skip if not encoded
+		},
+		decode,
+	)
+
+	if err != nil {
+		return err
 	}
 
 	err = mfsr.RepoPath(opts.Path).WriteVersion("8")
