@@ -37,7 +37,8 @@ func encode(name string) (string, error) {
 		return "", fmt.Errorf("key name must be at least one character")
 	}
 
-	encodedName := base32.StdEncoding.EncodeToString([]byte(name))
+	encoder := base32.StdEncoding.WithPadding(base32.NoPadding)
+	encodedName := encoder.EncodeToString([]byte(name))
 	return keyFilenamePrefix + strings.ToLower(encodedName), nil
 }
 
@@ -47,7 +48,8 @@ func decode(name string) (string, error) {
 	}
 
 	nameWithoutPrefix := strings.ToUpper(name[len(keyFilenamePrefix):])
-	data, err := base32.StdEncoding.DecodeString(nameWithoutPrefix)
+	decoder := base32.StdEncoding.WithPadding(base32.NoPadding)
+	data, err := decoder.DecodeString(nameWithoutPrefix)
 
 	return string(data), err
 }
