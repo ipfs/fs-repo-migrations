@@ -7,6 +7,8 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
+
+	log "github.com/ipfs/fs-repo-migrations/stump"
 )
 
 var (
@@ -74,7 +76,9 @@ func convert(in io.Reader, out io.Writer, convFunc convFunc) error {
 	if bootstrapi == nil {
 		bootstrapi, _ := confMap["bootstrap"].([]interface{})
 		if bootstrapi == nil {
-			return fmt.Errorf("Bootstrap field missing or of the wrong type")
+			log.Log("Bootstrap field missing or of the wrong type")
+			log.Log("Nothing to migrate")
+			return nil
 		}
 	}
 	bootstrap := make([]string, len(bootstrapi))
