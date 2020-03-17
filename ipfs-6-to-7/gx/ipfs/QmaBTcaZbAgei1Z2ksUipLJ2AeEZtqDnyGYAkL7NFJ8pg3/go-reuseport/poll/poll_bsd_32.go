@@ -1,4 +1,5 @@
-// +build darwin,amd64 darwin,arm64 freebsd dragonfly netbsd openbsd
+// +build darwin freebsd dragonfly netbsd openbsd
+// +build 386 arm
 
 package poll
 
@@ -22,9 +23,10 @@ func New(fd int) (p *Poller, err error) {
 	}
 
 	p.event = unix.Kevent_t{
-		Ident:  uint64(fd),
+		Ident:  uint32(fd),
 		Filter: unix.EVFILT_WRITE,
 		Flags:  unix.EV_ADD | unix.EV_ENABLE | unix.EV_ONESHOT,
+		Udata:  nil,
 	}
 	return p, nil
 }
