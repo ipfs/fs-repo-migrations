@@ -44,7 +44,9 @@ ipfs repo version | go-ipfs versions
                 4 |  0.4.3 - 0.4.5
                 5 |  0.4.6 - 0.4.10
                 6 |  0.4.11 - 0.4.15
-                7 |  0.4.16 - current
+                7 |  0.4.16 - 0.4.23
+                8 |  0.5.0 - current
+                9 |  0.5.0 - current
 
 ### How to Run Migrations
 

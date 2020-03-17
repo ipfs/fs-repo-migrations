@@ -16,10 +16,12 @@ import (
 	mg4 "github.com/ipfs/fs-repo-migrations/ipfs-4-to-5/migration"
 	mg5 "github.com/ipfs/fs-repo-migrations/ipfs-5-to-6/migration"
 	mg6 "github.com/ipfs/fs-repo-migrations/ipfs-6-to-7/migration"
+	mg7 "github.com/ipfs/fs-repo-migrations/ipfs-7-to-8/migration"
+	mg8 "github.com/ipfs/fs-repo-migrations/ipfs-8-to-9/migration"
 	mfsr "github.com/ipfs/fs-repo-migrations/mfsr"
 )
 
-var CurrentVersion = 7
+var CurrentVersion = 9
 
 var migrations = []gomigrate.Migration{
 	&mg0.Migration{},
@@ -29,6 +31,8 @@ var migrations = []gomigrate.Migration{
 	&mg4.Migration{},
 	&mg5.Migration{},
 	&mg6.Migration{},
+	&mg7.Migration{},
+	&mg8.Migration{},
 }
 
 func GetIpfsDir() (string, error) {
