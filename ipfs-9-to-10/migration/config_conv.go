@@ -143,7 +143,7 @@ func ver10to9Bootstrap(bootstrap []string) []string {
 	return bootstrap
 }
 
-var tcpRegexp = regexp.MustCompile(`\/tcp\/[0-9]+\/`)
+var tcpRegexp = regexp.MustCompile(`/tcp/([0-9]+)`)
 
 func ver9to10Swarm(swarm []string) []string {
 	res := make([]string, 0, len(swarm)*2)
@@ -161,18 +161,20 @@ func ver9to10Swarm(swarm []string) []string {
 	// For each tcp address, add a corresponding quic address
 	for _, addr := range swarm {
 		if tcpRegexp.MatchString(addr) {
-			res = append(res, tcpRegexp.ReplaceAllString(`\/tcp\/([0-9]+)\/`, `\/udp\/$1\/quic`))
+			res = append(res, tcpRegexp.ReplaceAllString(addr, `/udp/$1/quic`))
 		}
 	}
 
 	return res
 }
 
+var quicRegexp = regexp.MustCompile(`/udp/[0-9]+/quic`)
+
 func ver10to9Swarm(swarm []string) []string {
 	// Remove quic addresses
 	res := make([]string, 0, len(swarm))
 	for _, addr := range swarm {
-		if !strings.Contains(addr, "/udp/quic") {
+		if !quicRegexp.MatchString(addr) {
 			res = append(res, addr)
 		}
 	}
