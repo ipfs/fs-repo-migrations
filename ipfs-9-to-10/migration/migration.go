@@ -118,7 +118,7 @@ func (m Migration) Revert(opts migrate.Options) error {
 		return fmt.Errorf("reading revert phase: %s", err)
 	}
 
-	for ; phase < 4; phase++ {
+	for ; phase < 3; phase++ {
 		switch phase {
 		case 0:
 			if err := os.Rename(basepath, v10path); err != nil {

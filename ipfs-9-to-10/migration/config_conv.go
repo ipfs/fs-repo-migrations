@@ -117,30 +117,30 @@ func convertSwarm(confMap map[string]interface{}, conv convArray) {
 }
 
 func ver9to10Bootstrap(bootstrap []string) []string {
+	hasOld := false
+	hasNew := false
 	res := make([]string, 0, len(bootstrap)+1)
 	for _, addr := range bootstrap {
 		res = append(res, addr)
-
-		// If the config has the old IP v4 bootstrapper, add the new QUIC
-		// bootstrapper
 		if addr == ip4BootstrapAddr {
-			res = append(res, quicBootstrapAddr)
+			hasOld = true
+		} else if addr == quicBootstrapAddr {
+			hasNew = true
 		}
+	}
+
+	// If the config has the old IP v4 bootstrapper, add the new QUIC
+	// bootstrapper
+	if hasOld && !hasNew {
+		res = append(res, quicBootstrapAddr)
 	}
 
 	return res
 }
 
 func ver10to9Bootstrap(bootstrap []string) []string {
-	res := make([]string, 0, len(bootstrap))
-	for _, addr := range bootstrap {
-		// If the config has the new IP v4 bootstrapper, remove it
-		if addr != quicBootstrapAddr {
-			res = append(res, ip4BootstrapAddr)
-		}
-	}
-
-	return res
+	// No need to remove the QUIC bootstrapper, just leave things as they are
+	return bootstrap
 }
 
 var tcpRegexp = regexp.MustCompile(`\/tcp\/[0-9]+\/`)
