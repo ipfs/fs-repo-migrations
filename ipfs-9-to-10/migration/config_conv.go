@@ -21,7 +21,7 @@ var (
 type convArray func([]string) []string
 
 // convertFile converts a config file from one version to another
-func convertFile(orig string, new string, quicEnabled bool, convBootstrap convArray, convSwarm convArray) error {
+func convertFile(orig string, new string, enableQuic bool, convBootstrap convArray, convSwarm convArray) error {
 	in, err := os.Open(orig)
 	if err != nil {
 		return err
@@ -30,11 +30,11 @@ func convertFile(orig string, new string, quicEnabled bool, convBootstrap convAr
 	if err != nil {
 		return err
 	}
-	return convert(in, out, quicEnabled, convBootstrap, convSwarm)
+	return convert(in, out, enableQuic, convBootstrap, convSwarm)
 }
 
 // convert converts the config from one version to another
-func convert(in io.Reader, out io.Writer, quicEnabled bool, convBootstrap convArray, convSwarm convArray) error {
+func convert(in io.Reader, out io.Writer, enableQuic bool, convBootstrap convArray, convSwarm convArray) error {
 	data, err := ioutil.ReadAll(in)
 	if err != nil {
 		return err
@@ -48,7 +48,7 @@ func convert(in io.Reader, out io.Writer, quicEnabled bool, convBootstrap convAr
 	convertBootstrap(confMap, convBootstrap)
 
 	// Convert swarm config
-	if quicEnabled {
+	if enableQuic {
 		// When enabling quic
 		// - Remove experimental option from config
 		confEnabled, ok := removeExperimentalQuic(confMap)
@@ -70,6 +70,7 @@ func convert(in io.Reader, out io.Writer, quicEnabled bool, convBootstrap convAr
 	return nil
 }
 
+// Remove Experimental.QUIC flag
 func removeExperimentalQuic(confMap map[string]interface{}) (bool, bool) {
 	confExpi := confMap["Experimental"].(map[string]interface{})
 	if confExpi == nil {
@@ -83,6 +84,7 @@ func removeExperimentalQuic(confMap map[string]interface{}) (bool, bool) {
 	return enabled, ok
 }
 
+// Convert Bootstrap addresses to/from QUIC
 func convertBootstrap(confMap map[string]interface{}, conv convArray) {
 	bootstrapi, _ := confMap["Bootstrap"].([]interface{})
 	if bootstrapi == nil {
@@ -96,6 +98,7 @@ func convertBootstrap(confMap map[string]interface{}, conv convArray) {
 	confMap["Bootstrap"] = conv(bootstrap)
 }
 
+// Convert Addresses.Swarm to/from QUIC
 func convertSwarm(confMap map[string]interface{}, conv convArray) {
 	addressesi, _ := confMap["Addresses"].(map[string]interface{})
 	if addressesi == nil {
@@ -116,6 +119,7 @@ func convertSwarm(confMap map[string]interface{}, conv convArray) {
 	addressesi["Swarm"] = conv(swarm)
 }
 
+// Add QUIC Bootstrap address
 func ver9to10Bootstrap(bootstrap []string) []string {
 	hasOld := false
 	hasNew := false
@@ -145,6 +149,7 @@ func ver10to9Bootstrap(bootstrap []string) []string {
 
 var tcpRegexp = regexp.MustCompile(`/tcp/([0-9]+)`)
 
+// For each TCP listener, add a QUIC listener
 func ver9to10Swarm(swarm []string) []string {
 	res := make([]string, 0, len(swarm)*2)
 	for _, addr := range swarm {
@@ -170,6 +175,7 @@ func ver9to10Swarm(swarm []string) []string {
 
 var quicRegexp = regexp.MustCompile(`/udp/[0-9]+/quic`)
 
+// Remove QUIC listeners
 func ver10to9Swarm(swarm []string) []string {
 	// Remove quic addresses
 	res := make([]string, 0, len(swarm))
