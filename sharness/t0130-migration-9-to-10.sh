@@ -6,7 +6,7 @@ test_description="Test migration 9 to 10"
 
 # Dist specially built with a v0.6.0-dev release
 # TODO: Replace with real dist path (this is just a tmp one for testing)
-export IPFS_DIST_PATH="/ipfs/QmaBzkHxejtwH5DrSg9oiUwjWDit3925JPMCTanY8Afm9z"
+export IPFS_DIST_PATH="/ipfs/Qmc44rcSEktAc7qeEriLaDJ5Up9qq5bEnKyX8iVCjzx7BL"
 
 export GOPATH="$(pwd)/gopath"
 mkdir -p gopath/bin
