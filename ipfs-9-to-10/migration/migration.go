@@ -41,31 +41,10 @@ func (m Migration) Apply(opts migrate.Options) error {
 		return err
 	}
 
-	basepath := filepath.Join(opts.Path, "config")
-	v9path := filepath.Join(opts.Path, "config-v9")
-	if err := os.Rename(basepath, v9path); err != nil {
-		if os.IsNotExist(err) {
-			_, err2 := os.Stat(v9path)
-			if err2 == nil {
-				log.Log("... config already renamed to config-v9, continuing")
-				err = nil
-			}
-		}
-		if err != nil {
-			return err
-		}
-	}
-
 	log.Log("> Upgrading config to new format")
 
-	if err := convertFile(v9path, basepath, true, ver9to10Bootstrap, ver9to10Swarm); err != nil {
-		if opts.NoRevert {
-			return err
-		}
-		err := os.Rename(v9path, basepath)
-		if err != nil {
-			log.Error(err)
-		}
+	path := filepath.Join(opts.Path, "config")
+	if err := convertFile(path, true, ver9to10Bootstrap, ver9to10Swarm); err != nil {
 		return err
 	}
 
@@ -110,25 +89,21 @@ func (m Migration) Revert(opts migrate.Options) error {
 	}
 
 	phasefile := filepath.Join(opts.Path, "revert-phase")
-	basepath := filepath.Join(opts.Path, "config")
-	v10path := filepath.Join(opts.Path, "config-v10")
+	path := filepath.Join(opts.Path, "config")
 
 	phase, err := readPhase(phasefile)
 	if err != nil {
 		return fmt.Errorf("reading revert phase: %s", err)
 	}
 
-	for ; phase < 3; phase++ {
+	defer os.Remove(phasefile)
+	for ; phase < 2; phase++ {
 		switch phase {
 		case 0:
-			if err := os.Rename(basepath, v10path); err != nil {
+			if err := convertFile(path, false, ver10to9Bootstrap, ver10to9Swarm); err != nil {
 				return err
 			}
 		case 1:
-			if err := convertFile(v10path, basepath, false, ver10to9Bootstrap, ver10to9Swarm); err != nil {
-				return err
-			}
-		case 2:
 			if err := repo.WriteVersion("9"); err != nil {
 				return err
 			}
@@ -140,7 +115,6 @@ func (m Migration) Revert(opts migrate.Options) error {
 			return err
 		}
 	}
-	os.Remove(phasefile)
 
 	return nil
 }

@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/ipfs/fs-repo-migrations/ipfs-6-to-7/gx/ipfs/QmdYwCmx8pZRkzdcd8MhmLJqYVoVTC1aGsy5Q4reMGLNLg/atomicfile"
 	log "github.com/ipfs/fs-repo-migrations/stump"
 )
 
@@ -21,23 +22,18 @@ var (
 type convArray func([]string) []string
 
 // convertFile converts a config file from one version to another
-func convertFile(orig string, new string, enableQuic bool, convBootstrap convArray, convSwarm convArray) error {
-	in, err := os.Open(orig)
+func convertFile(path string, enableQuic bool, convBootstrap convArray, convSwarm convArray) error {
+	in, err := os.Open(path)
 	if err != nil {
 		return err
 	}
 	defer in.Close()
 
-	out, err := os.Create(new)
+	out, err := atomicfile.New(path, 0660)
 	if err != nil {
 		return err
 	}
 	defer out.Close()
-
-	// Make sure file has 600 permissions
-	if err := out.Chmod(0600); err != nil {
-		return err
-	}
 
 	return convert(in, out, enableQuic, convBootstrap, convSwarm)
 }
