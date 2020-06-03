@@ -34,6 +34,11 @@ func convertFile(orig string, new string, enableQuic bool, convBootstrap convArr
 	}
 	defer out.Close()
 
+	// Make sure file has 600 permissions
+	if err := out.Chmod(0600); err != nil {
+		return err
+	}
+
 	return convert(in, out, enableQuic, convBootstrap, convSwarm)
 }
 
