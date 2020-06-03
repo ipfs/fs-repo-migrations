@@ -29,13 +29,22 @@ func convertFile(path string, enableQuic bool, convBootstrap convArray, convSwar
 	}
 	defer in.Close()
 
+	// Create a temp file to write the output to on success
 	out, err := atomicfile.New(path, 0660)
 	if err != nil {
 		return err
 	}
-	defer out.Close()
 
-	return convert(in, out, enableQuic, convBootstrap, convSwarm)
+	err = convert(in, out, enableQuic, convBootstrap, convSwarm)
+	if err != nil {
+		// There was an error so abort writing the output and clean up temp file
+		out.Abort()
+	} else {
+		// Write the output and clean up temp file
+		out.Close()
+	}
+
+	return err
 }
 
 // convert converts the config from one version to another
