@@ -29,7 +29,7 @@ func convertFile(path string, enableQuic bool, convBootstrap convArray, convSwar
 	}
 
 	// Create a temp file to write the output to on success
-	out, err := atomicfile.New(path, 0660)
+	out, err := atomicfile.New(path, 0600)
 	if err != nil {
 		in.Close()
 		return err
