@@ -27,15 +27,18 @@ func convertFile(path string, enableQuic bool, convBootstrap convArray, convSwar
 	if err != nil {
 		return err
 	}
-	defer in.Close()
 
 	// Create a temp file to write the output to on success
 	out, err := atomicfile.New(path, 0660)
 	if err != nil {
+		in.Close()
 		return err
 	}
 
 	err = convert(in, out, enableQuic, convBootstrap, convSwarm)
+
+	in.Close()
+
 	if err != nil {
 		// There was an error so abort writing the output and clean up temp file
 		out.Abort()
