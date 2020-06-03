@@ -26,10 +26,14 @@ func convertFile(orig string, new string, enableQuic bool, convBootstrap convArr
 	if err != nil {
 		return err
 	}
+	defer in.Close()
+
 	out, err := os.Create(new)
 	if err != nil {
 		return err
 	}
+	defer out.Close()
+
 	return convert(in, out, enableQuic, convBootstrap, convSwarm)
 }
 
@@ -65,9 +69,12 @@ func convert(in io.Reader, out io.Writer, enableQuic bool, convBootstrap convArr
 	if err != nil {
 		return err
 	}
-	out.Write(fixed)
-	out.Write([]byte("\n"))
-	return nil
+
+	if _, err := out.Write(fixed); err != nil {
+		return err
+	}
+	_, err = out.Write([]byte("\n"))
+	return err
 }
 
 // Remove Experimental.QUIC flag
@@ -77,7 +84,11 @@ func removeExperimentalQuic(confMap map[string]interface{}) (bool, bool) {
 		return false, false
 	}
 	enabledi, ok := confExpi["QUIC"]
-	enabled := enabledi.(bool)
+	if !ok {
+		return false, false
+	}
+
+	enabled, ok := enabledi.(bool)
 
 	delete(confExpi, "QUIC")
 
@@ -88,7 +99,7 @@ func removeExperimentalQuic(confMap map[string]interface{}) (bool, bool) {
 func convertBootstrap(confMap map[string]interface{}, conv convArray) {
 	bootstrapi, _ := confMap["Bootstrap"].([]interface{})
 	if bootstrapi == nil {
-		log.Log("Bootstrap field missing or of the wrong type")
+		log.Log("No Bootstrap field in config, skipping")
 		return
 	}
 	bootstrap := make([]string, len(bootstrapi))
