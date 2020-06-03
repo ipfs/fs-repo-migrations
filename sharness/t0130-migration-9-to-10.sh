@@ -32,10 +32,6 @@ test_expect_success "remember old swarm config" '
   ipfs config Addresses.Swarm | sort > swarm_old
 '
 
-test_expect_success "remember old experimental config" '
-  ipfs config Experimental | sort > experimental_old
-'
-
 # no need to launch daemon as this works offline
 
 test_expect_success "run migration 9 to 10" '
@@ -53,12 +49,6 @@ test_expect_success "migration added quic listener" '
   ipfs config Addresses.Swarm | grep "quic"
 '
 
-test_expect_success "migration removed experimental quic config" '
-  grep -v "QUIC\|{\|}" experimental_old | sort > experimental_old_no_quic &&
-  ipfs config Experimental | grep -v "{\|}" | sort > experimental_new &&
-  test_cmp experimental_old_no_quic experimental_new
-'
-
 test_expect_success "revert migration 10 to 9 succeeds" '
   ipfs-9-to-10 -revert -verbose -path="$IPFS_PATH"
 '
@@ -67,11 +57,6 @@ test_install_ipfs_nd "v0.5.1"
 
 test_expect_success "does not revert bootstrap address" '
   ipfs config Bootstrap | grep "/ip4/104.131.131.82/udp/4001/quic/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ"
-'
-
-test_expect_success "expect reverts swarm config" '
-  ipfs config Addresses.Swarm | sort > swarm_reverted &&
-  test_cmp swarm_reverted swarm_old
 '
 
 test_done

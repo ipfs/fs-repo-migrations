@@ -44,7 +44,7 @@ func (m Migration) Apply(opts migrate.Options) error {
 	log.Log("> Upgrading config to new format")
 
 	path := filepath.Join(opts.Path, "config")
-	if err := convertFile(path, true, ver9to10Bootstrap, ver9to10Swarm); err != nil {
+	if err := convertFile(path, ver9to10Bootstrap, ver9to10Addresses); err != nil {
 		return err
 	}
 
@@ -88,32 +88,11 @@ func (m Migration) Revert(opts migrate.Options) error {
 		return err
 	}
 
-	phasefile := filepath.Join(opts.Path, "revert-phase")
-	path := filepath.Join(opts.Path, "config")
-
-	phase, err := readPhase(phasefile)
-	if err != nil {
-		return fmt.Errorf("reading revert phase: %s", err)
+	if err := repo.WriteVersion("9"); err != nil {
+		return err
 	}
-
-	defer os.Remove(phasefile)
-	for ; phase < 2; phase++ {
-		switch phase {
-		case 0:
-			if err := convertFile(path, false, ver10to9Bootstrap, ver10to9Swarm); err != nil {
-				return err
-			}
-		case 1:
-			if err := repo.WriteVersion("9"); err != nil {
-				return err
-			}
-			if opts.Verbose {
-				fmt.Println("lowered version number to 9")
-			}
-		}
-		if err := writePhase(phasefile, phase+1); err != nil {
-			return err
-		}
+	if opts.Verbose {
+		fmt.Println("lowered version number to 9")
 	}
 
 	return nil
