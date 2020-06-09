@@ -13,6 +13,34 @@ mkdir -p gopath/bin
 export PATH="$(pwd)/../bin:$GOPATH/bin:$PATH"
 echo $IPFS_PATH
 
+sort > expected_swarm_addresses <<EOF
+/ip4/0.0.0.0/tcp/4001
+/ip4/0.0.0.0/udp/4001/quic
+/ip4/1.2.3.4/udp/4004/quic/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ/p2p-circuit
+/ip6/::/tcp/4002
+/ip6/::/tcp/4003/ws
+/ip6/::/udp/4002/quic
+EOF
+
+get_swarm_addresses() {
+  ipfs config Addresses.Swarm | sed -n -e 's/^ *"\(.*\)",\?$/\1/p' | sort
+}
+
+check_results() {
+  test_expect_success "get new swarm addresses" '
+    get_swarm_addresses > actual_swarm_addresses
+  '
+
+
+  test_expect_success "migration added quic bootstrapper" '
+    test "$(ipfs config Bootstrap | grep -c "/ip4/104.131.131.82/udp/4001/quic/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ")" -eq 1
+  '
+  
+  test_expect_success "get new swarm config" '
+    test_cmp expected_swarm_addresses actual_swarm_addresses
+  '
+}
+
 test_install_ipfs_nd "v0.5.1"
 
 test_init_ipfs_nd
@@ -28,8 +56,13 @@ test_expect_success "add bootstrap addresses" '
 ]"
 '
 
-test_expect_success "remember old swarm config" '
-  ipfs config Addresses.Swarm | sort > swarm_old
+test_expect_success "configure listen addresses" '
+  test_config_set --json Addresses.Swarm "[
+  \"/ip4/0.0.0.0/tcp/4001\",
+  \"/ip6/::/tcp/4002\",
+  \"/ip6/::/tcp/4003/ws\",
+  \"/ip4/1.2.3.4/udp/4004/quic/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ/p2p-circuit\"
+]"
 '
 
 # no need to launch daemon as this works offline
@@ -41,13 +74,16 @@ test_expect_success "run migration 9 to 10" '
 
 test_install_ipfs_nd "v0.6.0-dev"
 
-test_expect_success "migration added quic bootstrapper" '
-  ipfs config Bootstrap | grep "/ip4/104.131.131.82/udp/4001/quic/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ"
+check_results
+
+test_expect_success "re-run migration 9 to 10" '
+  echo 9 > "$IPFS_PATH/version" &&
+  echo $IPFS_PATH &&
+  ipfs-9-to-10 -verbose -path="$IPFS_PATH"
 '
 
-test_expect_success "migration added quic listener" '
-  ipfs config Addresses.Swarm | grep "quic"
-'
+# Shouldn't do anything this time, now that we have an address.
+check_results
 
 test_expect_success "revert migration 10 to 9 succeeds" '
   ipfs-9-to-10 -revert -verbose -path="$IPFS_PATH"
@@ -55,8 +91,7 @@ test_expect_success "revert migration 10 to 9 succeeds" '
 
 test_install_ipfs_nd "v0.5.1"
 
-test_expect_success "does not revert bootstrap address" '
-  ipfs config Bootstrap | grep "/ip4/104.131.131.82/udp/4001/quic/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ"
-'
+# Should leave everything alone.
+check_results
 
 test_done

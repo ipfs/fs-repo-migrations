@@ -153,7 +153,7 @@ func ver9to10Addresses(swarm, announce, noAnnounce []string) ([]string, []string
 		// If the old configuration already has a quic address in it, assume
 		// the user has already set up their addresses for quic and leave
 		// things as they are
-		if strings.Contains(addr, "/udp/quic") {
+		if strings.HasSuffix(addr, "/quic") {
 			return swarm, announce, noAnnounce
 		}
 	}
@@ -161,7 +161,7 @@ func ver9to10Addresses(swarm, announce, noAnnounce []string) ([]string, []string
 	return addQuic(swarm), addQuic(announce), addQuic(noAnnounce)
 }
 
-var tcpRegexp = regexp.MustCompile(`/tcp/([0-9]+)`)
+var tcpRegexp = regexp.MustCompile(`/tcp/([0-9]+)$`)
 
 func addQuic(addrs []string) []string {
 	res := make([]string, 0, len(addrs)*2)
