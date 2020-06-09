@@ -85,6 +85,26 @@ test_expect_success "re-run migration 9 to 10" '
 # Shouldn't do anything this time, now that we have an address.
 check_results
 
+# Should also work with /ipfs/ addresses
+test_expect_success "add bootstrap addresses" '
+  test_config_set --json Bootstrap "[
+  \"/dnsaddr/bootstrap.libp2p.io/ipfs/QmbLHAnMoJPWSCR5Zhtx6BHJX9KiKNN6tpvbUcqanj75Nb\",
+  \"/dnsaddr/bootstrap.libp2p.io/ipfs/QmcZf59bWwK5XFi76CZX8cbJ4BhTzzA3gU1ZjYZcYW3dwt\",
+  \"/ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ\",
+  \"/dnsaddr/bootstrap.libp2p.io/ipfs/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN\",
+  \"/dnsaddr/bootstrap.libp2p.io/ipfs/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa\"
+]"
+'
+
+test_expect_success "re-run migration 9 to 10" '
+  echo 9 > "$IPFS_PATH/version" &&
+  echo $IPFS_PATH &&
+  ipfs-9-to-10 -verbose -path="$IPFS_PATH"
+'
+
+# Shouldn't do anything this time, now that we have an address.
+check_results
+
 test_expect_success "revert migration 10 to 9 succeeds" '
   ipfs-9-to-10 -revert -verbose -path="$IPFS_PATH"
 '

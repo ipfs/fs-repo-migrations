@@ -130,6 +130,12 @@ func ver9to10Bootstrap(bootstrap []string) []string {
 	hasNew := false
 	res := make([]string, 0, len(bootstrap)+1)
 	for _, addr := range bootstrap {
+		// Upgrade /ipfs & /p2p. This should have happened in migration
+		// 7-to-8, but that migration wouldn't run at all if we already
+		// had the new bootstrappers.
+		addr = strings.Replace(addr, "/ipfs/Qm", "/p2p/Qm", -1)
+		addr = strings.Replace(addr, "/ipfs/1", "/p2p/1", -1)
+
 		res = append(res, addr)
 		if addr == ip4BootstrapAddr {
 			hasOld = true
