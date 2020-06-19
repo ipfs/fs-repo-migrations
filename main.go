@@ -42,7 +42,11 @@ var migrations = []gomigrate.Migration{
 func GetIpfsDir() (string, error) {
 	ipfspath := os.Getenv("IPFS_PATH")
 	if ipfspath != "" {
-		return ipfspath, nil
+		expandedPath, err := homedir.Expand(ipfspath)
+		if err != nil {
+			return "", err
+		}
+		return expandedPath, nil
 	}
 
 	home, err := homedir.Dir()
