@@ -78,7 +78,8 @@ func convert(in io.Reader, out io.Writer, convFunc convFunc) error {
 		if bootstrapi == nil {
 			log.Log("Bootstrap field missing or of the wrong type")
 			log.Log("Nothing to migrate")
-			return nil
+			_, err := out.Write(data)
+			return err
 		}
 	}
 	bootstrap := make([]string, len(bootstrapi))
