@@ -78,7 +78,8 @@ func convert(in io.Reader, out io.Writer, convFunc convFunc) error {
 		if bootstrapi == nil {
 			log.Log("Bootstrap field missing or of the wrong type")
 			log.Log("Nothing to migrate")
-			return nil
+			_, err := out.Write(data)
+			return err
 		}
 	}
 	bootstrap := make([]string, len(bootstrapi))
@@ -91,9 +92,11 @@ func convert(in io.Reader, out io.Writer, convFunc convFunc) error {
 	if err != nil {
 		return err
 	}
-	out.Write(fixed)
-	out.Write([]byte("\n"))
-	return nil
+	if _, err := out.Write(fixed); err != nil {
+		return err
+	}
+	_, err = out.Write([]byte("\n"))
+	return err
 }
 
 func ver7to8(bootstrap []string) []string {
