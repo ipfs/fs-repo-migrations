@@ -24,6 +24,7 @@ BINS += bin/ipfs-6-to-7
 BINS += bin/ipfs-7-to-8
 BINS += bin/ipfs-8-to-9
 BINS += bin/ipfs-9-to-10
+BINS += bin/ipfs-10-to-11
 BINS += bin/ipfs-update
 BINS += bin/random-files
 BINS += bin/go-sleep
@@ -42,6 +43,7 @@ IPFS_6_TO_7_SRC = ../ipfs-6-to-7
 IPFS_7_TO_8_SRC = ../ipfs-7-to-8
 IPFS_8_TO_9_SRC = ../ipfs-8-to-9
 IPFS_9_TO_10_SRC = ../ipfs-9-to-10
+IPFS_10_TO_11_SRC = ../ipfs-10-to-11
 
 # User might want to override those on the command line
 GOFLAGS =
@@ -137,6 +139,9 @@ bin/ipfs-9-to-10: $(call find_go_files, $(IPFS_9_TO_10_SRC)) BUILD-OPTIONS
 	@echo "*** installing $@ ***"
 	go build $(GOFLAGS) -o $@ $(IPFS_9_TO_10_SRC)
 
+bin/ipfs-10-to-11: $(call find_go_files, $(IPFS_10_TO_11_SRC)) BUILD-OPTIONS
+	@echo "*** installing $@ ***"
+	go build $(GOFLAGS) -o $@ $(IPFS_10_TO_11_SRC)
 
 BUILD-OPTIONS: FORCE
 	@bin/checkflags '$@' '$(GOFLAGS)' '*** new Go flags ***'

@@ -83,6 +83,7 @@ GUEST_IPFS_0_TO_1="sharness/bin/ipfs-0-to-1"
 GUEST_IPFS_1_TO_2="sharness/bin/ipfs-1-to-2"
 GUEST_IPFS_2_TO_3="sharness/bin/ipfs-2-to-3"
 GUEST_IPFS_3_TO_4="sharness/bin/ipfs-3-to-4"
+GUEST_IPFS_10_TO_11="sharness/bin/ipfs-10-to-11"
 
 GUEST_RANDOM_FILES="sharness/bin/random-files"
 

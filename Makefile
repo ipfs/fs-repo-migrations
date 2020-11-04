@@ -1,14 +1,14 @@
 GO111MODULE = on
 
 install:
-	go install -mod=vendor
+	go install
 	@echo "fs-repo-migrations now installed, type 'fs-repo-migrations' to run"
 
 test: test_go sharness
 
 test_go:
-	go build -mod=vendor
-	go test -mod=vendor  ./...
+	go build
+	go test $(shell go list ./... | grep -v /gx/)
 
 sharness:
 	make -C sharness

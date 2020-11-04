@@ -10,6 +10,7 @@ import (
 	gomigrate "github.com/ipfs/fs-repo-migrations/go-migrate"
 	mg0 "github.com/ipfs/fs-repo-migrations/ipfs-0-to-1/migration"
 	mg1 "github.com/ipfs/fs-repo-migrations/ipfs-1-to-2/migration"
+	mg10 "github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/migration"
 	homedir "github.com/ipfs/fs-repo-migrations/ipfs-2-to-3/Godeps/_workspace/src/github.com/mitchellh/go-homedir"
 	mg2 "github.com/ipfs/fs-repo-migrations/ipfs-2-to-3/migration"
 	mg3 "github.com/ipfs/fs-repo-migrations/ipfs-3-to-4/migration"
@@ -35,6 +36,7 @@ var migrations = []gomigrate.Migration{
 	&mg7.Migration{},
 	&mg8.Migration{},
 	&mg9.Migration{},
+	&mg10.Migration{},
 }
 
 func GetIpfsDir() (string, error) {
