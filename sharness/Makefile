@@ -141,7 +141,7 @@ bin/ipfs-9-to-10: $(call find_go_files, $(IPFS_9_TO_10_SRC)) BUILD-OPTIONS
 
 bin/ipfs-10-to-11: $(call find_go_files, $(IPFS_10_TO_11_SRC)) BUILD-OPTIONS
 	@echo "*** installing $@ ***"
-	go build $(GOFLAGS) -o $@ $(IPFS_10_TO_11_SRC)
+	OUTPUT=$(abspath $(@)) make -C $(IPFS_10_TO_11_SRC) 
 
 BUILD-OPTIONS: FORCE
 	@bin/checkflags '$@' '$(GOFLAGS)' '*** new Go flags ***'

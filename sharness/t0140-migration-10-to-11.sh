@@ -105,7 +105,8 @@ test_expect_success "install ipfs v0.8.0-dev succeeds" '
 	go get github.com/ipfs/go-ipfs/cmd/ipfs@5cd3ef966d5102e64100fbb8db621d407bafa765 &&
 	cd .. &&
 	docker cp "$GOPATH"/bin/ipfs "$DOCID":/usr/local/bin &&
-	exec_docker "$DOCID" "echo 10 > /root/.ipfs/version"
+	exec_docker "$DOCID" "echo 10 > /root/.ipfs/version" &&
+	chmod -R u+w "$GOPATH" && rm -rf "GOPATH"
 '
 
 test_expect_success "added dir is still pinned recursively" '
