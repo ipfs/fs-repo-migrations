@@ -23,7 +23,7 @@ import (
 	mfsr "github.com/ipfs/fs-repo-migrations/mfsr"
 )
 
-var CurrentVersion = 10
+var CurrentVersion = 11
 
 var migrations = []gomigrate.Migration{
 	&mg0.Migration{},
