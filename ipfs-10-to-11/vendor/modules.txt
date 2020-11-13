@@ -13,7 +13,7 @@ github.com/hashicorp/golang-lru
 github.com/hashicorp/golang-lru/simplelru
 # github.com/ipfs/bbloom v0.0.4
 github.com/ipfs/bbloom
-# github.com/ipfs/fs-repo-migrations v1.6.4
+# github.com/ipfs/fs-repo-migrations v1.6.3
 ## explicit
 github.com/ipfs/fs-repo-migrations/go-migrate
 github.com/ipfs/fs-repo-migrations/ipfs-1-to-2/lock

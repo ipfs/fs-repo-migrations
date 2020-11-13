@@ -3,7 +3,7 @@ module github.com/ipfs/fs-repo-migrations/ipfs-10-to-11
 go 1.14
 
 require (
-	github.com/ipfs/fs-repo-migrations v1.6.4
+	github.com/ipfs/fs-repo-migrations v1.6.3
 	github.com/ipfs/go-blockservice v0.1.2
 	github.com/ipfs/go-cid v0.0.7 // indirect
 	github.com/ipfs/go-datastore v0.4.5
