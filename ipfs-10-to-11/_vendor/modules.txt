@@ -128,7 +128,7 @@ github.com/ipfs/go-ds-flatfs
 github.com/ipfs/go-ds-leveldb
 # github.com/ipfs/go-ds-measure v0.1.0
 github.com/ipfs/go-ds-measure
-# github.com/ipfs/go-filestore v1.0.0
+# github.com/ipfs/go-filestore v0.0.3
 ## explicit
 github.com/ipfs/go-filestore
 github.com/ipfs/go-filestore/pb
@@ -197,7 +197,7 @@ github.com/ipfs/go-ipfs/repo/fsrepo/migrations
 github.com/ipfs/go-ipfs/thirdparty/cidv0v1
 github.com/ipfs/go-ipfs/thirdparty/dir
 github.com/ipfs/go-ipfs/thirdparty/verifbs
-# github.com/ipfs/go-ipfs-blockstore v1.0.0
+# github.com/ipfs/go-ipfs-blockstore v0.1.4
 ## explicit
 github.com/ipfs/go-ipfs-blockstore
 # github.com/ipfs/go-ipfs-chunker v0.0.5
@@ -207,7 +207,7 @@ github.com/ipfs/go-ipfs-config
 github.com/ipfs/go-ipfs-config/serialize
 # github.com/ipfs/go-ipfs-delay v0.0.1
 github.com/ipfs/go-ipfs-delay
-# github.com/ipfs/go-ipfs-ds-help v1.0.0
+# github.com/ipfs/go-ipfs-ds-help v0.1.1
 github.com/ipfs/go-ipfs-ds-help
 # github.com/ipfs/go-ipfs-exchange-interface v0.0.1
 github.com/ipfs/go-ipfs-exchange-interface

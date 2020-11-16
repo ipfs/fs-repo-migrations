@@ -11,7 +11,6 @@ import (
 	dsq "github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-datastore/query"
 	blockstore "github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-ipfs-blockstore"
 	dshelp "github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-ipfs-ds-help"
-	mh "github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/multiformats/go-multihash"
 )
 
 // Status is used to identify the state of the block data referenced
@@ -87,7 +86,7 @@ func (r *ListRes) FormatLong(enc func(cid.Cid) string) string {
 // List does not verify that the reference is valid or whether the
 // raw data is accesible. See Verify().
 func List(fs *Filestore, key cid.Cid) *ListRes {
-	return list(fs, false, key.Hash())
+	return list(fs, false, key)
 }
 
 // ListAll returns a function as an iterator which, once invoked, returns
@@ -106,7 +105,7 @@ func ListAll(fs *Filestore, fileOrder bool) (func() *ListRes, error) {
 // Verify makes sure that the reference is valid and the block data can be
 // read.
 func Verify(fs *Filestore, key cid.Cid) *ListRes {
-	return list(fs, true, key.Hash())
+	return list(fs, true, key)
 }
 
 // VerifyAll returns a function as an iterator which, once invoked,
@@ -120,7 +119,7 @@ func VerifyAll(fs *Filestore, fileOrder bool) (func() *ListRes, error) {
 	return listAll(fs, true)
 }
 
-func list(fs *Filestore, verify bool, key mh.Multihash) *ListRes {
+func list(fs *Filestore, verify bool, key cid.Cid) *ListRes {
 	dobj, err := fs.fm.getDataObj(key)
 	if err != nil {
 		return mkListRes(key, nil, err)
@@ -139,34 +138,34 @@ func listAll(fs *Filestore, verify bool) (func() *ListRes, error) {
 	}
 
 	return func() *ListRes {
-		mhash, dobj, err := next(qr)
+		cid, dobj, err := next(qr)
 		if dobj == nil && err == nil {
 			return nil
 		} else if err == nil && verify {
-			_, err = fs.fm.readDataObj(mhash, dobj)
+			_, err = fs.fm.readDataObj(cid, dobj)
 		}
-		return mkListRes(mhash, dobj, err)
+		return mkListRes(cid, dobj, err)
 	}, nil
 }
 
-func next(qr dsq.Results) (mh.Multihash, *pb.DataObj, error) {
+func next(qr dsq.Results) (cid.Cid, *pb.DataObj, error) {
 	v, ok := qr.NextSync()
 	if !ok {
-		return nil, nil, nil
+		return cid.Cid{}, nil, nil
 	}
 
 	k := ds.RawKey(v.Key)
-	mhash, err := dshelp.DsKeyToMultihash(k)
+	c, err := dshelp.DsKeyToCid(k)
 	if err != nil {
-		return nil, nil, fmt.Errorf("decoding multihash from filestore: %s", err)
+		return cid.Cid{}, nil, fmt.Errorf("decoding cid from filestore: %s", err)
 	}
 
 	dobj, err := unmarshalDataObj(v.Value)
 	if err != nil {
-		return mhash, nil, err
+		return c, nil, err
 	}
 
-	return mhash, dobj, nil
+	return c, dobj, nil
 }
 
 func listAllFileOrder(fs *Filestore, verify bool) (func() *ListRes, error) {
@@ -207,12 +206,12 @@ func listAllFileOrder(fs *Filestore, verify bool) (func() *ListRes, error) {
 		}
 		v := entries[i]
 		i++
-		// attempt to convert the datastore key to a Multihash,
+		// attempt to convert the datastore key to a CID,
 		// store the error but don't use it yet
-		mhash, keyErr := dshelp.DsKeyToMultihash(ds.RawKey(v.dsKey))
+		cid, keyErr := dshelp.DsKeyToCid(ds.RawKey(v.dsKey))
 		// first if they listRes already had an error return that error
 		if v.err != nil {
-			return mkListRes(mhash, nil, v.err)
+			return mkListRes(cid, nil, v.err)
 		}
 		// now reconstruct the DataObj
 		dobj := pb.DataObj{
@@ -223,14 +222,14 @@ func listAllFileOrder(fs *Filestore, verify bool) (func() *ListRes, error) {
 		// now if we could not convert the datastore key return that
 		// error
 		if keyErr != nil {
-			return mkListRes(mhash, &dobj, keyErr)
+			return mkListRes(cid, &dobj, keyErr)
 		}
 		// finally verify the dataobj if requested
 		var err error
 		if verify {
-			_, err = fs.fm.readDataObj(mhash, &dobj)
+			_, err = fs.fm.readDataObj(cid, &dobj)
 		}
-		return mkListRes(mhash, &dobj, err)
+		return mkListRes(cid, &dobj, err)
 	}, nil
 }
 
@@ -256,7 +255,7 @@ func (l listEntries) Less(i, j int) bool {
 	return l[i].filePath < l[j].filePath
 }
 
-func mkListRes(m mh.Multihash, d *pb.DataObj, err error) *ListRes {
+func mkListRes(c cid.Cid, d *pb.DataObj, err error) *ListRes {
 	status := StatusOk
 	errorMsg := ""
 	if err != nil {
@@ -269,9 +268,6 @@ func mkListRes(m mh.Multihash, d *pb.DataObj, err error) *ListRes {
 		}
 		errorMsg = err.Error()
 	}
-
-	c := cid.NewCidV1(cid.Raw, m)
-
 	if d == nil {
 		return &ListRes{
 			Status:   status,

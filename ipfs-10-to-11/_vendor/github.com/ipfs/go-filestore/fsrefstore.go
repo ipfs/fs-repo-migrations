@@ -19,7 +19,6 @@ import (
 	blockstore "github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-ipfs-blockstore"
 	dshelp "github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-ipfs-ds-help"
 	posinfo "github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-ipfs-posinfo"
-	mh "github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/multiformats/go-multihash"
 )
 
 // FilestorePrefix identifies the key prefix for FileManager blocks.
@@ -61,8 +60,6 @@ func NewFileManager(ds ds.Batching, root string) *FileManager {
 // AllKeysChan returns a channel from which to read the keys stored in
 // the FileManager. If the given context is cancelled the channel will be
 // closed.
-//
-// All CIDs returned are of type Raw.
 func (f *FileManager) AllKeysChan(ctx context.Context) (<-chan cid.Cid, error) {
 	q := dsq.Query{KeysOnly: true}
 
@@ -81,14 +78,14 @@ func (f *FileManager) AllKeysChan(ctx context.Context) (<-chan cid.Cid, error) {
 			}
 
 			k := ds.RawKey(v.Key)
-			mhash, err := dshelp.DsKeyToMultihash(k)
+			c, err := dshelp.DsKeyToCid(k)
 			if err != nil {
-				logger.Errorf("decoding cid from filestore: %s", err)
+				log.Errorf("decoding cid from filestore: %s", err)
 				continue
 			}
 
 			select {
-			case out <- cid.NewCidV1(cid.Raw, mhash):
+			case out <- c:
 			case <-ctx.Done():
 				return
 			}
@@ -101,7 +98,7 @@ func (f *FileManager) AllKeysChan(ctx context.Context) (<-chan cid.Cid, error) {
 // DeleteBlock deletes the reference-block from the underlying
 // datastore. It does not touch the referenced data.
 func (f *FileManager) DeleteBlock(c cid.Cid) error {
-	err := f.ds.Delete(dshelp.MultihashToDsKey(c.Hash()))
+	err := f.ds.Delete(dshelp.CidToDsKey(c))
 	if err == ds.ErrNotFound {
 		return blockstore.ErrNotFound
 	}
@@ -113,11 +110,11 @@ func (f *FileManager) DeleteBlock(c cid.Cid) error {
 // block from the datastore. The second step uses the stored
 // path and offsets to read the raw block data directly from disk.
 func (f *FileManager) Get(c cid.Cid) (blocks.Block, error) {
-	dobj, err := f.getDataObj(c.Hash())
+	dobj, err := f.getDataObj(c)
 	if err != nil {
 		return nil, err
 	}
-	out, err := f.readDataObj(c.Hash(), dobj)
+	out, err := f.readDataObj(c, dobj)
 	if err != nil {
 		return nil, err
 	}
@@ -130,22 +127,22 @@ func (f *FileManager) Get(c cid.Cid) (blocks.Block, error) {
 // This method may successfully return the size even if returning the block
 // would fail because the associated file is no longer available.
 func (f *FileManager) GetSize(c cid.Cid) (int, error) {
-	dobj, err := f.getDataObj(c.Hash())
+	dobj, err := f.getDataObj(c)
 	if err != nil {
 		return -1, err
 	}
 	return int(dobj.GetSize_()), nil
 }
 
-func (f *FileManager) readDataObj(m mh.Multihash, d *pb.DataObj) ([]byte, error) {
+func (f *FileManager) readDataObj(c cid.Cid, d *pb.DataObj) ([]byte, error) {
 	if IsURL(d.GetFilePath()) {
-		return f.readURLDataObj(m, d)
+		return f.readURLDataObj(c, d)
 	}
-	return f.readFileDataObj(m, d)
+	return f.readFileDataObj(c, d)
 }
 
-func (f *FileManager) getDataObj(m mh.Multihash) (*pb.DataObj, error) {
-	o, err := f.ds.Get(dshelp.MultihashToDsKey(m))
+func (f *FileManager) getDataObj(c cid.Cid) (*pb.DataObj, error) {
+	o, err := f.ds.Get(dshelp.CidToDsKey(c))
 	switch err {
 	case ds.ErrNotFound:
 		return nil, blockstore.ErrNotFound
@@ -167,7 +164,7 @@ func unmarshalDataObj(data []byte) (*pb.DataObj, error) {
 	return &dobj, nil
 }
 
-func (f *FileManager) readFileDataObj(m mh.Multihash, d *pb.DataObj) ([]byte, error) {
+func (f *FileManager) readFileDataObj(c cid.Cid, d *pb.DataObj) ([]byte, error) {
 	if !f.AllowFiles {
 		return nil, ErrFilestoreNotEnabled
 	}
@@ -196,15 +193,12 @@ func (f *FileManager) readFileDataObj(m mh.Multihash, d *pb.DataObj) ([]byte, er
 		return nil, &CorruptReferenceError{StatusFileError, err}
 	}
 
-	// Work with CIDs for this, as they are a nice wrapper and things
-	// will not break if multihashes underlying types change.
-	origCid := cid.NewCidV1(cid.Raw, m)
-	outcid, err := origCid.Prefix().Sum(outbuf)
+	outcid, err := c.Prefix().Sum(outbuf)
 	if err != nil {
 		return nil, err
 	}
 
-	if !origCid.Equals(outcid) {
+	if !c.Equals(outcid) {
 		return nil, &CorruptReferenceError{StatusFileChanged,
 			fmt.Errorf("data in file did not match. %s offset %d", d.GetFilePath(), d.GetOffset())}
 	}
@@ -213,7 +207,7 @@ func (f *FileManager) readFileDataObj(m mh.Multihash, d *pb.DataObj) ([]byte, er
 }
 
 // reads and verifies the block from URL
-func (f *FileManager) readURLDataObj(m mh.Multihash, d *pb.DataObj) ([]byte, error) {
+func (f *FileManager) readURLDataObj(c cid.Cid, d *pb.DataObj) ([]byte, error) {
 	if !f.AllowUrls {
 		return nil, ErrUrlstoreNotEnabled
 	}
@@ -243,15 +237,12 @@ func (f *FileManager) readURLDataObj(m mh.Multihash, d *pb.DataObj) ([]byte, err
 	}
 	res.Body.Close()
 
-	// Work with CIDs for this, as they are a nice wrapper and things
-	// will not break if multihashes underlying types change.
-	origCid := cid.NewCidV1(cid.Raw, m)
-	outcid, err := origCid.Prefix().Sum(outbuf)
+	outcid, err := c.Prefix().Sum(outbuf)
 	if err != nil {
 		return nil, err
 	}
 
-	if !origCid.Equals(outcid) {
+	if !c.Equals(outcid) {
 		return nil, &CorruptReferenceError{StatusFileChanged,
 			fmt.Errorf("data in file did not match. %s offset %d", d.GetFilePath(), d.GetOffset())}
 	}
@@ -264,7 +255,7 @@ func (f *FileManager) readURLDataObj(m mh.Multihash, d *pb.DataObj) ([]byte, err
 func (f *FileManager) Has(c cid.Cid) (bool, error) {
 	// NOTE: interesting thing to consider. Has doesnt validate the data.
 	// So the data on disk could be invalid, and we could think we have it.
-	dsk := dshelp.MultihashToDsKey(c.Hash())
+	dsk := dshelp.CidToDsKey(c)
 	return f.ds.Has(dsk)
 }
 
@@ -309,7 +300,7 @@ func (f *FileManager) putTo(b *posinfo.FilestoreNode, to putter) error {
 		return err
 	}
 
-	return to.Put(dshelp.MultihashToDsKey(b.Cid().Hash()), data)
+	return to.Put(dshelp.CidToDsKey(b.Cid()), data)
 }
 
 // PutMany is like Put() but takes a slice of blocks instead,
