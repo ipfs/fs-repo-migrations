@@ -48,17 +48,18 @@ func (m Migration) Apply(opts migrate.Options) error {
 		return err
 	}
 
-	// Write new version before opening repo, so that opening the repo does not
-	// result in an error stating the repo needs a migration (since this is the
-	// migration).
-	err = mfsr.RepoPath(opts.Path).WriteVersion("11")
-	if err != nil {
-		log.Error("failed to update version file to 11")
-		return err
-	}
+	// Set to previous version to avoid "needs migration" error.  This is safe
+	// for this migration since repo has not changed.
+	fsrepo.RepoVersion = 10
 
 	if err = transferPins(opts.Path); err != nil {
 		log.Error("failed to transfer pins:", err.Error())
+		return err
+	}
+
+	err = mfsr.RepoPath(opts.Path).WriteVersion("11")
+	if err != nil {
+		log.Error("failed to update version file to 11")
 		return err
 	}
 
