@@ -6,14 +6,13 @@ import (
 
 	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-blockservice"
 	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-datastore"
-	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-datastore/mount"
-	dssync "github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-datastore/sync"
-	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-ds-flatfs"
-	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-ds-leveldb"
 	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-filestore"
 	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-ipfs-blockstore"
 	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-ipfs-exchange-offline"
 	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-ipfs-pinner/dspinner"
+	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-ipfs/plugin/loader"
+	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-ipfs/repo"
+	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-ipfs/repo/fsrepo"
 	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-ipld-format"
 	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-merkledag"
 
@@ -44,14 +43,22 @@ func (m Migration) Apply(opts migrate.Options) error {
 	}
 	defer lk.Close()
 
-	if err = transferPins(opts.Path); err != nil {
-		log.Error("failed to transfer pins:", err.Error())
+	if err = setupPlugins(opts.Path); err != nil {
+		log.Error("failed to setup plugins", err.Error())
 		return err
 	}
 
+	// Write new version before opening repo, so that opening the repo does not
+	// result in an error stating the repo needs a migration (since this is the
+	// migration).
 	err = mfsr.RepoPath(opts.Path).WriteVersion("11")
 	if err != nil {
 		log.Error("failed to update version file to 11")
+		return err
+	}
+
+	if err = transferPins(opts.Path); err != nil {
+		log.Error("failed to transfer pins:", err.Error())
 		return err
 	}
 
@@ -68,6 +75,11 @@ func (m Migration) Revert(opts migrate.Options) error {
 		return err
 	}
 	defer lk.Close()
+
+	if err = setupPlugins(opts.Path); err != nil {
+		log.Error("failed to setup plugins", err.Error())
+		return err
+	}
 
 	if err = revertPins(opts.Path); err != nil {
 		return err
@@ -100,40 +112,37 @@ func (d *batchWrap) Batch() (datastore.Batch, error) {
 	return datastore.NewBasicBatch(d), nil
 }
 
-func makeStore(repopath string) (datastore.Datastore, format.DAGService, format.DAGService, error) {
-	log.VLog("  - opening datastore at %q", repopath)
-	ldbpath := path.Join(repopath, "datastore")
-	ldb, err := leveldb.NewDatastore(ldbpath, nil)
+func setupPlugins(externalPluginsPath string) error {
+	// Load any external plugins if available on externalPluginsPath
+	plugins, err := loader.NewPluginLoader(path.Join(externalPluginsPath, "plugins"))
 	if err != nil {
-		return nil, nil, nil, err
+		return fmt.Errorf("error loading plugins: %s", err)
 	}
 
-	blockspath := path.Join(repopath, "blocks")
-	fds, err := flatfs.Open(blockspath, true)
-	if err != nil {
-		return nil, nil, nil, err
+	// Load preloaded and external plugins
+	if err := plugins.Initialize(); err != nil {
+		return fmt.Errorf("error initializing plugins: %s", err)
 	}
 
-	mdb := dssync.MutexWrap(mount.New([]mount.Mount{
-		{
-			Prefix:    datastore.NewKey("/blocks"),
-			Datastore: fds,
-		},
-		{
-			Prefix:    datastore.NewKey("/"),
-			Datastore: ldb,
-		},
-	}))
-	var dstore datastore.Batching
-	dstore = &batchWrap{mdb}
+	if err := plugins.Inject(); err != nil {
+		return fmt.Errorf("error initializing plugins: %s", err)
+	}
 
-	bstore := blockstore.NewBlockstore(dstore)
+	return nil
+}
+
+func makeStore(r repo.Repo) (datastore.Datastore, format.DAGService, format.DAGService, error) {
+	dstr := r.Datastore()
+	dstore := &batchWrap{dstr}
+
+	bstore := blockstore.NewBlockstore(dstr)
 	bserv := blockservice.New(bstore, offline.Exchange(bstore))
 	dserv := merkledag.NewDAGService(bserv)
 	internalDag := merkledag.NewDAGService(bserv)
 
 	syncFn := func() error {
-		if err := dstore.Sync(blockstore.BlockPrefix); err != nil {
+		err := dstore.Sync(blockstore.BlockPrefix)
+		if err != nil {
 			return fmt.Errorf("cannot sync blockstore: %v", err)
 		}
 		err = dstore.Sync(filestore.FilestorePrefix)
@@ -151,26 +160,44 @@ func makeStore(repopath string) (datastore.Datastore, format.DAGService, format.
 func transferPins(repopath string) error {
 	log.Log("> Upgrading pinning to use datastore")
 
-	dstore, dserv, internalDag, err := makeStore(repopath)
+	if !fsrepo.IsInitialized(repopath) {
+		return fmt.Errorf("ipfs repo %q not initialized", repopath)
+	}
+
+	log.VLog("  - opening datastore at %q", repopath)
+	r, err := fsrepo.Open(repopath)
+	if err != nil {
+		return fmt.Errorf("cannot open datastore: %v", err)
+	}
+	defer r.Close()
+
+	dstore, dserv, internalDag, err := makeStore(r)
 	if err != nil {
 		return err
 	}
 
-	log.Log("importing from ipld pinner")
+	log.Log("  - importing from ipld pinner")
 
 	_, impCount, err := dspinner.ImportFromIPLDPinner(dstore, dserv, internalDag)
 	if err != nil {
 		log.Error("failed to import pin data into datastore")
 		return err
 	}
-	log.Log("imported %d pins from dag storage into datastore", impCount)
+	log.Log("  - imported %d pins from dag storage into datastore", impCount)
 	return nil
 }
 
 func revertPins(repopath string) error {
 	log.Log("> Reverting pinning to use DAG storage")
 
-	dstore, dserv, internalDag, err := makeStore(repopath)
+	log.VLog("  - opening datastore at %q", repopath)
+	r, err := fsrepo.Open(repopath)
+	if err != nil {
+		return fmt.Errorf("cannot open datastore: %v", err)
+	}
+	defer r.Close()
+
+	dstore, dserv, internalDag, err := makeStore(r)
 	if err != nil {
 		return err
 	}
