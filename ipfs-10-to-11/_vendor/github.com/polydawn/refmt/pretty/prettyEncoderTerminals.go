@@ -78,5 +78,5 @@ func (d *Encoder) emitString(s string) {
 	}
 	d.wr.Write(decoValSigil)
 	d.writeByte('"')
-	d.wr.Write(decoValString)
+	d.wr.Write(decoOff)
 }

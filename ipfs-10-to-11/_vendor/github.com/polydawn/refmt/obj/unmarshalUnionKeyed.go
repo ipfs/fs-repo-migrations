@@ -13,23 +13,42 @@ type unmarshalMachineUnionKeyed struct {
 	target_rv reflect.Value
 	target_rt reflect.Type
 
-	step     unmarshalMachineStep
+	phase    unmarshalMachineUnionKeyedPhase
 	tmp_rv   reflect.Value
 	delegate UnmarshalMachine // actual machine, once we've demuxed with the second token (the key).
 }
 
+type unmarshalMachineUnionKeyedPhase uint8
+
+const (
+	unmarshalMachineUnionKeyedPhase_acceptMapOpen unmarshalMachineUnionKeyedPhase = iota
+	unmarshalMachineUnionKeyedPhase_acceptKey
+	unmarshalMachineUnionKeyedPhase_delegate
+	unmarshalMachineUnionKeyedPhase_acceptMapClose
+)
+
 func (mach *unmarshalMachineUnionKeyed) Reset(_ *unmarshalSlab, rv reflect.Value, rt reflect.Type) error {
 	mach.target_rv = rv
 	mach.target_rt = rt
-	mach.step = mach.acceptMapOpen
+	mach.phase = unmarshalMachineUnionKeyedPhase_acceptMapOpen
 	return nil
 }
 
 func (mach *unmarshalMachineUnionKeyed) Step(driver *Unmarshaller, slab *unmarshalSlab, tok *Token) (done bool, err error) {
-	return mach.step(driver, slab, tok)
+	switch mach.phase {
+	case unmarshalMachineUnionKeyedPhase_acceptMapOpen:
+		return mach.step_acceptMapOpen(driver, slab, tok)
+	case unmarshalMachineUnionKeyedPhase_acceptKey:
+		return mach.step_acceptKey(driver, slab, tok)
+	case unmarshalMachineUnionKeyedPhase_delegate:
+		return mach.step_delegate(driver, slab, tok)
+	case unmarshalMachineUnionKeyedPhase_acceptMapClose:
+		return mach.step_acceptMapClose(driver, slab, tok)
+	}
+	panic("unreachable")
 }
 
-func (mach *unmarshalMachineUnionKeyed) acceptMapOpen(driver *Unmarshaller, slab *unmarshalSlab, tok *Token) (done bool, err error) {
+func (mach *unmarshalMachineUnionKeyed) step_acceptMapOpen(driver *Unmarshaller, slab *unmarshalSlab, tok *Token) (done bool, err error) {
 	switch tok.Type {
 	case TMapOpen:
 		switch tok.Length {
@@ -38,7 +57,7 @@ func (mach *unmarshalMachineUnionKeyed) acceptMapOpen(driver *Unmarshaller, slab
 		default:
 			return true, ErrMalformedTokenStream{tok.Type, "unions in keyed format must be maps with exactly one entry"} // FIXME not malformed per se
 		}
-		mach.step = mach.acceptKey
+		mach.phase = unmarshalMachineUnionKeyedPhase_acceptKey
 		return false, nil
 	// REVIEW: is case TNull perhaps conditionally acceptable?
 	default:
@@ -46,7 +65,7 @@ func (mach *unmarshalMachineUnionKeyed) acceptMapOpen(driver *Unmarshaller, slab
 	}
 }
 
-func (mach *unmarshalMachineUnionKeyed) acceptKey(driver *Unmarshaller, slab *unmarshalSlab, tok *Token) (done bool, err error) {
+func (mach *unmarshalMachineUnionKeyed) step_acceptKey(driver *Unmarshaller, slab *unmarshalSlab, tok *Token) (done bool, err error) {
 	switch tok.Type {
 	case TString:
 		// Look up the configuration for this key.
@@ -63,23 +82,23 @@ func (mach *unmarshalMachineUnionKeyed) acceptKey(driver *Unmarshaller, slab *un
 			return true, err
 		}
 		mach.delegate = delegate
-		mach.step = mach.doDelegate
+		mach.phase = unmarshalMachineUnionKeyedPhase_delegate
 		return false, nil
 	default:
 		return true, ErrMalformedTokenStream{tok.Type, "map key"}
 	}
 }
 
-func (mach *unmarshalMachineUnionKeyed) doDelegate(driver *Unmarshaller, slab *unmarshalSlab, tok *Token) (done bool, err error) {
+func (mach *unmarshalMachineUnionKeyed) step_delegate(driver *Unmarshaller, slab *unmarshalSlab, tok *Token) (done bool, err error) {
 	done, err = mach.delegate.Step(driver, slab, tok)
 	if done && err == nil {
-		mach.step = mach.acceptMapClose
+		mach.phase = unmarshalMachineUnionKeyedPhase_acceptMapClose
 		return false, nil
 	}
 	return
 }
 
-func (mach *unmarshalMachineUnionKeyed) acceptMapClose(driver *Unmarshaller, slab *unmarshalSlab, tok *Token) (done bool, err error) {
+func (mach *unmarshalMachineUnionKeyed) step_acceptMapClose(driver *Unmarshaller, slab *unmarshalSlab, tok *Token) (done bool, err error) {
 	switch tok.Type {
 	case TMapClose:
 		mach.target_rv.Set(mach.tmp_rv)

@@ -54,8 +54,6 @@ type UnmarshalMachine interface {
 	Step(*Unmarshaller, *unmarshalSlab, *Token) (done bool, err error)
 }
 
-type unmarshalMachineStep func(*Unmarshaller, *unmarshalSlab, *Token) (done bool, err error)
-
 func (d *Unmarshaller) Step(tok *Token) (bool, error) {
 	done, err := d.step.Step(d, &d.unmarshalSlab, tok)
 	// If the step errored: out, entirely.

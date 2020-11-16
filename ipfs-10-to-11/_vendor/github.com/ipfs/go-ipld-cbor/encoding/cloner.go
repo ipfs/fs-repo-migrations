@@ -24,8 +24,16 @@ func NewPooledCloner(atl atlas.Atlas) PooledCloner {
 	}
 }
 
+type selfCloner interface {
+	Clone(b interface{}) error
+}
+
 // Clone clones a into b using a cloner from the pool.
 func (p *PooledCloner) Clone(a, b interface{}) error {
+	if self, ok := a.(selfCloner); ok {
+		return self.Clone(b)
+	}
+
 	c := p.pool.Get().(refmt.Cloner)
 	err := c.Clone(a, b)
 	p.pool.Put(c)

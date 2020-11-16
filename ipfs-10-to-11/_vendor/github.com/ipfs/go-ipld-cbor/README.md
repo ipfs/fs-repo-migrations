@@ -9,6 +9,9 @@ go-ipld-cbor
 
 > An implementation of a cbor encoded merkledag object.
 
+## Lead Maintainer
+
+[Eric Myhre](https://github.com/warpfork)
 
 ## Table of Contents
 

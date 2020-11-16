@@ -1,15 +1,14 @@
-gx:
-	go get github.com/whyrusleeping/gx
-	go get github.com/whyrusleeping/gx-go
+all: build
 
-covertools:
-	go get github.com/mattn/goveralls
-	go get golang.org/x/tools/cmd/cover
+build:
+	go build ./...
+.PHONY: build
 
-deps: gx covertools
-	gx --verbose install --global
-	gx-go rewrite
+test:
+	go test ./...
+.PHONY: test
 
-publish:
-	gx-go rewrite --undo
+benchmark:
+	go test -bench=./...
+.PHONY: benchmark
 

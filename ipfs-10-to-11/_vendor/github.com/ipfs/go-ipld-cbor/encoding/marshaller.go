@@ -30,10 +30,20 @@ func NewMarshallerAtlased(atl atlas.Atlas) *Marshaller {
 	return m
 }
 
+type cborMarshaler interface {
+	MarshalCBOR(w io.Writer) error
+}
+
 // Encode encodes the given object to the given writer.
 func (m *Marshaller) Encode(obj interface{}, w io.Writer) error {
 	m.writer.w = w
-	err := m.marshal.Marshal(obj)
+	var err error
+	selfMarshaling, ok := obj.(cborMarshaler)
+	if ok {
+		err = selfMarshaling.MarshalCBOR(w)
+	} else {
+		err = m.marshal.Marshal(obj)
+	}
 	m.writer.w = nil
 	return err
 }

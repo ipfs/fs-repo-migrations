@@ -12,32 +12,59 @@ type Decoder struct {
 	cfg DecodeOptions
 	r   shared.SlickReader
 
-	stack []decoderStep // When empty, and step returns done, all done.
-	step  decoderStep   // Shortcut to end of stack.
-	left  []int         // Statekeeping space for definite-len map and array.
+	stack []decoderPhase // When empty, and step returns done, all done.
+	phase decoderPhase   // Shortcut to end of stack.
+	left  []int          // Statekeeping space for definite-len map and array.
 }
+
+type decoderPhase uint8
+
+const (
+	decoderPhase_acceptValue decoderPhase = iota
+	decoderPhase_acceptArrValueOrBreak
+	decoderPhase_acceptMapIndefKey
+	decoderPhase_acceptMapIndefValueOrBreak
+	decoderPhase_acceptArrValue
+	decoderPhase_acceptMapKey
+	decoderPhase_acceptMapValue
+)
 
 func NewDecoder(cfg DecodeOptions, r io.Reader) (d *Decoder) {
 	d = &Decoder{
 		cfg:   cfg,
 		r:     shared.NewReader(r),
-		stack: make([]decoderStep, 0, 10),
+		stack: make([]decoderPhase, 0, 10),
 		left:  make([]int, 0, 10),
 	}
-	d.step = d.step_acceptValue
+	d.phase = decoderPhase_acceptValue
 	return
 }
 
 func (d *Decoder) Reset() {
 	d.stack = d.stack[0:0]
-	d.step = d.step_acceptValue
+	d.phase = decoderPhase_acceptValue
 	d.left = d.left[0:0]
 }
 
 type decoderStep func(tokenSlot *Token) (done bool, err error)
 
 func (d *Decoder) Step(tokenSlot *Token) (done bool, err error) {
-	done, err = d.step(tokenSlot)
+	switch d.phase {
+	case decoderPhase_acceptValue:
+		done, err = d.step_acceptValue(tokenSlot)
+	case decoderPhase_acceptArrValueOrBreak:
+		done, err = d.step_acceptArrValueOrBreak(tokenSlot)
+	case decoderPhase_acceptMapIndefKey:
+		done, err = d.step_acceptMapIndefKey(tokenSlot)
+	case decoderPhase_acceptMapIndefValueOrBreak:
+		done, err = d.step_acceptMapIndefValueOrBreak(tokenSlot)
+	case decoderPhase_acceptArrValue:
+		done, err = d.step_acceptArrValue(tokenSlot)
+	case decoderPhase_acceptMapKey:
+		done, err = d.step_acceptMapKey(tokenSlot)
+	case decoderPhase_acceptMapValue:
+		done, err = d.step_acceptMapValue(tokenSlot)
+	}
 	// If the step errored: out, entirely.
 	if err != nil {
 		return true, err
@@ -51,14 +78,14 @@ func (d *Decoder) Step(tokenSlot *Token) (done bool, err error) {
 	if nSteps <= 0 {
 		return true, nil // that's all folks
 	}
-	d.step = d.stack[nSteps]
+	d.phase = d.stack[nSteps]
 	d.stack = d.stack[0:nSteps]
 	return false, nil
 }
 
-func (d *Decoder) pushPhase(newPhase decoderStep) {
-	d.stack = append(d.stack, d.step)
-	d.step = newPhase
+func (d *Decoder) pushPhase(newPhase decoderPhase) {
+	d.stack = append(d.stack, d.phase)
+	d.phase = newPhase
 }
 
 // The original step, where any value is accepted, and no terminators for composites are valid.
@@ -101,7 +128,7 @@ func (d *Decoder) step_acceptMapIndefKey(tokenSlot *Token) (done bool, err error
 		tokenSlot.Type = TMapClose
 		return true, nil
 	default:
-		d.step = d.step_acceptMapIndefValueOrBreak
+		d.phase = decoderPhase_acceptMapIndefValueOrBreak
 		_, err := d.stepHelper_acceptValue(majorByte, tokenSlot) // FIXME surely not *any* value?  not composites, at least?
 		return false, err
 	}
@@ -118,7 +145,7 @@ func (d *Decoder) step_acceptMapIndefValueOrBreak(tokenSlot *Token) (done bool, 
 	case cborSigilBreak:
 		return true, fmt.Errorf("unexpected break; expected value in indefinite-length map")
 	default:
-		d.step = d.step_acceptMapIndefKey
+		d.phase = decoderPhase_acceptMapIndefKey
 		_, err = d.stepHelper_acceptValue(majorByte, tokenSlot)
 		return false, err
 	}
@@ -159,7 +186,7 @@ func (d *Decoder) step_acceptMapKey(tokenSlot *Token) (done bool, err error) {
 	if err != nil {
 		return true, err
 	}
-	d.step = d.step_acceptMapValue
+	d.phase = decoderPhase_acceptMapValue
 	tokenSlot.Tagged = false
 	_, err = d.stepHelper_acceptValue(majorByte, tokenSlot) // FIXME surely not *any* value?  not composites, at least?
 	return false, err
@@ -172,7 +199,7 @@ func (d *Decoder) step_acceptMapValue(tokenSlot *Token) (done bool, err error) {
 	if err != nil {
 		return true, err
 	}
-	d.step = d.step_acceptMapKey
+	d.phase = decoderPhase_acceptMapKey
 	tokenSlot.Tagged = false
 	_, err = d.stepHelper_acceptValue(majorByte, tokenSlot)
 	return false, err
@@ -212,12 +239,12 @@ func (d *Decoder) stepHelper_acceptValue(majorByte byte, tokenSlot *Token) (done
 	case cborSigilIndefiniteArray:
 		tokenSlot.Type = TArrOpen
 		tokenSlot.Length = -1
-		d.pushPhase(d.step_acceptArrValueOrBreak)
+		d.pushPhase(decoderPhase_acceptArrValueOrBreak)
 		return false, nil
 	case cborSigilIndefiniteMap:
 		tokenSlot.Type = TMapOpen
 		tokenSlot.Length = -1
-		d.pushPhase(d.step_acceptMapIndefKey)
+		d.pushPhase(decoderPhase_acceptMapIndefKey)
 		return false, nil
 	default:
 		switch {
@@ -243,7 +270,7 @@ func (d *Decoder) stepHelper_acceptValue(majorByte byte, tokenSlot *Token) (done
 			tokenSlot.Type = TArrOpen
 			tokenSlot.Length = n
 			d.left = append(d.left, n)
-			d.pushPhase(d.step_acceptArrValue)
+			d.pushPhase(decoderPhase_acceptArrValue)
 			return false, err
 		case majorByte >= cborMajorMap && majorByte < cborMajorTag:
 			var n int
@@ -251,7 +278,7 @@ func (d *Decoder) stepHelper_acceptValue(majorByte byte, tokenSlot *Token) (done
 			tokenSlot.Type = TMapOpen
 			tokenSlot.Length = n
 			d.left = append(d.left, n)
-			d.pushPhase(d.step_acceptMapKey)
+			d.pushPhase(decoderPhase_acceptMapKey)
 			return false, err
 		case majorByte >= cborMajorTag && majorByte < cborMajorSimple:
 			// CBOR tags are, frankly, bonkers, and should not be used.

@@ -12,17 +12,27 @@ type unmarshalMachineMapStringWildcard struct {
 	target_rv     reflect.Value                // Handle to the map.  Can set to zero, or set k=v pairs into, etc.
 	value_rt      reflect.Type                 // Type info for map values (cached for convenience in recurse calls).
 	valueMach     UnmarshalMachine             // Machine for map values.
+	valueZero_rv  reflect.Value                // Cached instance of the zero value of the value type, for re-zeroing tmp_rv.
 	key_rv        reflect.Value                // Addressable handle to a slot for keys to unmarshal into.
 	keyDestringer atlas.UnmarshalTransformFunc // Transform str->foo, to be used if keys are not plain strings.
 	tmp_rv        reflect.Value                // Addressable handle to a slot for values to unmarshal into.
-	step          unmarshalMachineStep
-	haveValue     bool // Piece of attendant state to help know we've been through at least one k=v pair so we can post-v store it.
+	phase         unmarshalMachineMapStringWildcardPhase
 }
+
+type unmarshalMachineMapStringWildcardPhase uint8
+
+const (
+	unmarshalMachineMapStringWildcardPhase_initial          unmarshalMachineMapStringWildcardPhase = iota
+	unmarshalMachineMapStringWildcardPhase_acceptKeyOrClose                                        // doesn't commit prev value
+	unmarshalMachineMapStringWildcardPhase_acceptValue
+	unmarshalMachineMapStringWildcardPhase_acceptAnotherKeyOrClose
+)
 
 func (mach *unmarshalMachineMapStringWildcard) Reset(slab *unmarshalSlab, rv reflect.Value, rt reflect.Type) error {
 	mach.target_rv = rv
 	mach.value_rt = rt.Elem()
 	mach.valueMach = slab.requisitionMachine(mach.value_rt)
+	mach.valueZero_rv = reflect.Zero(mach.value_rt)
 	key_rt := rt.Key()
 	mach.key_rv = reflect.New(key_rt).Elem()
 	if mach.key_rv.Kind() != reflect.String {
@@ -34,13 +44,22 @@ func (mach *unmarshalMachineMapStringWildcard) Reset(slab *unmarshalSlab, rv ref
 		mach.keyDestringer = atlEnt.UnmarshalTransformFunc
 	}
 	mach.tmp_rv = reflect.New(mach.value_rt).Elem()
-	mach.step = mach.step_Initial
-	mach.haveValue = false
+	mach.phase = unmarshalMachineMapStringWildcardPhase_initial
 	return nil
 }
 
 func (mach *unmarshalMachineMapStringWildcard) Step(driver *Unmarshaller, slab *unmarshalSlab, tok *Token) (done bool, err error) {
-	return mach.step(driver, slab, tok)
+	switch mach.phase {
+	case unmarshalMachineMapStringWildcardPhase_initial:
+		return mach.step_Initial(driver, slab, tok)
+	case unmarshalMachineMapStringWildcardPhase_acceptKeyOrClose:
+		return mach.step_AcceptKeyOrClose(driver, slab, tok)
+	case unmarshalMachineMapStringWildcardPhase_acceptValue:
+		return mach.step_AcceptValue(driver, slab, tok)
+	case unmarshalMachineMapStringWildcardPhase_acceptAnotherKeyOrClose:
+		return mach.step_AcceptAnotherKeyOrClose(driver, slab, tok)
+	}
+	panic("unreachable")
 }
 
 func (mach *unmarshalMachineMapStringWildcard) step_Initial(_ *Unmarshaller, _ *unmarshalSlab, tok *Token) (done bool, err error) {
@@ -52,7 +71,7 @@ func (mach *unmarshalMachineMapStringWildcard) step_Initial(_ *Unmarshaller, _ *
 		return true, nil
 	case TMapOpen:
 		// Great.  Consumed.
-		mach.step = mach.step_AcceptKey
+		mach.phase = unmarshalMachineMapStringWildcardPhase_acceptKeyOrClose
 		// Initialize the map if it's nil.
 		if mach.target_rv.IsNil() {
 			mach.target_rv.Set(reflect.MakeMap(mach.target_rv.Type()))
@@ -69,14 +88,8 @@ func (mach *unmarshalMachineMapStringWildcard) step_Initial(_ *Unmarshaller, _ *
 	}
 }
 
-func (mach *unmarshalMachineMapStringWildcard) step_AcceptKey(_ *Unmarshaller, slab *unmarshalSlab, tok *Token) (done bool, err error) {
-	// First, save any refs from the last value.
-	//  (This is fiddly: the delay comes mostly from the handling of slices, which may end up re-allocating
-	//   themselves during their decoding.)
-	if mach.haveValue {
-		mach.target_rv.SetMapIndex(mach.key_rv, mach.tmp_rv)
-	}
-	// Now switch on tokens.
+func (mach *unmarshalMachineMapStringWildcard) step_AcceptKeyOrClose(_ *Unmarshaller, slab *unmarshalSlab, tok *Token) (done bool, err error) {
+	// Switch on tokens.
 	switch tok.Type {
 	case TMapOpen:
 		return true, fmt.Errorf("unexpected mapOpen; expected map key")
@@ -102,7 +115,7 @@ func (mach *unmarshalMachineMapStringWildcard) step_AcceptKey(_ *Unmarshaller, s
 		if err = mach.mustAcceptKey(mach.key_rv); err != nil {
 			return true, err
 		}
-		mach.step = mach.step_AcceptValue
+		mach.phase = unmarshalMachineMapStringWildcardPhase_acceptValue
 		return false, nil
 	default:
 		return true, fmt.Errorf("unexpected token %s; expected key string or end of map", tok)
@@ -117,13 +130,22 @@ func (mach *unmarshalMachineMapStringWildcard) mustAcceptKey(key_rv reflect.Valu
 }
 
 func (mach *unmarshalMachineMapStringWildcard) step_AcceptValue(driver *Unmarshaller, slab *unmarshalSlab, tok *Token) (done bool, err error) {
-	mach.step = mach.step_AcceptKey
-	mach.tmp_rv.Set(reflect.Zero(mach.value_rt))
-	mach.haveValue = true
+	mach.phase = unmarshalMachineMapStringWildcardPhase_acceptAnotherKeyOrClose
+	mach.tmp_rv.Set(mach.valueZero_rv)
 	return false, driver.Recurse(
 		tok,
 		mach.tmp_rv,
 		mach.value_rt,
 		mach.valueMach,
 	)
+}
+
+func (mach *unmarshalMachineMapStringWildcard) step_AcceptAnotherKeyOrClose(_ *Unmarshaller, slab *unmarshalSlab, tok *Token) (done bool, err error) {
+	// First, save any refs from the last value.
+	//  (This is fiddly: the delay comes mostly from the handling of slices, which may end up re-allocating
+	//   themselves during their decoding.)
+	mach.target_rv.SetMapIndex(mach.key_rv, mach.tmp_rv)
+
+	// The rest is the same as the very first acceptKeyOrClose (and has the same future state transitions).
+	return mach.step_AcceptKeyOrClose(nil, slab, tok)
 }

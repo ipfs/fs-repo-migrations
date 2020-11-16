@@ -40,6 +40,9 @@ func (mach *marshalMachineMapWildcard) Reset(slab *marshalSlab, rv reflect.Value
 		//  we could also consider supporting anything that uses a MarshalTransformFunc
 		//  to become a string kind; that's a fair bit of code, perhaps later.
 		mach.keyStringer = nil
+	case reflect.Uint64:
+		mach.keyStringer = nil
+
 	case reflect.Struct:
 		// composite keys requires some fancy footwork, but we can do it.
 		// Interestingly enough, we don't need full-on machinery here; because the

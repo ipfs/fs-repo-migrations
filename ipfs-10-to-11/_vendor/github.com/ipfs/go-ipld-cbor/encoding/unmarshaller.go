@@ -30,11 +30,20 @@ func NewUnmarshallerAtlased(atl atlas.Atlas) *Unmarshaller {
 	return m
 }
 
+type cborUnmarshaler interface {
+	UnmarshalCBOR(r io.Reader) error
+}
+
 // Decode reads a CBOR object from the given reader and decodes it into the
 // given object.
-func (m *Unmarshaller) Decode(r io.Reader, obj interface{}) error {
+func (m *Unmarshaller) Decode(r io.Reader, obj interface{}) (err error) {
 	m.reader.r = r
-	err := m.unmarshal.Unmarshal(obj)
+	selfUnmarshaler, ok := obj.(cborUnmarshaler)
+	if ok {
+		err = selfUnmarshaler.UnmarshalCBOR(r)
+	} else {
+		err = m.unmarshal.Unmarshal(obj)
+	}
 	m.reader.r = nil
 	return err
 }

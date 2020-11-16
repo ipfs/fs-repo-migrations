@@ -10,23 +10,36 @@ type unmarshalMachineArrayWildcard struct {
 	target_rv reflect.Value
 	value_rt  reflect.Type
 	valueMach UnmarshalMachine
-	step      unmarshalMachineStep
+	phase     unmarshalMachineArrayWildcardPhase
 	index     int
 	maxLen    int
 }
+
+type unmarshalMachineArrayWildcardPhase uint8
+
+const (
+	unmarshalMachineArrayWildcardPhase_initial unmarshalMachineArrayWildcardPhase = iota
+	unmarshalMachineArrayWildcardPhase_acceptValueOrClose
+)
 
 func (mach *unmarshalMachineArrayWildcard) Reset(slab *unmarshalSlab, rv reflect.Value, rt reflect.Type) error {
 	mach.target_rv = rv
 	mach.value_rt = rt.Elem()
 	mach.valueMach = slab.requisitionMachine(mach.value_rt)
-	mach.step = mach.step_Initial
+	mach.phase = unmarshalMachineArrayWildcardPhase_initial
 	mach.index = 0
 	mach.maxLen = rt.Len()
 	return nil
 }
 
 func (mach *unmarshalMachineArrayWildcard) Step(driver *Unmarshaller, slab *unmarshalSlab, tok *Token) (done bool, err error) {
-	return mach.step(driver, slab, tok)
+	switch mach.phase {
+	case unmarshalMachineArrayWildcardPhase_initial:
+		return mach.step_Initial(driver, slab, tok)
+	case unmarshalMachineArrayWildcardPhase_acceptValueOrClose:
+		return mach.step_AcceptValueOrClose(driver, slab, tok)
+	}
+	panic("unreachable")
 }
 
 func (mach *unmarshalMachineArrayWildcard) step_Initial(_ *Unmarshaller, slab *unmarshalSlab, tok *Token) (done bool, err error) {
@@ -37,7 +50,7 @@ func (mach *unmarshalMachineArrayWildcard) step_Initial(_ *Unmarshaller, slab *u
 		return true, ErrMalformedTokenStream{tok.Type, "start of array"}
 	case TArrOpen:
 		// Great.  Consumed.
-		mach.step = mach.step_AcceptValue
+		mach.phase = unmarshalMachineArrayWildcardPhase_acceptValueOrClose
 		// Initialize the array.  Its length is encoded in its type.
 		mach.target_rv.Set(reflect.Zero(mach.target_rv.Type()))
 		return false, nil
@@ -53,7 +66,7 @@ func (mach *unmarshalMachineArrayWildcard) step_Initial(_ *Unmarshaller, slab *u
 	}
 }
 
-func (mach *unmarshalMachineArrayWildcard) step_AcceptValue(driver *Unmarshaller, slab *unmarshalSlab, tok *Token) (done bool, err error) {
+func (mach *unmarshalMachineArrayWildcard) step_AcceptValueOrClose(driver *Unmarshaller, slab *unmarshalSlab, tok *Token) (done bool, err error) {
 	// Either form of open token are valid, but
 	// - an arrClose is ours
 	// - and a mapClose is clearly invalid.
@@ -76,5 +89,5 @@ func (mach *unmarshalMachineArrayWildcard) step_AcceptValue(driver *Unmarshaller
 	rv := mach.target_rv.Index(mach.index)
 	mach.index++
 	return false, driver.Recurse(tok, rv, mach.value_rt, mach.valueMach)
-	// Step simply remains `step_AcceptValue` -- arrays don't have much state machine.
+	// Step simply remains `step_AcceptValueOrClose` -- arrays don't have much state machine.
 }

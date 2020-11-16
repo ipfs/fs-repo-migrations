@@ -1,0 +1,159 @@
+# github.com/alexbrainman/goissue34681 v0.0.0-20191006012335-3fc7a47baff5
+github.com/alexbrainman/goissue34681
+# github.com/gogo/protobuf v1.3.1
+github.com/gogo/protobuf/gogoproto
+github.com/gogo/protobuf/proto
+github.com/gogo/protobuf/protoc-gen-gogo/descriptor
+# github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db
+github.com/golang/snappy
+# github.com/google/uuid v1.1.1
+github.com/google/uuid
+# github.com/hashicorp/golang-lru v0.5.4
+github.com/hashicorp/golang-lru
+github.com/hashicorp/golang-lru/simplelru
+# github.com/ipfs/bbloom v0.0.4
+github.com/ipfs/bbloom
+# github.com/ipfs/fs-repo-migrations v1.6.4
+## explicit
+github.com/ipfs/fs-repo-migrations/go-migrate
+github.com/ipfs/fs-repo-migrations/ipfs-1-to-2/lock
+github.com/ipfs/fs-repo-migrations/ipfs-1-to-2/repolock
+github.com/ipfs/fs-repo-migrations/mfsr
+github.com/ipfs/fs-repo-migrations/stump
+# github.com/ipfs/go-block-format v0.0.2
+github.com/ipfs/go-block-format
+# github.com/ipfs/go-blockservice v0.1.3
+## explicit
+github.com/ipfs/go-blockservice
+# github.com/ipfs/go-cid v0.0.7
+github.com/ipfs/go-cid
+# github.com/ipfs/go-datastore v0.4.5
+## explicit
+github.com/ipfs/go-datastore
+github.com/ipfs/go-datastore/keytransform
+github.com/ipfs/go-datastore/mount
+github.com/ipfs/go-datastore/namespace
+github.com/ipfs/go-datastore/query
+github.com/ipfs/go-datastore/sync
+# github.com/ipfs/go-ds-flatfs v0.4.5
+## explicit
+github.com/ipfs/go-ds-flatfs
+# github.com/ipfs/go-ds-leveldb v0.4.2
+## explicit
+github.com/ipfs/go-ds-leveldb
+# github.com/ipfs/go-filestore v1.0.0
+## explicit
+github.com/ipfs/go-filestore
+github.com/ipfs/go-filestore/pb
+# github.com/ipfs/go-ipfs v0.7.0
+## explicit
+# github.com/ipfs/go-ipfs-blockstore v1.0.0
+## explicit
+github.com/ipfs/go-ipfs-blockstore
+# github.com/ipfs/go-ipfs-ds-help v1.0.0
+github.com/ipfs/go-ipfs-ds-help
+# github.com/ipfs/go-ipfs-exchange-interface v0.0.1
+github.com/ipfs/go-ipfs-exchange-interface
+# github.com/ipfs/go-ipfs-exchange-offline v0.0.1
+## explicit
+github.com/ipfs/go-ipfs-exchange-offline
+# github.com/ipfs/go-ipfs-pinner v0.0.5-0.20201029233447-cad837873ee6
+## explicit
+github.com/ipfs/go-ipfs-pinner
+github.com/ipfs/go-ipfs-pinner/dsindex
+github.com/ipfs/go-ipfs-pinner/dspinner
+github.com/ipfs/go-ipfs-pinner/internal/pb
+github.com/ipfs/go-ipfs-pinner/ipldpinner
+# github.com/ipfs/go-ipfs-posinfo v0.0.1
+github.com/ipfs/go-ipfs-posinfo
+# github.com/ipfs/go-ipfs-util v0.0.2
+github.com/ipfs/go-ipfs-util
+# github.com/ipfs/go-ipld-cbor v0.0.4
+github.com/ipfs/go-ipld-cbor
+github.com/ipfs/go-ipld-cbor/encoding
+# github.com/ipfs/go-ipld-format v0.2.0
+## explicit
+github.com/ipfs/go-ipld-format
+# github.com/ipfs/go-log v1.0.4
+github.com/ipfs/go-log
+github.com/ipfs/go-log/tracer
+github.com/ipfs/go-log/tracer/wire
+github.com/ipfs/go-log/writer
+# github.com/ipfs/go-log/v2 v2.1.1
+github.com/ipfs/go-log/v2
+# github.com/ipfs/go-merkledag v0.3.2
+## explicit
+github.com/ipfs/go-merkledag
+github.com/ipfs/go-merkledag/dagutils
+github.com/ipfs/go-merkledag/pb
+# github.com/ipfs/go-metrics-interface v0.0.1
+github.com/ipfs/go-metrics-interface
+# github.com/ipfs/go-verifcid v0.0.1
+github.com/ipfs/go-verifcid
+# github.com/jbenet/goprocess v0.1.4
+github.com/jbenet/goprocess
+# github.com/minio/blake2b-simd v0.0.0-20160723061019-3f5f724cb5b1
+github.com/minio/blake2b-simd
+# github.com/minio/sha256-simd v0.1.1
+github.com/minio/sha256-simd
+# github.com/mr-tron/base58 v1.2.0
+github.com/mr-tron/base58/base58
+# github.com/multiformats/go-base32 v0.0.3
+github.com/multiformats/go-base32
+# github.com/multiformats/go-base36 v0.1.0
+github.com/multiformats/go-base36
+# github.com/multiformats/go-multibase v0.0.3
+github.com/multiformats/go-multibase
+# github.com/multiformats/go-multihash v0.0.14
+github.com/multiformats/go-multihash
+# github.com/multiformats/go-varint v0.0.6
+github.com/multiformats/go-varint
+# github.com/opentracing/opentracing-go v1.2.0
+github.com/opentracing/opentracing-go
+github.com/opentracing/opentracing-go/ext
+github.com/opentracing/opentracing-go/log
+# github.com/polydawn/refmt v0.0.0-20190809202753-05966cbd336a
+github.com/polydawn/refmt
+github.com/polydawn/refmt/cbor
+github.com/polydawn/refmt/json
+github.com/polydawn/refmt/obj
+github.com/polydawn/refmt/obj/atlas
+github.com/polydawn/refmt/pretty
+github.com/polydawn/refmt/shared
+github.com/polydawn/refmt/tok
+# github.com/spaolacci/murmur3 v1.1.0
+github.com/spaolacci/murmur3
+# github.com/syndtr/goleveldb v1.0.0
+github.com/syndtr/goleveldb/leveldb
+github.com/syndtr/goleveldb/leveldb/cache
+github.com/syndtr/goleveldb/leveldb/comparer
+github.com/syndtr/goleveldb/leveldb/errors
+github.com/syndtr/goleveldb/leveldb/filter
+github.com/syndtr/goleveldb/leveldb/iterator
+github.com/syndtr/goleveldb/leveldb/journal
+github.com/syndtr/goleveldb/leveldb/memdb
+github.com/syndtr/goleveldb/leveldb/opt
+github.com/syndtr/goleveldb/leveldb/storage
+github.com/syndtr/goleveldb/leveldb/table
+github.com/syndtr/goleveldb/leveldb/util
+# github.com/whyrusleeping/cbor-gen v0.0.0-20200402171437-3d27c146c105
+github.com/whyrusleeping/cbor-gen
+# go.uber.org/atomic v1.6.0
+go.uber.org/atomic
+# go.uber.org/multierr v1.5.0
+go.uber.org/multierr
+# go.uber.org/zap v1.15.0
+go.uber.org/zap
+go.uber.org/zap/buffer
+go.uber.org/zap/internal/bufferpool
+go.uber.org/zap/internal/color
+go.uber.org/zap/internal/exit
+go.uber.org/zap/zapcore
+# golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
+golang.org/x/crypto/blake2s
+golang.org/x/crypto/sha3
+# golang.org/x/sys v0.0.0-20200615200032-f1bc736245b1
+golang.org/x/sys/cpu
+# golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543
+golang.org/x/xerrors
+golang.org/x/xerrors/internal
