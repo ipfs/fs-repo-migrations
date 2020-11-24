@@ -3,6 +3,7 @@ package node
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-bitswap"
 	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-bitswap/network"
@@ -51,7 +52,10 @@ func Pinning(bstore blockstore.Blockstore, ds format.DAGService, repo repo.Repo)
 	}
 	syncDs := &syncDagService{ds, syncFn}
 
-	pinning, err := dspinner.LoadPinner(rootDS, syncDs)
+	ctx, cancel := context.WithTimeout(context.TODO(), 2*time.Minute)
+	defer cancel()
+
+	pinning, err := dspinner.New(ctx, rootDS, syncDs)
 	if err != nil {
 		return nil, err
 	}

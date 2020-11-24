@@ -2,93 +2,110 @@
 package dsindex
 
 import (
+	"context"
+	"fmt"
 	"path"
 
 	ds "github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-datastore"
-	query "github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-datastore/query"
+	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-datastore/namespace"
+	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-datastore/query"
+	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/multiformats/go-multibase"
 )
 
-// Indexer maintains a secondary index.  Each value of the secondary index maps
-// to one more primary keys.
+// Indexer maintains a secondary index.  An index is a collection of key-value
+// mappings where the key is the secondary index that maps to one or more
+// values, where each value is a unique key being indexed.
 type Indexer interface {
-	// Add adds the a to the an index
-	Add(index, id string) error
+	// Add adds the specified value to the key
+	Add(ctx context.Context, key, value string) error
 
-	// Delete deletes the specified key from the index.  If the key is not in
+	// Delete deletes the specified value from the key.  If the value is not in
 	// the datastore, this method returns no error.
-	Delete(index, id string) error
+	Delete(ctx context.Context, key, value string) error
 
-	// DeleteAll deletes all keys in the given index.  If a key is not in the
-	// datastore, this method returns no error.
-	DeleteAll(index string) (count int, err error)
+	// DeleteKey deletes all values in the given key.  If a key is not in the
+	// datastore, this method returns no error.  Returns a count of values that
+	// were deleted.
+	DeleteKey(ctx context.Context, key string) (count int, err error)
 
-	// ForEach calls the function for each key in the specified index, until
-	// there are no more keys, or until the function returns false.  If index
-	// is empty string, then all index names are iterated.
-	ForEach(index string, fn func(index, id string) bool) error
+	// DeleteAll deletes all keys managed by this Indexer.  Returns a count of
+	// the values that were deleted.
+	DeleteAll(ctx context.Context) (count int, err error)
 
-	// HasKey determines the specified index contains the specified primary key
-	HasKey(index, id string) (bool, error)
+	// ForEach calls the function for each value in the specified key, until
+	// there are no more values, or until the function returns false.  If key
+	// is empty string, then all keys are iterated.
+	ForEach(ctx context.Context, key string, fn func(key, value string) bool) error
 
-	// HasAny determines if any key is in the specified index.  If index is
-	// empty string, then all indexes are searched.
-	HasAny(index string) (bool, error)
+	// HasValue determines if the key contains the specified value
+	HasValue(ctx context.Context, key, value string) (bool, error)
 
-	// Search returns all keys for the given index
-	Search(index string) (ids []string, err error)
+	// HasAny determines if any value is in the specified key.  If key is
+	// empty string, then all values are searched.
+	HasAny(ctx context.Context, key string) (bool, error)
 
-	// Synchronize the indexes in this Indexer to match those of the given
-	// Indexer. The indexPath prefix is not synchronized, only the index/key
-	// portion of the indexes.
-	SyncTo(reference Indexer) (changed bool, err error)
+	// Search returns all values for the given key
+	Search(ctx context.Context, key string) (values []string, err error)
 }
 
 // indexer is a simple implementation of Indexer.  This implementation relies
-// on the underlying data store supporting efficent querying by prefix.
+// on the underlying data store to support efficient querying by prefix.
 //
 // TODO: Consider adding caching
 type indexer struct {
-	dstore    ds.Datastore
-	indexPath string
+	dstore ds.Datastore
 }
 
-// New creates a new datastore index.  All indexes are stored prefixed with the
-// specified index path.
-func New(dstore ds.Datastore, indexPath string) Indexer {
+// New creates a new datastore index.  All indexes are stored under the
+// specified index name.
+//
+// To persist the actions of calling Indexer functions, it is necessary to call
+// dstore.Sync.
+func New(dstore ds.Datastore, name ds.Key) Indexer {
 	return &indexer{
-		dstore:    dstore,
-		indexPath: indexPath,
+		dstore: namespace.Wrap(dstore, name),
 	}
 }
 
-func (x *indexer) Add(index, id string) error {
-	key := ds.NewKey(path.Join(x.indexPath, index, id))
-	return x.dstore.Put(key, []byte{})
+func (x *indexer) Add(ctx context.Context, key, value string) error {
+	if key == "" {
+		return ErrEmptyKey
+	}
+	if value == "" {
+		return ErrEmptyValue
+	}
+	dsKey := ds.NewKey(encode(key)).ChildString(encode(value))
+	return x.dstore.Put(dsKey, []byte{})
 }
 
-func (x *indexer) Delete(index, id string) error {
-	return x.dstore.Delete(ds.NewKey(path.Join(x.indexPath, index, id)))
+func (x *indexer) Delete(ctx context.Context, key, value string) error {
+	if key == "" {
+		return ErrEmptyKey
+	}
+	if value == "" {
+		return ErrEmptyValue
+	}
+	return x.dstore.Delete(ds.NewKey(encode(key)).ChildString(encode(value)))
 }
 
-func (x *indexer) DeleteAll(index string) (int, error) {
-	ents, err := x.queryPrefix(path.Join(x.indexPath, index))
-	if err != nil {
-		return 0, err
+func (x *indexer) DeleteKey(ctx context.Context, key string) (int, error) {
+	if key == "" {
+		return 0, ErrEmptyKey
+	}
+	return x.deletePrefix(ctx, encode(key))
+}
+
+func (x *indexer) DeleteAll(ctx context.Context) (int, error) {
+	return x.deletePrefix(ctx, "")
+}
+
+func (x *indexer) ForEach(ctx context.Context, key string, fn func(key, value string) bool) error {
+	if key != "" {
+		key = encode(key)
 	}
 
-	for i := range ents {
-		err = x.dstore.Delete(ds.NewKey(ents[i].Key))
-		if err != nil {
-			return 0, err
-		}
-	}
-
-	return len(ents), nil
-}
-
-func (x *indexer) ForEach(index string, fn func(idx, id string) bool) error {
 	q := query.Query{
-		Prefix:   path.Join(x.indexPath, index),
+		Prefix:   key,
 		KeysOnly: true,
 	}
 	results, err := x.dstore.Query(q)
@@ -105,9 +122,22 @@ func (x *indexer) ForEach(index string, fn func(idx, id string) bool) error {
 			err = r.Error
 			break
 		}
-
+		if ctx.Err() != nil {
+			err = ctx.Err()
+			break
+		}
 		ent := r.Entry
-		if !fn(path.Base(path.Dir(ent.Key)), path.Base(ent.Key)) {
+		decIdx, err := decode(path.Base(path.Dir(ent.Key)))
+		if err != nil {
+			err = fmt.Errorf("cannot decode index: %v", err)
+			break
+		}
+		decKey, err := decode(path.Base(ent.Key))
+		if err != nil {
+			err = fmt.Errorf("cannot decode key: %v", err)
+			break
+		}
+		if !fn(decIdx, decKey) {
 			break
 		}
 	}
@@ -116,21 +146,30 @@ func (x *indexer) ForEach(index string, fn func(idx, id string) bool) error {
 	return err
 }
 
-func (x *indexer) HasKey(index, id string) (bool, error) {
-	return x.dstore.Has(ds.NewKey(path.Join(x.indexPath, index, id)))
+func (x *indexer) HasValue(ctx context.Context, key, value string) (bool, error) {
+	if key == "" {
+		return false, ErrEmptyKey
+	}
+	if value == "" {
+		return false, ErrEmptyValue
+	}
+	return x.dstore.Has(ds.NewKey(encode(key)).ChildString(encode(value)))
 }
 
-func (x *indexer) HasAny(index string) (bool, error) {
+func (x *indexer) HasAny(ctx context.Context, key string) (bool, error) {
 	var any bool
-	err := x.ForEach(index, func(idx, id string) bool {
+	err := x.ForEach(ctx, key, func(key, value string) bool {
 		any = true
 		return false
 	})
 	return any, err
 }
 
-func (x *indexer) Search(index string) ([]string, error) {
-	ents, err := x.queryPrefix(path.Join(x.indexPath, index))
+func (x *indexer) Search(ctx context.Context, key string) ([]string, error) {
+	if key == "" {
+		return nil, ErrEmptyKey
+	}
+	ents, err := x.queryPrefix(ctx, encode(key))
 	if err != nil {
 		return nil, err
 	}
@@ -138,18 +177,24 @@ func (x *indexer) Search(index string) ([]string, error) {
 		return nil, nil
 	}
 
-	ids := make([]string, len(ents))
+	values := make([]string, len(ents))
 	for i := range ents {
-		ids[i] = path.Base(ents[i].Key)
+		values[i], err = decode(path.Base(ents[i].Key))
+		if err != nil {
+			return nil, fmt.Errorf("cannot decode value: %v", err)
+		}
 	}
-	return ids, nil
+	return values, nil
 }
 
-func (x *indexer) SyncTo(ref Indexer) (bool, error) {
+// SyncIndex synchronizes the keys in the target Indexer to match those of the
+// ref Indexer. This function does not change this indexer's key root (name
+// passed into New).
+func SyncIndex(ctx context.Context, ref, target Indexer) (bool, error) {
 	// Build reference index map
 	refs := map[string]string{}
-	err := ref.ForEach("", func(idx, id string) bool {
-		refs[id] = idx
+	err := ref.ForEach(ctx, "", func(key, value string) bool {
+		refs[value] = key
 		return true
 	})
 	if err != nil {
@@ -160,14 +205,14 @@ func (x *indexer) SyncTo(ref Indexer) (bool, error) {
 	}
 
 	// Compare current indexes
-	var delKeys []string
-	err = x.ForEach("", func(idx, id string) bool {
-		refIdx, ok := refs[id]
-		if ok && refIdx == idx {
-			// same in both; delete from refs, do not add to delKeys
-			delete(refs, id)
+	dels := map[string]string{}
+	err = target.ForEach(ctx, "", func(key, value string) bool {
+		refKey, ok := refs[value]
+		if ok && refKey == key {
+			// same in both; delete from refs, do not add to dels
+			delete(refs, value)
 		} else {
-			delKeys = append(delKeys, path.Join(x.indexPath, idx, id))
+			dels[value] = key
 		}
 		return true
 	})
@@ -175,26 +220,42 @@ func (x *indexer) SyncTo(ref Indexer) (bool, error) {
 		return false, err
 	}
 
-	// Items in delKeys are indexes that no longer exist
-	for i := range delKeys {
-		err = x.dstore.Delete(ds.NewKey(delKeys[i]))
+	// Items in dels are keys that no longer exist
+	for value, key := range dels {
+		err = target.Delete(ctx, key, value)
 		if err != nil {
 			return false, err
 		}
 	}
 
-	// What remains in refs are indexes that need to be added
-	for k, v := range refs {
-		err = x.dstore.Put(ds.NewKey(path.Join(x.indexPath, v, k)), nil)
+	// What remains in refs are keys that need to be added
+	for value, key := range refs {
+		err = target.Add(ctx, key, value)
 		if err != nil {
 			return false, err
 		}
 	}
 
-	return len(refs) != 0 || len(delKeys) != 0, nil
+	return len(refs) != 0 || len(dels) != 0, nil
 }
 
-func (x *indexer) queryPrefix(prefix string) ([]query.Entry, error) {
+func (x *indexer) deletePrefix(ctx context.Context, prefix string) (int, error) {
+	ents, err := x.queryPrefix(ctx, prefix)
+	if err != nil {
+		return 0, err
+	}
+
+	for i := range ents {
+		err = x.dstore.Delete(ds.NewKey(ents[i].Key))
+		if err != nil {
+			return 0, err
+		}
+	}
+
+	return len(ents), nil
+}
+
+func (x *indexer) queryPrefix(ctx context.Context, prefix string) ([]query.Entry, error) {
 	q := query.Query{
 		Prefix:   prefix,
 		KeysOnly: true,
@@ -204,4 +265,21 @@ func (x *indexer) queryPrefix(prefix string) ([]query.Entry, error) {
 		return nil, err
 	}
 	return results.Rest()
+}
+
+func encode(data string) string {
+	encData, err := multibase.Encode(multibase.Base64url, []byte(data))
+	if err != nil {
+		// programming error; using unsupported encoding
+		panic(err.Error())
+	}
+	return encData
+}
+
+func decode(data string) (string, error) {
+	_, b, err := multibase.Decode(data)
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
 }

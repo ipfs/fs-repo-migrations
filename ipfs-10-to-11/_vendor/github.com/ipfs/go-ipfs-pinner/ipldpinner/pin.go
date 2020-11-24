@@ -78,16 +78,67 @@ type syncDAGService interface {
 	Sync() error
 }
 
-// New creates a new pinner using the given datastore as a backend
-func New(dstore ds.Datastore, serv, internal ipld.DAGService) *pinner {
-	return &pinner{
-		recursePin:  cid.NewSet(),
-		directPin:   cid.NewSet(),
-		internalPin: cid.NewSet(),
-		dserv:       serv,
-		internal:    internal,
-		dstore:      dstore,
+// New creates a new pinner using the given datastore as a backend, and loads
+// the pinner's keysets from the datastore
+func New(dstore ds.Datastore, dserv, internal ipld.DAGService) (*pinner, error) {
+	rootKey, err := dstore.Get(pinDatastoreKey)
+	if err != nil {
+		if err == ds.ErrNotFound {
+			return &pinner{
+				recursePin:  cid.NewSet(),
+				directPin:   cid.NewSet(),
+				internalPin: cid.NewSet(),
+				dserv:       dserv,
+				internal:    internal,
+				dstore:      dstore,
+			}, nil
+		}
+		return nil, err
 	}
+	rootCid, err := cid.Cast(rootKey)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx, cancel := context.WithTimeout(context.TODO(), loadTimeout)
+	defer cancel()
+
+	root, err := internal.Get(ctx, rootCid)
+	if err != nil {
+		return nil, fmt.Errorf("cannot find pinning root object: %v", err)
+	}
+
+	rootpb, ok := root.(*mdag.ProtoNode)
+	if !ok {
+		return nil, mdag.ErrNotProtobuf
+	}
+
+	internalset := cid.NewSet()
+	internalset.Add(rootCid)
+	recordInternal := internalset.Add
+
+	// load recursive set
+	recurseKeys, err := loadSet(ctx, internal, rootpb, linkRecursive, recordInternal)
+	if err != nil {
+		return nil, fmt.Errorf("cannot load recursive pins: %v", err)
+	}
+
+	// load direct set
+	directKeys, err := loadSet(ctx, internal, rootpb, linkDirect, recordInternal)
+	if err != nil {
+		return nil, fmt.Errorf("cannot load direct pins: %v", err)
+	}
+
+	return &pinner{
+		// assign pinsets
+		recursePin:  cidSetWithValues(recurseKeys),
+		directPin:   cidSetWithValues(directKeys),
+		internalPin: internalset,
+		// assign services
+		dserv:    dserv,
+		dstore:   dstore,
+		internal: internal,
+	}, nil
 }
 
 // Pin the given node, optionally recursive
@@ -310,58 +361,6 @@ func cidSetWithValues(cids []cid.Cid) *cid.Set {
 		out.Add(c)
 	}
 	return out
-}
-
-// LoadPinner loads a pinner and its keysets from the given datastore
-func LoadPinner(dstore ds.Datastore, dserv, internal ipld.DAGService) (*pinner, error) {
-	rootKey, err := dstore.Get(pinDatastoreKey)
-	if err != nil {
-		return nil, fmt.Errorf("cannot load pin state: %v", err)
-	}
-	rootCid, err := cid.Cast(rootKey)
-	if err != nil {
-		return nil, err
-	}
-
-	ctx, cancel := context.WithTimeout(context.TODO(), loadTimeout)
-	defer cancel()
-
-	root, err := internal.Get(ctx, rootCid)
-	if err != nil {
-		return nil, fmt.Errorf("cannot find pinning root object: %v", err)
-	}
-
-	rootpb, ok := root.(*mdag.ProtoNode)
-	if !ok {
-		return nil, mdag.ErrNotProtobuf
-	}
-
-	internalset := cid.NewSet()
-	internalset.Add(rootCid)
-	recordInternal := internalset.Add
-
-	// load recursive set
-	recurseKeys, err := loadSet(ctx, internal, rootpb, linkRecursive, recordInternal)
-	if err != nil {
-		return nil, fmt.Errorf("cannot load recursive pins: %v", err)
-	}
-
-	// load direct set
-	directKeys, err := loadSet(ctx, internal, rootpb, linkDirect, recordInternal)
-	if err != nil {
-		return nil, fmt.Errorf("cannot load direct pins: %v", err)
-	}
-
-	return &pinner{
-		// assign pinsets
-		recursePin:  cidSetWithValues(recurseKeys),
-		directPin:   cidSetWithValues(directKeys),
-		internalPin: internalset,
-		// assign services
-		dserv:    dserv,
-		dstore:   dstore,
-		internal: internal,
-	}, nil
 }
 
 // DirectKeys returns a slice containing the directly pinned keys

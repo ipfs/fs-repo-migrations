@@ -102,10 +102,9 @@ test_expect_success "install ipfs v0.8.0-dev succeeds" '
 	mkdir xxx &&
 	cd xxx &&
 	go mod init github.com/ipfs/xxx &&
-	go get github.com/ipfs/go-ipfs/cmd/ipfs@5cd3ef966d5102e64100fbb8db621d407bafa765 &&
+	go get github.com/ipfs/go-ipfs/cmd/ipfs@10705cedceac3011f3055de5efbe699e47de7ae6 &&
 	cd .. &&
 	docker cp "$GOPATH"/bin/ipfs "$DOCID":/usr/local/bin &&
-	exec_docker "$DOCID" "echo 10 > /root/.ipfs/version" &&
 	chmod -R u+w "$GOPATH" && rm -rf "GOPATH"
 '
 
@@ -161,7 +160,7 @@ test_expect_success "'ipfs-10-to-11 -revert' succeeds" '
 '
 
 test_expect_success "'ipfs-10-to-11 -revert' output looks good" '
-	grep "exported 3 pins from datastore to dag storage" actual ||
+	grep "converted 3 pins from datastore to ipld storage" actual ||
 	test_fsh cat actual
 '
 

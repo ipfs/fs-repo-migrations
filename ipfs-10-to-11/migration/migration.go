@@ -1,6 +1,7 @@
 package mg10
 
 import (
+	"context"
 	"fmt"
 	"path"
 
@@ -9,7 +10,7 @@ import (
 	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-filestore"
 	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-ipfs-blockstore"
 	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-ipfs-exchange-offline"
-	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-ipfs-pinner/dspinner"
+	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-ipfs-pinner/pinconv"
 	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-ipfs/plugin/loader"
 	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-ipfs/repo"
 	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-ipfs/repo/fsrepo"
@@ -52,7 +53,10 @@ func (m Migration) Apply(opts migrate.Options) error {
 	// for this migration since repo has not changed.
 	fsrepo.RepoVersion = 10
 
-	if err = transferPins(opts.Path); err != nil {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	if err = transferPins(ctx, opts.Path); err != nil {
 		log.Error("failed to transfer pins:", err.Error())
 		return err
 	}
@@ -82,7 +86,10 @@ func (m Migration) Revert(opts migrate.Options) error {
 		return err
 	}
 
-	if err = revertPins(opts.Path); err != nil {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	if err = revertPins(ctx, opts.Path); err != nil {
 		return err
 	}
 
@@ -158,7 +165,7 @@ func makeStore(r repo.Repo) (datastore.Datastore, format.DAGService, format.DAGS
 	return dstore, syncDs, syncInternalDag, nil
 }
 
-func transferPins(repopath string) error {
+func transferPins(ctx context.Context, repopath string) error {
 	log.Log("> Upgrading pinning to use datastore")
 
 	if !fsrepo.IsInitialized(repopath) {
@@ -179,17 +186,17 @@ func transferPins(repopath string) error {
 
 	log.Log("  - importing from ipld pinner")
 
-	_, impCount, err := dspinner.ImportFromIPLDPinner(dstore, dserv, internalDag)
+	_, toDSCount, err := pinconv.ConvertPinsFromIPLDToDS(ctx, dstore, dserv, internalDag)
 	if err != nil {
-		log.Error("failed to import pin data into datastore")
+		log.Error("failed to convert ipld pin data into datastore")
 		return err
 	}
-	log.Log("  - imported %d pins from dag storage into datastore", impCount)
+	log.Log("  - converted %d pins from ipld storage into datastore", toDSCount)
 	return nil
 }
 
-func revertPins(repopath string) error {
-	log.Log("> Reverting pinning to use DAG storage")
+func revertPins(ctx context.Context, repopath string) error {
+	log.Log("> Reverting pinning to use ipld storage")
 
 	log.VLog("  - opening datastore at %q", repopath)
 	r, err := fsrepo.Open(repopath)
@@ -203,11 +210,11 @@ func revertPins(repopath string) error {
 		return err
 	}
 
-	_, expCount, err := dspinner.ExportToIPLDPinner(dstore, dserv, internalDag)
+	_, toIPLDCount, err := pinconv.ConvertPinsFromDSToIPLD(ctx, dstore, dserv, internalDag)
 	if err != nil {
-		log.Error("failed to export pin data from datastore to ipld pinner")
+		log.Error("failed to conver pin data from datastore to ipld pinner")
 		return err
 	}
-	log.Log("exported %d pins from datastore to dag storage", expCount)
+	log.Log("converted %d pins from datastore to ipld storage", toIPLDCount)
 	return nil
 }
