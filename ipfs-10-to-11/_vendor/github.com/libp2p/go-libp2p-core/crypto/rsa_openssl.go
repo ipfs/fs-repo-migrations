@@ -6,7 +6,7 @@ import (
 	"errors"
 	"io"
 
-	openssl "github.com/libp2p/go-openssl"
+	openssl "github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/libp2p/go-openssl"
 )
 
 // RsaPrivateKey is an rsa private key

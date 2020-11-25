@@ -4,7 +4,7 @@ import (
 	"C"
 	"unsafe"
 
-	sockaddrnet "github.com/libp2p/go-sockaddr/net"
+	sockaddrnet "github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/libp2p/go-sockaddr/net"
 )
 
 // AnyToCAny casts a *RawSockaddrAny to a *C.struct_sockaddr_any

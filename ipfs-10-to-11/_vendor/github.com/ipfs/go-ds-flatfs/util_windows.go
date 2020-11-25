@@ -20,7 +20,7 @@ import (
 	"sync"
 	"time"
 
-	goissue34681 "github.com/alexbrainman/goissue34681"
+	goissue34681 "github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/alexbrainman/goissue34681"
 )
 
 var tmpRand uint32

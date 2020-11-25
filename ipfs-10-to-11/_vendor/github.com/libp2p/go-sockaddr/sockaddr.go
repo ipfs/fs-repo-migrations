@@ -1,7 +1,7 @@
 package sockaddr
 
 import (
-	sockaddrnet "github.com/libp2p/go-sockaddr/net"
+	sockaddrnet "github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/libp2p/go-sockaddr/net"
 )
 
 // Socklen is a type for the length of a sockaddr.

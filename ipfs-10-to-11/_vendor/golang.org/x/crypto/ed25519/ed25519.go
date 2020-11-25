@@ -29,7 +29,7 @@ import (
 	"io"
 	"strconv"
 
-	"golang.org/x/crypto/ed25519/internal/edwards25519"
+	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/golang.org/x/crypto/ed25519/internal/edwards25519"
 )
 
 const (

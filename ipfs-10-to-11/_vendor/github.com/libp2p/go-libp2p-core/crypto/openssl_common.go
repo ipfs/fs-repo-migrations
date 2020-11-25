@@ -7,7 +7,7 @@ import (
 
 	pb "github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/libp2p/go-libp2p-core/crypto/pb"
 
-	openssl "github.com/libp2p/go-openssl"
+	openssl "github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/libp2p/go-openssl"
 )
 
 // define these as separate types so we can add more key types later and reuse

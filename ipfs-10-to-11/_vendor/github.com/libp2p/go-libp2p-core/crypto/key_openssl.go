@@ -10,7 +10,7 @@ import (
 	"crypto/x509"
 
 	btcec "github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/btcsuite/btcd/btcec"
-	openssl "github.com/libp2p/go-openssl"
+	openssl "github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/libp2p/go-openssl"
 )
 
 // KeyPairFromStdKey wraps standard library (and secp256k1) private keys in libp2p/go-libp2p-core/crypto keys

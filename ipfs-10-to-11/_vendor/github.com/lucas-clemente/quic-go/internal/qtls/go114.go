@@ -9,7 +9,7 @@ import (
 	"net"
 	"unsafe"
 
-	"github.com/marten-seemann/qtls"
+	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/marten-seemann/qtls"
 )
 
 type (

@@ -14,9 +14,9 @@ import (
 	"unsafe"
 
 	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/google/gopacket/routing"
-	sockaddrconv "github.com/libp2p/go-sockaddr"
-	sockaddrnet "github.com/libp2p/go-sockaddr/net"
-	"golang.org/x/sys/windows"
+	sockaddrconv "github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/libp2p/go-sockaddr"
+	sockaddrnet "github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/libp2p/go-sockaddr/net"
+	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/golang.org/x/sys/windows"
 )
 
 var (

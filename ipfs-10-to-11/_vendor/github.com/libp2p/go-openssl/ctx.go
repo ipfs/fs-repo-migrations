@@ -27,7 +27,7 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/spacemonkeygo/spacelog"
+	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/spacemonkeygo/spacelog"
 )
 
 var (

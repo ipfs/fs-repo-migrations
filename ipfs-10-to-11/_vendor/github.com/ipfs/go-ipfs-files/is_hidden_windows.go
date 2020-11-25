@@ -5,7 +5,7 @@ package files
 import (
 	"os"
 
-	windows "golang.org/x/sys/windows"
+	windows "github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/golang.org/x/sys/windows"
 )
 
 func isHidden(fi os.FileInfo) bool {
