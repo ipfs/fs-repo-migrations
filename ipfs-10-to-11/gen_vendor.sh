@@ -25,6 +25,17 @@ DEPS_FILE=deps_file.txt
 echo "===> creating $DEPS_FILE"
 go list -deps | sed -E -n '/^[^/]+[.].+$/p' | sed '/golang.org\/x\/net/d' | sed '/github.com\/ipfs\/fs-repo-migrations/d' > "$DEPS_FILE"
 
+echo "golang.org/x/sys/windows" >> "$DEPS_FILE"
+echo "github.com/alexbrainman/goissue34681" >> "$DEPS_FILE"
+echo "github.com/libp2p/go-openssl" >> "$DEPS_FILE"
+echo "github.com/libp2p/go-openssl/utils" >> "$DEPS_FILE"
+echo "github.com/libp2p/go-sockaddr/net"  >> "$DEPS_FILE"
+echo "github.com/libp2p/go-sockaddr" >> "$DEPS_FILE"
+echo "github.com/libp2p/go-sockaddr/net"  >> "$DEPS_FILE"
+echo "golang.org/x/crypto/ed25519/internal/edwards25519" >> "$DEPS_FILE"
+echo "github.com/spacemonkeygo/spacelog" >> "$DEPS_FILE"
+echo "github.com/marten-seemann/qtls" >> "$DEPS_FILE"
+
 # Edit the import path if a .go file imports anything in the _vendor directory
 echo "===> modifying import paths in _vendor"
 cat "$DEPS_FILE" | while read line; do find _vendor/ -name '*.go' | xargs sed -i "s,\"$line\",\"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/$line\","; done
