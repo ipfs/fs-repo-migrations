@@ -165,7 +165,7 @@ github.com/ipfs/go-graphsync/responsemanager/responsebuilder
 github.com/ipfs/go-graphsync/responsemanager/runtraversal
 github.com/ipfs/go-graphsync/selectorvalidator
 github.com/ipfs/go-graphsync/storeutil
-# github.com/ipfs/go-ipfs v0.7.1-0.20201124214117-10705cedceac
+# github.com/ipfs/go-ipfs v0.7.1-0.20201130224213-e325332ca1f5
 ## explicit
 github.com/ipfs/go-ipfs
 github.com/ipfs/go-ipfs/blocks/blockstoreutil
@@ -216,7 +216,7 @@ github.com/ipfs/go-ipfs-exchange-interface
 github.com/ipfs/go-ipfs-exchange-offline
 # github.com/ipfs/go-ipfs-files v0.0.8
 github.com/ipfs/go-ipfs-files
-# github.com/ipfs/go-ipfs-pinner v0.0.5-0.20201124212104-9c335cd6830f
+# github.com/ipfs/go-ipfs-pinner v0.1.0
 ## explicit
 github.com/ipfs/go-ipfs-pinner
 github.com/ipfs/go-ipfs-pinner/dsindex

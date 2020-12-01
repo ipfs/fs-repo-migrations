@@ -4,7 +4,6 @@
 package dspinner
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -21,6 +20,7 @@ import (
 	mdag "github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-merkledag"
 	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-merkledag/dagutils"
 	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/polydawn/refmt/cbor"
+	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/polydawn/refmt/obj/atlas"
 )
 
 const (
@@ -43,6 +43,8 @@ var (
 	pinNameIndexPath string
 
 	dirtyKey = ds.NewKey(dirtyKeyPath)
+
+	pinAtl atlas.Atlas
 )
 
 func init() {
@@ -61,6 +63,26 @@ func init() {
 	pinCidRIndexPath = path.Join(indexKeyPath, "cidRindex")
 	pinCidDIndexPath = path.Join(indexKeyPath, "cidDindex")
 	pinNameIndexPath = path.Join(indexKeyPath, "nameIndex")
+
+	pinAtl = atlas.MustBuild(
+		atlas.BuildEntry(pin{}).StructMap().
+			AddField("Cid", atlas.StructMapEntry{SerialName: "cid"}).
+			AddField("Metadata", atlas.StructMapEntry{SerialName: "metadata", OmitEmpty: true}).
+			AddField("Mode", atlas.StructMapEntry{SerialName: "mode"}).
+			AddField("Name", atlas.StructMapEntry{SerialName: "name", OmitEmpty: true}).
+			Complete(),
+		atlas.BuildEntry(cid.Cid{}).Transform().
+			TransformMarshal(atlas.MakeMarshalTransformFunc(func(live cid.Cid) ([]byte, error) { return live.MarshalBinary() })).
+			TransformUnmarshal(atlas.MakeUnmarshalTransformFunc(func(serializable []byte) (cid.Cid, error) {
+				c := cid.Cid{}
+				err := c.UnmarshalBinary(serializable)
+				if err != nil {
+					return cid.Cid{}, err
+				}
+				return c, nil
+			})).Complete(),
+	)
+	pinAtl = pinAtl.WithMapMorphism(atlas.MapMorphism{KeySortMode: atlas.KeySortMode_Strings})
 }
 
 // pinner implements the Pinner interface
@@ -81,23 +103,23 @@ type pinner struct {
 var _ ipfspinner.Pinner = (*pinner)(nil)
 
 type pin struct {
-	id       string
-	cid      cid.Cid
-	metadata map[string]interface{}
-	mode     ipfspinner.Mode
-	name     string
+	Id       string
+	Cid      cid.Cid
+	Metadata map[string]interface{}
+	Mode     ipfspinner.Mode
+	Name     string
 }
 
 func (p *pin) dsKey() ds.Key {
-	return ds.NewKey(path.Join(pinKeyPath, p.id))
+	return ds.NewKey(path.Join(pinKeyPath, p.Id))
 }
 
 func newPin(c cid.Cid, mode ipfspinner.Mode, name string) *pin {
 	return &pin{
-		id:   ds.RandomKey().String(),
-		cid:  c,
-		name: name,
-		mode: mode,
+		Id:   ds.RandomKey().String(),
+		Cid:  c,
+		Name: name,
+		Mode: mode,
 	}
 }
 
@@ -230,9 +252,9 @@ func (p *pinner) addPin(ctx context.Context, c cid.Cid, mode ipfspinner.Mode, na
 	// Store CID index
 	switch mode {
 	case ipfspinner.Recursive:
-		err = p.cidRIndex.Add(ctx, c.KeyString(), pp.id)
+		err = p.cidRIndex.Add(ctx, c.KeyString(), pp.Id)
 	case ipfspinner.Direct:
-		err = p.cidDIndex.Add(ctx, c.KeyString(), pp.id)
+		err = p.cidDIndex.Add(ctx, c.KeyString(), pp.Id)
 	default:
 		panic("pin mode must be recursive or direct")
 	}
@@ -242,7 +264,7 @@ func (p *pinner) addPin(ctx context.Context, c cid.Cid, mode ipfspinner.Mode, na
 
 	if name != "" {
 		// Store name index
-		err = p.nameIndex.Add(ctx, name, pp.id)
+		err = p.nameIndex.Add(ctx, name, pp.Id)
 		if err != nil {
 			return "", fmt.Errorf("could not add pin name index: %v", err)
 		}
@@ -252,17 +274,17 @@ func (p *pinner) addPin(ctx context.Context, c cid.Cid, mode ipfspinner.Mode, na
 	err = p.dstore.Put(pp.dsKey(), pinData)
 	if err != nil {
 		if mode == ipfspinner.Recursive {
-			p.cidRIndex.Delete(ctx, c.KeyString(), pp.id)
+			p.cidRIndex.Delete(ctx, c.KeyString(), pp.Id)
 		} else {
-			p.cidDIndex.Delete(ctx, c.KeyString(), pp.id)
+			p.cidDIndex.Delete(ctx, c.KeyString(), pp.Id)
 		}
 		if name != "" {
-			p.nameIndex.Delete(ctx, name, pp.id)
+			p.nameIndex.Delete(ctx, name, pp.Id)
 		}
 		return "", err
 	}
 
-	return pp.id, nil
+	return pp.Id, nil
 }
 
 func (p *pinner) removePin(ctx context.Context, pp *pin) error {
@@ -275,18 +297,18 @@ func (p *pinner) removePin(ctx context.Context, pp *pin) error {
 		return err
 	}
 	// Remove cid index from datastore
-	if pp.mode == ipfspinner.Recursive {
-		err = p.cidRIndex.Delete(ctx, pp.cid.KeyString(), pp.id)
+	if pp.Mode == ipfspinner.Recursive {
+		err = p.cidRIndex.Delete(ctx, pp.Cid.KeyString(), pp.Id)
 	} else {
-		err = p.cidDIndex.Delete(ctx, pp.cid.KeyString(), pp.id)
+		err = p.cidDIndex.Delete(ctx, pp.Cid.KeyString(), pp.Id)
 	}
 	if err != nil {
 		return err
 	}
 
-	if pp.name != "" {
+	if pp.Name != "" {
 		// Remove name index from datastore
-		err = p.nameIndex.Delete(ctx, pp.name, pp.id)
+		err = p.nameIndex.Delete(ctx, pp.Name, pp.Id)
 		if err != nil {
 			return err
 		}
@@ -599,7 +621,7 @@ func (p *pinner) removePinsForCid(ctx context.Context, c cid.Cid, mode ipfspinne
 			}
 			return false, err
 		}
-		if mode == ipfspinner.Any || pp.mode == mode {
+		if mode == ipfspinner.Any || pp.Mode == mode {
 			err = p.removePin(ctx, pp)
 			if err != nil {
 				return false, err
@@ -665,13 +687,13 @@ func (p *pinner) rebuildIndexes(ctx context.Context, pins []*pin) error {
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}
-		if pp.mode == ipfspinner.Recursive {
-			tmpCidRIndex.Add(ctx, pp.cid.KeyString(), pp.id)
-		} else if pp.mode == ipfspinner.Direct {
-			tmpCidDIndex.Add(ctx, pp.cid.KeyString(), pp.id)
+		if pp.Mode == ipfspinner.Recursive {
+			tmpCidRIndex.Add(ctx, pp.Cid.KeyString(), pp.Id)
+		} else if pp.Mode == ipfspinner.Direct {
+			tmpCidDIndex.Add(ctx, pp.Cid.KeyString(), pp.Id)
 		}
-		if pp.name != "" {
-			tmpNameIndex.Add(ctx, pp.name, pp.id)
+		if pp.Name != "" {
+			tmpNameIndex.Add(ctx, pp.Name, pp.Id)
 			hasNames = true
 		}
 	}
@@ -898,83 +920,19 @@ func hasChild(ctx context.Context, ng ipld.NodeGetter, root cid.Cid, child cid.C
 }
 
 func encodePin(p *pin) ([]byte, error) {
-	modeB := []byte{byte(p.mode)}
-	pinData := map[string]interface{}{
-		"mode": modeB,
-		"cid":  p.cid.Bytes(),
-	}
-	// Encode optional fields
-	if p.name != "" {
-		pinData["name"] = p.name
-	}
-	if len(p.metadata) != 0 {
-		pinData["metadata"] = p.metadata
-	}
-
-	var buf bytes.Buffer
-	encoder := cbor.NewMarshaller(&buf)
-	err := encoder.Marshal(pinData)
+	b, err := cbor.MarshalAtlased(p, pinAtl)
 	if err != nil {
 		return nil, err
 	}
-	return buf.Bytes(), nil
+	return b, nil
 }
 
 func decodePin(pid string, data []byte) (*pin, error) {
-	reader := bytes.NewReader(data)
-	decoder := cbor.NewUnmarshaller(cbor.DecodeOptions{}, reader)
-
-	var pinData map[string]interface{}
-	err := decoder.Unmarshal(&pinData)
+	p := &pin{Id: pid}
+	err := cbor.UnmarshalAtlased(cbor.DecodeOptions{}, data, p, pinAtl)
 	if err != nil {
-		return nil, fmt.Errorf("cannot decode pin: %v", err)
+		return nil, err
 	}
-
-	cidData, ok := pinData["cid"]
-	if !ok {
-		return nil, errors.New("missing cid")
-	}
-	cidBytes, ok := cidData.([]byte)
-	if !ok {
-		return nil, errors.New("invalid pin cid data")
-	}
-	c, err := cid.Cast(cidBytes)
-	if err != nil {
-		return nil, fmt.Errorf("cannot decode pin cid: %v", err)
-	}
-
-	modeData, ok := pinData["mode"]
-	if !ok {
-		return nil, errors.New("missing mode")
-	}
-	modeB, ok := modeData.([]byte)
-	if !ok {
-		return nil, errors.New("invalid pin mode data")
-	}
-	p := &pin{
-		id:   pid,
-		mode: ipfspinner.Mode(int(modeB[0])),
-		cid:  c,
-	}
-
-	// Decode optional data
-
-	meta, ok := pinData["metadata"]
-	if ok && meta != nil {
-		p.metadata, ok = meta.(map[string]interface{})
-		if !ok {
-			return nil, errors.New("cannot decode metadata")
-		}
-	}
-
-	name, ok := pinData["name"]
-	if ok && name != nil {
-		p.name, ok = name.(string)
-		if !ok {
-			return nil, errors.New("invalid pin name data")
-		}
-	}
-
 	return p, nil
 }
 

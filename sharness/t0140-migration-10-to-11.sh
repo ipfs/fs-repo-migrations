@@ -102,7 +102,7 @@ test_expect_success "install ipfs v0.8.0-dev succeeds" '
 	mkdir xxx &&
 	cd xxx &&
 	go mod init github.com/ipfs/xxx &&
-	go get github.com/ipfs/go-ipfs/cmd/ipfs@10705cedceac3011f3055de5efbe699e47de7ae6 &&
+	go get github.com/ipfs/go-ipfs/cmd/ipfs@e325332ca1f57be258f72afb4ed5e9e1484e39e1 &&
 	cd .. &&
 	docker cp "$GOPATH"/bin/ipfs "$DOCID":/usr/local/bin &&
 	chmod -R u+w "$GOPATH" && rm -rf "GOPATH"
@@ -151,9 +151,6 @@ test_expect_success "'ipfs repo gc' succeeds" '
 	exec_docker "$DOCID" "ipfs pin ls --type=all" | sort > after_gc &&
 	test_cmp before_gc after_gc
 '
-
-# TODO: remove this when IPFS v0.8.0 released
-exec_docker "$DOCID" "echo 11 > /root/.ipfs/version"
 
 test_expect_success "'ipfs-10-to-11 -revert' succeeds" '
 	exec_docker "$DOCID" "$GUEST_IPFS_10_TO_11 -verbose -revert -path=/root/.ipfs" >actual
