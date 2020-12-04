@@ -24,6 +24,23 @@ func getPacketTypeFromEncryptionLevel(encLevel protocol.EncryptionLevel) packetT
 	return packetType(t)
 }
 
+// PacketHeader is a QUIC packet header.
+type packetHeader struct {
+	PacketType logging.PacketType
+
+	PacketNumber  logging.PacketNumber
+	PayloadLength logging.ByteCount
+	// Size of the QUIC packet (QUIC header + payload).
+	// See https://github.com/quiclog/internet-drafts/issues/40.
+	PacketSize logging.ByteCount
+
+	Version          logging.VersionNumber
+	SrcConnectionID  logging.ConnectionID
+	DestConnectionID logging.ConnectionID
+
+	KeyPhaseBit logging.KeyPhaseBit
+}
+
 func transformHeader(hdr *wire.Header) *packetHeader {
 	return &packetHeader{
 		PacketType:       logging.PacketTypeFromHeader(hdr),
@@ -37,11 +54,9 @@ func transformHeader(hdr *wire.Header) *packetHeader {
 func transformExtendedHeader(hdr *wire.ExtendedHeader) *packetHeader {
 	h := transformHeader(&hdr.Header)
 	h.PacketNumber = hdr.PacketNumber
+	h.KeyPhaseBit = hdr.KeyPhase
 	return h
 }
-
-// We don't log the packet type as a part of the header yet, see https://github.com/quiclog/internet-drafts/issues/40.
-type packetHeader logging.PacketHeader
 
 func (h packetHeader) MarshalJSONObject(enc *gojay.Encoder) {
 	if h.PacketType != logging.PacketTypeRetry && h.PacketType != logging.PacketTypeVersionNegotiation {
@@ -61,5 +76,8 @@ func (h packetHeader) MarshalJSONObject(enc *gojay.Encoder) {
 	enc.IntKey("dcil", h.DestConnectionID.Len())
 	if h.DestConnectionID.Len() > 0 {
 		enc.StringKey("dcid", connectionID(h.DestConnectionID).String())
+	}
+	if h.KeyPhaseBit == logging.KeyPhaseZero || h.KeyPhaseBit == logging.KeyPhaseOne {
+		enc.StringKey("key_phase_bit", h.KeyPhaseBit.String())
 	}
 }

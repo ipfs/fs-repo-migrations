@@ -89,7 +89,8 @@ func (t *connectionTracer) run() {
 				},
 				EventFields: eventFields[:],
 			},
-		}}
+		},
+	}
 	if err := enc.Encode(tl); err != nil {
 		panic(fmt.Sprintf("qlog encoding into a bytes.Buffer failed: %s", err))
 	}
@@ -187,6 +188,17 @@ func (t *connectionTracer) recordTransportParameters(sentBy protocol.Perspective
 	if sentBy != t.perspective {
 		owner = ownerRemote
 	}
+	var pa *preferredAddress
+	if tp.PreferredAddress != nil {
+		pa = &preferredAddress{
+			IPv4:                tp.PreferredAddress.IPv4,
+			PortV4:              tp.PreferredAddress.IPv4Port,
+			IPv6:                tp.PreferredAddress.IPv6,
+			PortV6:              tp.PreferredAddress.IPv6Port,
+			ConnectionID:        tp.PreferredAddress.ConnectionID,
+			StatelessResetToken: tp.PreferredAddress.StatelessResetToken,
+		}
+	}
 	t.mutex.Lock()
 	t.recordEvent(time.Now(), &eventTransportParameters{
 		Owner:                           owner,
@@ -207,6 +219,7 @@ func (t *connectionTracer) recordTransportParameters(sentBy protocol.Perspective
 		InitialMaxStreamDataUni:         tp.InitialMaxStreamDataUni,
 		InitialMaxStreamsBidi:           int64(tp.MaxBidiStreamNum),
 		InitialMaxStreamsUni:            int64(tp.MaxUniStreamNum),
+		PreferredAddress:                pa,
 	})
 	t.mutex.Unlock()
 }
@@ -362,6 +375,20 @@ func (t *connectionTracer) DroppedEncryptionLevel(encLevel protocol.EncryptionLe
 	now := time.Now()
 	t.recordEvent(now, &eventKeyRetired{KeyType: encLevelToKeyType(encLevel, protocol.PerspectiveServer)})
 	t.recordEvent(now, &eventKeyRetired{KeyType: encLevelToKeyType(encLevel, protocol.PerspectiveClient)})
+	t.mutex.Unlock()
+}
+
+func (t *connectionTracer) DroppedKey(generation protocol.KeyPhase) {
+	t.mutex.Lock()
+	now := time.Now()
+	t.recordEvent(now, &eventKeyRetired{
+		KeyType:    encLevelToKeyType(protocol.Encryption1RTT, protocol.PerspectiveServer),
+		Generation: generation,
+	})
+	t.recordEvent(now, &eventKeyRetired{
+		KeyType:    encLevelToKeyType(protocol.Encryption1RTT, protocol.PerspectiveClient),
+		Generation: generation,
+	})
 	t.mutex.Unlock()
 }
 

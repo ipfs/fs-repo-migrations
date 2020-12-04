@@ -6,6 +6,8 @@ import (
 	"net"
 	"time"
 
+	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/lucas-clemente/quic-go/internal/utils"
+
 	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/lucas-clemente/quic-go/internal/protocol"
 	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/lucas-clemente/quic-go/logging"
 
@@ -118,13 +120,10 @@ func (t *connTracer) StartedConnection(local, _ net.Addr, _ logging.VersionNumbe
 
 	var ipVersionTag tag.Mutator
 	if udpAddr, ok := local.(*net.UDPAddr); ok {
-		// If ip is not an IPv4 address, To4 returns nil.
-		// Note that there might be some corner cases, where this is not correct.
-		// See https://stackoverflow.com/questions/22751035/golang-distinguish-ipv4-ipv6.
-		if udpAddr.IP.To4() == nil {
-			ipVersionTag = tag.Upsert(keyIPVersion, "IPv6")
-		} else {
+		if utils.IsIPv4(udpAddr.IP) {
 			ipVersionTag = tag.Upsert(keyIPVersion, "IPv4")
+		} else {
+			ipVersionTag = tag.Upsert(keyIPVersion, "IPv6")
 		}
 	} else {
 		ipVersionTag = tag.Upsert(keyIPVersion, "unknown")
@@ -197,6 +196,7 @@ func (t *connTracer) LostPacket(encLevel logging.EncryptionLevel, _ logging.Pack
 		lostPackets.M(1),
 	)
 }
+
 func (t *connTracer) UpdatedPTOCount(value uint32) {
 	if value == 0 {
 		return
@@ -214,6 +214,7 @@ func (t *connTracer) UpdatedPTOCount(value uint32) {
 func (t *connTracer) UpdatedKeyFromTLS(logging.EncryptionLevel, logging.Perspective)     {}
 func (t *connTracer) UpdatedKey(logging.KeyPhase, bool)                                  {}
 func (t *connTracer) DroppedEncryptionLevel(logging.EncryptionLevel)                     {}
+func (t *connTracer) DroppedKey(logging.KeyPhase)                                        {}
 func (t *connTracer) SetLossTimer(logging.TimerType, logging.EncryptionLevel, time.Time) {}
 func (t *connTracer) LossTimerExpired(logging.TimerType, logging.EncryptionLevel)        {}
 func (t *connTracer) LossTimerCanceled()                                                 {}

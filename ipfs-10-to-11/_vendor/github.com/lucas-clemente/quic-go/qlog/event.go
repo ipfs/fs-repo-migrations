@@ -5,6 +5,8 @@ import (
 	"net"
 	"time"
 
+	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/lucas-clemente/quic-go/internal/utils"
+
 	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/lucas-clemente/quic-go/internal/protocol"
 	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/lucas-clemente/quic-go/logging"
 
@@ -75,14 +77,10 @@ func (e eventConnectionStarted) Name() string       { return "connection_started
 func (e eventConnectionStarted) IsNil() bool        { return false }
 
 func (e eventConnectionStarted) MarshalJSONObject(enc *gojay.Encoder) {
-	// If ip is not an IPv4 address, To4 returns nil.
-	// Note that there might be some corner cases, where this is not correct.
-	// See https://stackoverflow.com/questions/22751035/golang-distinguish-ipv4-ipv6.
-	isIPv6 := e.SrcAddr.IP.To4() == nil
-	if isIPv6 {
-		enc.StringKey("ip_version", "ipv6")
-	} else {
+	if utils.IsIPv4(e.SrcAddr.IP) {
 		enc.StringKey("ip_version", "ipv4")
+	} else {
+		enc.StringKey("ip_version", "ipv6")
 	}
 	enc.StringKey("src_ip", e.SrcAddr.IP.String())
 	enc.IntKey("src_port", e.SrcAddr.Port)
@@ -307,7 +305,9 @@ func (e eventKeyUpdated) IsNil() bool        { return false }
 func (e eventKeyUpdated) MarshalJSONObject(enc *gojay.Encoder) {
 	enc.StringKey("trigger", e.Trigger.String())
 	enc.StringKey("key_type", e.KeyType.String())
-	enc.Uint64KeyOmitEmpty("generation", uint64(e.Generation))
+	if e.KeyType == keyTypeClient1RTT || e.KeyType == keyTypeServer1RTT {
+		enc.Uint64Key("generation", uint64(e.Generation))
+	}
 }
 
 type eventKeyRetired struct {
@@ -320,8 +320,13 @@ func (e eventKeyRetired) Name() string       { return "key_retired" }
 func (e eventKeyRetired) IsNil() bool        { return false }
 
 func (e eventKeyRetired) MarshalJSONObject(enc *gojay.Encoder) {
-	enc.StringKey("trigger", "tls")
+	if e.KeyType != keyTypeClient1RTT && e.KeyType != keyTypeServer1RTT {
+		enc.StringKey("trigger", "tls")
+	}
 	enc.StringKey("key_type", e.KeyType.String())
+	if e.KeyType == keyTypeClient1RTT || e.KeyType == keyTypeServer1RTT {
+		enc.Uint64Key("generation", uint64(e.Generation))
+	}
 }
 
 type eventTransportParameters struct {
@@ -347,7 +352,7 @@ type eventTransportParameters struct {
 	InitialMaxStreamsBidi          int64
 	InitialMaxStreamsUni           int64
 
-	// TODO: add the preferred_address
+	PreferredAddress *preferredAddress
 }
 
 func (e eventTransportParameters) Category() category { return categoryTransport }
@@ -379,6 +384,29 @@ func (e eventTransportParameters) MarshalJSONObject(enc *gojay.Encoder) {
 	enc.Int64KeyOmitEmpty("initial_max_stream_data_uni", int64(e.InitialMaxStreamDataUni))
 	enc.Int64KeyOmitEmpty("initial_max_streams_bidi", e.InitialMaxStreamsBidi)
 	enc.Int64KeyOmitEmpty("initial_max_streams_uni", e.InitialMaxStreamsUni)
+
+	if e.PreferredAddress != nil {
+		enc.ObjectKey("preferred_address", e.PreferredAddress)
+	}
+}
+
+type preferredAddress struct {
+	IPv4, IPv6          net.IP
+	PortV4, PortV6      uint16
+	ConnectionID        protocol.ConnectionID
+	StatelessResetToken protocol.StatelessResetToken
+}
+
+var _ gojay.MarshalerJSONObject = &preferredAddress{}
+
+func (a preferredAddress) IsNil() bool { return false }
+func (a preferredAddress) MarshalJSONObject(enc *gojay.Encoder) {
+	enc.StringKey("ip_v4", a.IPv4.String())
+	enc.Uint16Key("port_v4", a.PortV4)
+	enc.StringKey("ip_v6", a.IPv6.String())
+	enc.Uint16Key("port_v6", a.PortV6)
+	enc.StringKey("connection_id", connectionID(a.ConnectionID).String())
+	enc.StringKey("stateless_reset_token", fmt.Sprintf("%x", a.StatelessResetToken))
 }
 
 type eventLossTimerSet struct {

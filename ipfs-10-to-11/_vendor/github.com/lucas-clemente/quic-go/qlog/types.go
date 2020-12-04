@@ -22,7 +22,7 @@ func (o owner) String() string {
 	case ownerRemote:
 		return "remote"
 	default:
-		panic("unknown owner")
+		return "unknown owner"
 	}
 }
 
@@ -35,7 +35,7 @@ func (s streamType) String() string {
 	case protocol.StreamTypeBidi:
 		return "bidirectional"
 	default:
-		panic("unknown stream type")
+		return "unknown stream type"
 	}
 }
 
@@ -66,7 +66,7 @@ func (c category) String() string {
 	case categoryRecovery:
 		return "recovery"
 	default:
-		panic("unknown category")
+		return "unknown category"
 	}
 }
 
@@ -87,14 +87,14 @@ func encLevelToPacketNumberSpace(encLevel protocol.EncryptionLevel) string {
 	case protocol.Encryption0RTT, protocol.Encryption1RTT:
 		return "application_data"
 	default:
-		panic("unknown encryption level")
+		return "unknown encryption level"
 	}
 }
 
 type keyType uint8
 
 const (
-	keyTypeServerInitial keyType = iota
+	keyTypeServerInitial keyType = 1 + iota
 	keyTypeClientInitial
 	keyTypeServerHandshake
 	keyTypeClientHandshake
@@ -116,7 +116,7 @@ func encLevelToKeyType(encLevel protocol.EncryptionLevel, pers protocol.Perspect
 		case protocol.Encryption1RTT:
 			return keyTypeServer1RTT
 		default:
-			panic("unknown encryption level")
+			return 0
 		}
 	}
 	switch encLevel {
@@ -129,7 +129,7 @@ func encLevelToKeyType(encLevel protocol.EncryptionLevel, pers protocol.Perspect
 	case protocol.Encryption1RTT:
 		return keyTypeClient1RTT
 	default:
-		panic("unknown encryption level")
+		return 0
 	}
 }
 
@@ -152,7 +152,7 @@ func (t keyType) String() string {
 	case keyTypeClient1RTT:
 		return "client_1rtt_secret"
 	default:
-		panic("unknown key type")
+		return "unknown key type"
 	}
 }
 
@@ -173,7 +173,7 @@ func (t keyUpdateTrigger) String() string {
 	case keyUpdateLocal:
 		return "local_update"
 	default:
-		panic("unknown key update trigger")
+		return "unknown key update trigger"
 	}
 }
 
@@ -209,6 +209,12 @@ func (e transportError) String() string {
 		return "application_error"
 	case qerr.CryptoBufferExceeded:
 		return "crypto_buffer_exceeded"
+	case qerr.KeyUpdateError:
+		return "key_update_error"
+	case qerr.AEADLimitReached:
+		return "aead_limit_reached"
+	case qerr.NoViablePathError:
+		return "no_viable_path"
 	default:
 		return ""
 	}
@@ -235,7 +241,7 @@ func (t packetType) String() string {
 	case logging.PacketTypeNotDetermined:
 		return ""
 	default:
-		panic("unknown packet type")
+		return "unknown packet type"
 	}
 }
 
@@ -248,7 +254,7 @@ func (r packetLossReason) String() string {
 	case logging.PacketLossTimeThreshold:
 		return "time_threshold"
 	default:
-		panic("unknown loss reason")
+		return "unknown loss reason"
 	}
 }
 
@@ -279,7 +285,7 @@ func (r packetDropReason) String() string {
 	case logging.PacketDropDuplicate:
 		return "duplicate"
 	default:
-		panic("unknown packet drop reason")
+		return "unknown packet drop reason"
 	}
 }
 
@@ -292,7 +298,7 @@ func (t timerType) String() string {
 	case logging.TimerTypePTO:
 		return "pto"
 	default:
-		panic("unknown timer type")
+		return "unknown timer type"
 	}
 }
 
@@ -305,7 +311,7 @@ func (r timeoutReason) String() string {
 	case logging.TimeoutReasonIdle:
 		return "idle_timeout"
 	default:
-		panic("unknown close reason")
+		return "unknown close reason"
 	}
 }
 
@@ -322,6 +328,6 @@ func (s congestionState) String() string {
 	case logging.CongestionStateApplicationLimited:
 		return "application_limited"
 	default:
-		panic("unknown congestion state")
+		return "unknown congestion state"
 	}
 }

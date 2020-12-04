@@ -4,8 +4,9 @@ import "github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/luca
 
 // IsFrameAckEliciting returns true if the frame is ack-eliciting.
 func IsFrameAckEliciting(f wire.Frame) bool {
-	_, ok := f.(*wire.AckFrame)
-	return !ok
+	_, isAck := f.(*wire.AckFrame)
+	_, isConnectionClose := f.(*wire.ConnectionCloseFrame)
+	return !isAck && !isConnectionClose
 }
 
 // HasAckElicitingFrames returns true if at least one frame is ack-eliciting.
