@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	migrate "github.com/ipfs/fs-repo-migrations/go-migrate"
-	mfsr "github.com/ipfs/fs-repo-migrations/mfsr"
-	log "github.com/ipfs/fs-repo-migrations/stump"
+	migrate "github.com/ipfs/fs-repo-migrations/tools/go-migrate"
+	mfsr "github.com/ipfs/fs-repo-migrations/tools/mfsr"
+	log "github.com/ipfs/fs-repo-migrations/tools/stump"
 )
 
 type Migration struct{}
@@ -76,6 +76,7 @@ func (m Migration) Apply(opts migrate.Options) error {
 
 	log.Log("updated version file")
 
+	log.Log("Migration 8 to 9 succeeded")
 	return nil
 }
 

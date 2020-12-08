@@ -7,10 +7,10 @@ import (
 	"path/filepath"
 	"strconv"
 
-	migrate "github.com/ipfs/fs-repo-migrations/go-migrate"
-	lock "github.com/ipfs/fs-repo-migrations/ipfs-1-to-2/repolock"
-	mfsr "github.com/ipfs/fs-repo-migrations/mfsr"
-	log "github.com/ipfs/fs-repo-migrations/stump"
+	migrate "github.com/ipfs/fs-repo-migrations/tools/go-migrate"
+	mfsr "github.com/ipfs/fs-repo-migrations/tools/mfsr"
+	lock "github.com/ipfs/fs-repo-migrations/tools/repolock"
+	log "github.com/ipfs/fs-repo-migrations/tools/stump"
 )
 
 type Migration struct{}
@@ -76,6 +76,7 @@ func (m Migration) Apply(opts migrate.Options) error {
 
 	log.Log("updated version file")
 
+	log.Log("Migration 7 to 8 succeeded")
 	return nil
 }
 

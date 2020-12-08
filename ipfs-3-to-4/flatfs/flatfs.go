@@ -13,9 +13,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ipfs/fs-repo-migrations/ipfs-2-to-3/Godeps/_workspace/src/github.com/jbenet/go-datastore"
-	"github.com/ipfs/fs-repo-migrations/ipfs-2-to-3/Godeps/_workspace/src/github.com/jbenet/go-datastore/query"
-	"github.com/ipfs/fs-repo-migrations/ipfs-2-to-3/Godeps/_workspace/src/github.com/jbenet/go-os-rename"
+	"github.com/ipfs/fs-repo-migrations/ipfs-3-to-4/Godeps/_workspace/src/github.com/jbenet/go-datastore"
+	"github.com/ipfs/fs-repo-migrations/ipfs-3-to-4/Godeps/_workspace/src/github.com/jbenet/go-datastore/query"
+	"github.com/ipfs/fs-repo-migrations/ipfs-3-to-4/Godeps/_workspace/src/github.com/jbenet/go-os-rename"
 )
 
 const (

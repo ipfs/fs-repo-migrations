@@ -8,8 +8,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/ipfs/fs-repo-migrations/ipfs-6-to-7/gx/ipfs/QmdYwCmx8pZRkzdcd8MhmLJqYVoVTC1aGsy5Q4reMGLNLg/atomicfile"
-	log "github.com/ipfs/fs-repo-migrations/stump"
+	"github.com/ipfs/fs-repo-migrations/ipfs-9-to-10/atomicfile"
+	log "github.com/ipfs/fs-repo-migrations/tools/stump"
 )
 
 var (

@@ -5,9 +5,9 @@ import (
 	"os"
 	"strings"
 
-	migrate "github.com/ipfs/fs-repo-migrations/go-migrate"
 	lock "github.com/ipfs/fs-repo-migrations/ipfs-0-to-1/repolock"
-	mfsr "github.com/ipfs/fs-repo-migrations/mfsr"
+	migrate "github.com/ipfs/fs-repo-migrations/tools/go-migrate"
+	mfsr "github.com/ipfs/fs-repo-migrations/tools/mfsr"
 )
 
 type Migration struct {
@@ -54,6 +54,7 @@ func (m Migration) Apply(opts migrate.Options) error {
 		fmt.Println("wrote version file")
 	}
 
+	fmt.Println("Migration 0 to 1 succeeded")
 	return nil
 }
 

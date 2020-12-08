@@ -3,8 +3,8 @@ package mg6
 import (
 	"fmt"
 
-	migrate "github.com/ipfs/fs-repo-migrations/go-migrate"
-	log "github.com/ipfs/fs-repo-migrations/stump"
+	migrate "github.com/ipfs/fs-repo-migrations/tools/go-migrate"
+	log "github.com/ipfs/fs-repo-migrations/tools/stump"
 
 	dshelp "github.com/ipfs/fs-repo-migrations/ipfs-6-to-7/gx/ipfs/QmTmqJGRQfuH8eKWD1FjThwPRipt1QhqJQNZ8MpzmfAAxo/go-ipfs-ds-help"
 	record "github.com/ipfs/fs-repo-migrations/ipfs-6-to-7/gx/ipfs/QmUpttFinNDmNPgFwKN8sZK6BUtBmA68Y4KdSBDXa8t9sJ/go-libp2p-record"
@@ -143,6 +143,7 @@ func (m Migration) Apply(opts migrate.Options) error {
 
 	log.Log("updated version file")
 
+	log.Log("Migration 6 to 7 succeeded")
 	return nil
 }
 

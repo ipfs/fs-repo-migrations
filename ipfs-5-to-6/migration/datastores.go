@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"sort"
 
-	ds "github.com/ipfs/fs-repo-migrations/ipfs-4-to-5/go-datastore"
-	flatfs "github.com/ipfs/fs-repo-migrations/ipfs-4-to-5/go-ds-flatfs"
+	ds "github.com/ipfs/fs-repo-migrations/ipfs-5-to-6/go-datastore"
+	flatfs "github.com/ipfs/fs-repo-migrations/ipfs-5-to-6/go-ds-flatfs"
 )
 
 // ConfigFromMap creates a new datastore config from a map

@@ -1,7 +1,7 @@
 package query
 
 import (
-	goprocess "github.com/ipfs/fs-repo-migrations/ipfs-2-to-3/Godeps/_workspace/src/github.com/jbenet/goprocess"
+	goprocess "github.com/ipfs/fs-repo-migrations/ipfs-4-to-5/goprocess"
 )
 
 /*

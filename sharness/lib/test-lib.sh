@@ -75,23 +75,14 @@ test_sort_cmp() {
 
 LOCAL_IPFS_UPDATE="../bin/ipfs-update"
 GUEST_IPFS_UPDATE="sharness/bin/ipfs-update"
-
-LOCAL_FS_REPO_MIG="../bin/fs-repo-migrations"
-GUEST_FS_REPO_MIG="sharness/bin/fs-repo-migrations"
-
-GUEST_IPFS_0_TO_1="sharness/bin/ipfs-0-to-1"
-GUEST_IPFS_1_TO_2="sharness/bin/ipfs-1-to-2"
-GUEST_IPFS_2_TO_3="sharness/bin/ipfs-2-to-3"
-GUEST_IPFS_3_TO_4="sharness/bin/ipfs-3-to-4"
-GUEST_IPFS_10_TO_11="sharness/bin/ipfs-10-to-11"
-
 GUEST_RANDOM_FILES="sharness/bin/random-files"
 
 # Install an IPFS version on a docker container
 test_install_version() {
 	VERSION="$1"
 
-	# We have to change the PATH as ipfs-update might call fs-repo-migrations
+	# Change the PATH so that migration binaries built for this test are found
+	# first, and are run by ipfs-update
 	test_expect_success "'ipfs-update install' works for $VERSION" '
 		DOCPWD=$(exec_docker "$DOCID" "pwd") &&
 		DOCPATH=$(exec_docker "$DOCID" "echo \$PATH") &&
@@ -238,7 +229,8 @@ test_repo_version() {
 test_install_ipfs_nd() {
 	VERSION="$1"
 
-	# We have to change the PATH as ipfs-update might call fs-repo-migrations
+	# Change the PATH so that migration binaries built for this test are found
+	# first, and are run by ipfs-update
 	test_expect_success "'ipfs-update install' works for $VERSION" '
 		ipfs-update --verbose install $VERSION > actual 2>&1 ||
 		test_fsh cat actual
@@ -401,4 +393,3 @@ test_kill_ipfs_daemon() {
 		test_kill_repeat_10_sec $IPFS_PID
 	'
 }
-

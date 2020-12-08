@@ -1,8 +1,8 @@
 package main
 
 import (
-	migrate "github.com/ipfs/fs-repo-migrations/go-migrate"
 	mg5 "github.com/ipfs/fs-repo-migrations/ipfs-5-to-6/migration"
+	migrate "github.com/ipfs/fs-repo-migrations/tools/go-migrate"
 )
 
 func main() {

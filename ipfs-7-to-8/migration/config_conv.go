@@ -8,7 +8,7 @@ import (
 	"os"
 	"strings"
 
-	log "github.com/ipfs/fs-repo-migrations/stump"
+	log "github.com/ipfs/fs-repo-migrations/tools/stump"
 )
 
 var (

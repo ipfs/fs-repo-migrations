@@ -2,7 +2,10 @@ package mg10
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"log"
+	"os"
 	"path"
 
 	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-blockservice"
@@ -24,6 +27,12 @@ import (
 
 type Migration struct{}
 
+var verbose bool
+
+func init() {
+	log.SetOutput(os.Stdout)
+}
+
 func (m Migration) Versions() string {
 	return "10-to-11"
 }
@@ -33,13 +42,16 @@ func (m Migration) Reversible() bool {
 }
 
 func (m Migration) Apply(opts migrate.Options) error {
-	log.Verbose = opts.Verbose
-	log.Log("applying %s repo migration", m.Versions())
+	const (
+		fromVer = "10"
+		toVer   = "11"
+	)
+	verbose = opts.Verbose
+	log.Printf("applying %s repo migration", m.Versions())
 
 	err := setupPlugins(opts.Path)
 	if err != nil {
-		log.Error("failed to setup plugins", err.Error())
-		return err
+		return fmt.Errorf("failed to setup plugins: %v", err)
 	}
 
 	// Set to previous version to avoid "needs migration" error.  This is safe
@@ -65,19 +77,19 @@ func (m Migration) Apply(opts migrate.Options) error {
 		return err
 	}
 
-	err = mfsr.RepoPath(opts.Path).WriteVersion("11")
+	err = mfsr.RepoPath(opts.Path).WriteVersion(toVer)
 	if err != nil {
-		log.Error("failed to update version file to 11")
-		return err
+		return fmt.Errorf("failed to update version file to %s: %v", toVer, err)
 	}
 
-	log.Log("updated version file")
+	log.Print("updated version file")
+	log.Printf("Migration %s to %s succeeded", fromVer, toVer)
 	return nil
 }
 
 func (m Migration) Revert(opts migrate.Options) error {
-	log.Verbose = opts.Verbose
-	log.Log("reverting migration")
+	verbose = opts.Verbose
+	log.Print("reverting migration")
 
 	err := setupPlugins(opts.Path)
 	if err != nil {
@@ -105,11 +117,10 @@ func (m Migration) Revert(opts migrate.Options) error {
 
 	err = mfsr.RepoPath(opts.Path).WriteVersion("10")
 	if err != nil {
-		log.Error("failed to update version file to 10")
-		return err
+		return fmt.Errorf("failed to update version file to 10: %v", err)
 	}
 
-	log.Log("updated version file")
+	log.Print("updated version file")
 	return nil
 }
 
@@ -183,14 +194,11 @@ func transferPins(ctx context.Context, r repo.Repo) error {
 		return err
 	}
 
-	log.Log("  - importing from ipld pinner")
-
 	_, toDSCount, err := pinconv.ConvertPinsFromIPLDToDS(ctx, dstore, dserv, internalDag)
 	if err != nil {
-		log.Error("failed to convert ipld pin data into datastore")
-		return err
+		return errors.New("failed to convert ipld pin data into datastore")
 	}
-	log.Log("  - converted %d pins from ipld storage into datastore", toDSCount)
+	log.Printf("converted %d pins from ipld storage into datastore", toDSCount)
 	return nil
 }
 
@@ -204,9 +212,8 @@ func revertPins(ctx context.Context, r repo.Repo) error {
 
 	_, toIPLDCount, err := pinconv.ConvertPinsFromDSToIPLD(ctx, dstore, dserv, internalDag)
 	if err != nil {
-		log.Error("failed to conver pin data from datastore to ipld pinner")
-		return err
+		return errors.New("failed to convert pin data from datastore to ipld pinner")
 	}
-	log.Log("converted %d pins from datastore to ipld storage", toIPLDCount)
+	log.Printf("converted %d pins from datastore to ipld storage", toIPLDCount)
 	return nil
 }

@@ -5,7 +5,7 @@ import (
 	"io"
 	"path"
 
-	"github.com/ipfs/fs-repo-migrations/ipfs-0-to-1/lock"
+	"github.com/ipfs/fs-repo-migrations/tools/lock"
 )
 
 var errRepoLock = `failed to acquire repo lock at %s/%s

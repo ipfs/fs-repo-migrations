@@ -1,16 +1,35 @@
 GO111MODULE = on
 
-install:
-	go install -mod=vendor
-	@echo "fs-repo-migrations now installed, type 'fs-repo-migrations' to run"
+MIG_DIRS = $(shell ls -d ipfs-*-to-*)
 
-test: test_go sharness
+.PHONY: build clean sharness test test_go
 
-test_go:
-	go build -mod=vendor
-	go test -mod=vendor $(shell go list ./... | grep -v /gx/)
+show: $(MIG_DIRS)
+	@echo "$(MIG_DIRS)"
+
+build: $(shell ls -d ipfs-*-to-* | sed -e 's/ipfs/build.ipfs/')
+	@echo OK
+
+build.%: MIGRATION=$*
+build.%:
+	cd $(MIGRATION) && go build -mod=vendor
 
 sharness:
 	make -C sharness
 
-.PHONY: test test_go sharness
+test: test_go sharness
+
+clean: $(shell ls -d ipfs-*-to-* | sed -e 's/ipfs/clean.ipfs/')
+	@echo OK
+
+clean.%: MIGRATION=$*
+clean.%:
+	cd $(MIGRATION) && go clean
+
+test_go: $(shell ls -d ipfs-*-to-* | sed -e 's/ipfs/test_go.ipfs/')
+	@echo OK
+
+test_go.%: MIGRATION=$*
+test_go.%:
+	@cd $(MIGRATION) && go test -mod=vendor
+

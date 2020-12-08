@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"path"
 
-	migrate "github.com/ipfs/fs-repo-migrations/go-migrate"
-	lock "github.com/ipfs/fs-repo-migrations/ipfs-1-to-2/repolock"
 	bst "github.com/ipfs/fs-repo-migrations/ipfs-2-to-3/Godeps/_workspace/src/github.com/ipfs/go-ipfs/blocks/blockstore"
 	bs "github.com/ipfs/fs-repo-migrations/ipfs-2-to-3/Godeps/_workspace/src/github.com/ipfs/go-ipfs/blockservice"
 	offline "github.com/ipfs/fs-repo-migrations/ipfs-2-to-3/Godeps/_workspace/src/github.com/ipfs/go-ipfs/exchange/offline"
@@ -20,8 +18,10 @@ import (
 	dsq "github.com/ipfs/fs-repo-migrations/ipfs-2-to-3/Godeps/_workspace/src/github.com/jbenet/go-datastore/query"
 	sync "github.com/ipfs/fs-repo-migrations/ipfs-2-to-3/Godeps/_workspace/src/github.com/jbenet/go-datastore/sync"
 	context "github.com/ipfs/fs-repo-migrations/ipfs-2-to-3/Godeps/_workspace/src/golang.org/x/net/context"
-	mfsr "github.com/ipfs/fs-repo-migrations/mfsr"
-	log "github.com/ipfs/fs-repo-migrations/stump"
+	migrate "github.com/ipfs/fs-repo-migrations/tools/go-migrate"
+	mfsr "github.com/ipfs/fs-repo-migrations/tools/mfsr"
+	lock "github.com/ipfs/fs-repo-migrations/tools/repolock"
+	log "github.com/ipfs/fs-repo-migrations/tools/stump"
 )
 
 var recursePinDatastoreKey = dstore.NewKey("/local/pins/recursive/keys")
@@ -68,6 +68,7 @@ func (m Migration) Apply(opts migrate.Options) error {
 	}
 	log.Log("updated version file")
 
+	log.Log("Migration 2 to 3 succeeded")
 	return nil
 }
 

@@ -7,13 +7,13 @@ import (
 	"path"
 	"strings"
 
-	migrate "github.com/ipfs/fs-repo-migrations/go-migrate"
 	dstore "github.com/ipfs/fs-repo-migrations/ipfs-1-to-2/go-datastore"
 	flatfs "github.com/ipfs/fs-repo-migrations/ipfs-1-to-2/go-datastore/flatfs"
 	leveldb "github.com/ipfs/fs-repo-migrations/ipfs-1-to-2/go-datastore/leveldb"
 	dsq "github.com/ipfs/fs-repo-migrations/ipfs-1-to-2/go-datastore/query"
-	lock "github.com/ipfs/fs-repo-migrations/ipfs-1-to-2/repolock"
-	mfsr "github.com/ipfs/fs-repo-migrations/mfsr"
+	migrate "github.com/ipfs/fs-repo-migrations/tools/go-migrate"
+	mfsr "github.com/ipfs/fs-repo-migrations/tools/mfsr"
+	lock "github.com/ipfs/fs-repo-migrations/tools/repolock"
 )
 
 const peerKeyName = "peer.key"
@@ -94,6 +94,8 @@ func (m Migration) Apply(opts migrate.Options) error {
 	repolk.Close()
 	closedLock = true
 	lock.Remove1(newpath) // ok if this fails.
+
+	fmt.Println("Migration 1 to 2 succeeded")
 	return nil
 }
 

@@ -12,9 +12,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/ipfs/fs-repo-migrations/ipfs-2-to-3/Godeps/_workspace/src/github.com/jbenet/go-os-rename"
 	"github.com/ipfs/fs-repo-migrations/ipfs-4-to-5/go-datastore"
 	"github.com/ipfs/fs-repo-migrations/ipfs-4-to-5/go-datastore/query"
+	"github.com/ipfs/fs-repo-migrations/ipfs-4-to-5/go-os-rename"
 )
 
 func UpgradeV0toV1(path string, prefixLen int) error {
