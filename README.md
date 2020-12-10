@@ -5,9 +5,9 @@
 [![](https://img.shields.io/badge/freenode-%23ipfs-blue.svg?style=flat-square)](http://webchat.freenode.net/?channels=%23ipfs)
 [![standard-readme compliant](https://img.shields.io/badge/standard--readme-OK-green.svg?style=flat-square)](https://github.com/RichardLitt/standard-readme)
 
-> Migrations for the filesystem repository of ipfs clients
+> Migrations for the filesystem repository of ipfs nodes
 
-These are migrations for the filesystem repository of [ipfs](https://github.com/ipfs/ipfs) clients. This tool is written in Go, and developed alongside [go-ipfs](https://github.com/ipfs/go-ipfs), but it should work with any repo conforming to the [fs-repo specs](https://github.com/ipfs/specs/tree/master/repo/fs-repo).
+These are migrations for the filesystem repository of [ipfs](https://github.com/ipfs/ipfs) nodes. Each migration builds a separate binary that converts a repository to the next version.  The `fs-repo-migrations` is a tool that downloads individual migrations from the ipfs distribution site and applies them in sequence to migrate the ipfs repository to the target version.  This tool is written in Go, and developed alongside [go-ipfs](https://github.com/ipfs/go-ipfs).
 
 ## Table of Contents
 
@@ -30,24 +30,23 @@ make install
 
 ### When should I migrate
 
-When you want to upgrade go-ipfs to a new version, you may need to
-migrate.
+When you want to upgrade go-ipfs to a new version, you may need to migrate.
 
-Here is the table showing which repo version corresponds to which
-go-ipfs version:
+Here is the table showing which repo version corresponds to which go-ipfs version:
 
-ipfs repo version | go-ipfs versions
------------------ | ----------------
-                1 |  0.0.0 - 0.2.3
-                2 |  0.3.0 - 0.3.11
-                3 |  0.4.0 - 0.4.2
-                4 |  0.4.3 - 0.4.5
-                5 |  0.4.6 - 0.4.10
-                6 |  0.4.11 - 0.4.15
-                7 |  0.4.16 - 0.4.23
-                8 |  0.5.0 - 0.6.0
-                9 |  0.5.0 - 0.6.0
-                10 | 0.6.0 - current
+| ipfs repo version | go-ipfs versions |
+| ----------------: | :--------------- |
+|                 1 | 0.0.0 - 0.2.3.   |
+|                 2 | 0.3.0 - 0.3.11   |
+|                 3 | 0.4.0 - 0.4.2    |
+|                 4 | 0.4.3 - 0.4.5    |
+|                 5 | 0.4.6 - 0.4.10   |
+|                 6 | 0.4.11 - 0.4.15  |
+|                 7 | 0.4.16 - 0.4.23  |
+|                 8 | 0.5.0 - 0.6.0    |
+|                 9 | 0.5.0 - 0.6.0    |
+|                10 | 0.6.0 - 0.7.0    |
+|                11 | 0.8.0 - current  |
 
 ### How to Run Migrations
 
@@ -62,9 +61,15 @@ Migrations are one of those things that can be extremely painful on users. At th
 - Frozen. After the tool is written, all code must be frozen and vendored.
 - To Spec. The tools must conform to the spec.
 
+#### Build and Test
+
+To create a new migration, create a go module in a directory named `ipfs-X-to-Y`, where `X` is the repo "from" version and `Y` the repo "to" version.  Vendor the module's dependencies. The build tooling will find this module and build the migration binary.
+
+If the migration directory contains a subdirectory named `sharness`, tests contained in it are run using the sharness test tool. Tests must be named `tNNNN-*.sh`, where NNNN is a 4-digit sequence number.
+
 ### Dependencies
 
-Dependencies must be vendored independently for each migration. Unfortunately, dependencies _must not_ be vendored using go modules because we need to support multiple versions of the same dependency (for different migrations). 
+Dependencies must be vendored independently for each migration. Each migration is a separate go module with its own `vendor` directory (created with `go mod vendor` for that migration).  All migrations are built using `go build -mod=vendor` to ensure dependencies come from the module's `vendor` directory.
 
 ## Contribute
 
