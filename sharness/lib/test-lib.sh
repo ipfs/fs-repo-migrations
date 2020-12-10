@@ -37,7 +37,7 @@ CERTIFS='/etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt'
 
 # This writes a docker ID on stdout
 start_docker() {
-	docker run -it -d -v "$CERTIFS" -v "$APP_ROOT_DIR:/mnt" -w "/mnt" "$DOCKER_IMG" /bin/bash
+	docker run --rm -it -d -v "$CERTIFS" -v "$APP_ROOT_DIR:/mnt" -w "/mnt" "$DOCKER_IMG" /bin/bash
 }
 
 # This takes a docker ID and a command as arguments
@@ -110,7 +110,7 @@ test_install_version() {
 test_start_daemon() {
 	docid="$1"
 	test_expect_success "'ipfs daemon' succeeds" '
-		exec_docker "$docid" "ipfs daemon >actual_daemon 2>daemon_err &"
+		exec_docker "$docid" "ipfs daemon >\"${GUEST_TEST_DIR}/actual_daemon\" 2>\"${GUEST_TEST_DIR}/daemon_err\" &"
 	'
 
 	test_expect_success "api file shows up" '
@@ -327,7 +327,7 @@ test_launch_ipfs_daemon() {
 	test "$TEST_ULIMIT_PRESET" != 1 && ulimit -n 1024
 
 	test_expect_success "'ipfs daemon' succeeds" '
-		ipfs daemon $args >actual_daemon 2>daemon_err &
+		ipfs daemon $args >"${GUEST_TEST_DIR}/actual_daemon" 2>"${GUEST_TEST_DIR}/daemon_err" &
 	'
 
 	# wait for api file to show up
@@ -335,13 +335,13 @@ test_launch_ipfs_daemon() {
 		test_wait_for_file 20 100ms "$IPFS_PATH/api"
 	'
 
-	test_set_address_vars_nd actual_daemon
+	test_set_address_vars_nd "${GUEST_TEST_DIR}/actual_daemon"
 
 	# we say the daemon is ready when the API server is ready.
 	test_expect_success "'ipfs daemon' is ready" '
 		IPFS_PID=$! &&
 		pollEndpoint -ep=/version -host=$API_MADDR -v -tout=1s -tries=60 2>poll_apierr > poll_apiout ||
-		test_fsh cat actual_daemon || test_fsh cat daemon_err || test_fsh cat poll_apierr || test_fsh cat poll_apiout
+		test_fsh cat "${GUEST_TEST_DIR}/actual_daemon" || test_fsh cat "${GUEST_TEST_DIR}/daemon_err" || test_fsh cat poll_apierr || test_fsh cat poll_apiout
 	'
 }
 

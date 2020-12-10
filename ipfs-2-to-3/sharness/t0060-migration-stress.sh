@@ -63,12 +63,13 @@ test_init_daemon "$DOCID"
 test_start_daemon "$DOCID"
 
 test_expect_success "make a couple files" '
-	drun "rm -rf manyfiles" &&
-	drun "$GUEST_RANDOM_FILES -depth=$DEPTH -dirs=$NBDIR -files=$NBFILE manyfiles" > filenames
+	drun "rm -rf \"${GUEST_TEST_DIR}/manyfiles\"" &&
+	drun "$GUEST_RANDOM_FILES -depth=$DEPTH -dirs=$NBDIR -files=$NBFILE \"${GUEST_TEST_DIR}/manyfiles\"" > filenames &&
+	drun "chmod -R o+w \"${GUEST_TEST_DIR}/manyfiles\""
 '
 
 test_expect_success "add a few files" '
-	drun "ipfs add -r -q manyfiles" | tee hashes
+	drun "ipfs add -r -q \"${GUEST_TEST_DIR}/manyfiles\"" | tee hashes
 '
 
 test_expect_success "unpin root so we can do things ourselves" '
@@ -196,11 +197,12 @@ test_expect_success "no pinned objects are missing from local refs" '
 '
 
 test_expect_success "make a couple more files" '
-	drun "$GUEST_RANDOM_FILES -depth=$DEPTH -dirs=$NBDIR -files=$NBFILE many_more_files" > more_filenames
+	drun "$GUEST_RANDOM_FILES -depth=$DEPTH -dirs=$NBDIR -files=$NBFILE \"${GUEST_TEST_DIR}/many_more_files\"" > more_filenames &&
+	drun "chmod -R o+w \"${GUEST_TEST_DIR}/many_more_files\""
 '
 
 test_expect_success "add the new files" '
-	drun "ipfs add -r -q many_more_files" | tee more_hashes
+	drun "ipfs add -r -q \"${GUEST_TEST_DIR}/many_more_files\"" | tee more_hashes
 '
 
 test_expect_success "unpin root so we can do things ourselves" '

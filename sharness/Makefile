@@ -1,11 +1,19 @@
 # Run sharness tests here and in all migrations
 #
 # NOTE: run with TEST_VERBOSE=1 for verbose sharness tests.
+#
+# To build migrations an run all tests, run make:
+#   $ make
+#
+# To run an individual test, make deps then run the test. For example:
+#   $ make deps
+#   $ ../ipfs-2-to-3/sharness/t0040-migration-2-to-3.sh
+#
 
 # Find tests in local sharness directory and in sharness directory of every
 # migration.
 T = $(sort $(wildcard t[0-9][0-9][0-9][0-9]-*.sh))
-T += $(shell find ../ipfs-*-to-*/sharness -name 't[0-9][0-9][0-9][0-9]-*.sh')
+T += $(sort $(shell find ../ipfs-*-to-*/sharness -name 't[0-9][0-9][0-9][0-9]-*.sh'))
 
 GO111MODULE = on
 LIBDIR = lib

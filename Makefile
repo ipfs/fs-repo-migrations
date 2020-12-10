@@ -20,6 +20,7 @@ sharness:
 test: test_go sharness
 
 clean: $(shell ls -d ipfs-*-to-* | sed -e 's/ipfs/clean.ipfs/')
+	@make -C sharness clean
 	@echo OK
 
 clean.%: MIGRATION=$*
