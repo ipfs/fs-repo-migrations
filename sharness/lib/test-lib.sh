@@ -75,6 +75,10 @@ test_sort_cmp() {
 
 LOCAL_IPFS_UPDATE="../bin/ipfs-update"
 GUEST_IPFS_UPDATE="sharness/bin/ipfs-update"
+
+LOCAL_FS_REPO_MIG="../bin/fs-repo-migrations"
+GUEST_FS_REPO_MIG="sharness/bin/fs-repo-migrations"
+
 GUEST_RANDOM_FILES="sharness/bin/random-files"
 
 # Install an IPFS version on a docker container
