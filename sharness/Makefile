@@ -92,7 +92,7 @@ bin/pollEndpoint: BUILD-OPTIONS
 # TODO: removed this when go-ipfs and ipfs-update support migration binaries.
 bin/fs-repo-migrations: BUILD-OPTIONS
 	@echo "*** installing $@ ***"
-	cd ../tools/fs-repo-migrations && go build $(GOFLAGS) -o ../../sharness/$@
+	cd ../cmd/fs-repo-migrations && go build $(GOFLAGS) -o ../../sharness/$@
 
 BUILD-OPTIONS: FORCE
 	@bin/checkflags '$@' '$(GOFLAGS)' '*** new Go flags ***'

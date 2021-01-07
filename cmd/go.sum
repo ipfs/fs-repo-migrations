@@ -261,6 +261,8 @@ github.com/ipfs/go-fs-lock v0.0.6/go.mod h1:OTR+Rj9sHiRubJh3dRhD15Juhd/+w6VPOY28
 github.com/ipfs/go-graphsync v0.5.1/go.mod h1:e2ZxnClqBBYAtd901g9vXMJzS47labjAtOzsWtOzKNk=
 github.com/ipfs/go-ipfs v0.7.1-0.20201219011416-e1fdbcb5a890 h1:BpZF5E/FEvNDvH/jjfiuEFqvXjb/NR9CCW8PLJjby3M=
 github.com/ipfs/go-ipfs v0.7.1-0.20201219011416-e1fdbcb5a890/go.mod h1:vL6pwFgqi9/HCdS0bFI4aWzOu+uvEDo1f6AUGne3aFs=
+github.com/ipfs/go-ipfs v0.7.1-0.20210106211246-dbb497bf19b0 h1:IzuBR8rHG7Mc7RmQNIZe1JvxSnRCZGxAvjlKEKEO+kI=
+github.com/ipfs/go-ipfs v0.7.1-0.20210106211246-dbb497bf19b0/go.mod h1:vL6pwFgqi9/HCdS0bFI4aWzOu+uvEDo1f6AUGne3aFs=
 github.com/ipfs/go-ipfs-api v0.2.0 h1:BXRctUU8YOUOQT/jW1s56d9wLa85ntOqK6bptvCKb8c=
 github.com/ipfs/go-ipfs-api v0.2.0/go.mod h1:zCTyTl+BuyvUqoSmVb8vjezCJLVTW7G/HBZbCXpTgeM=
 github.com/ipfs/go-ipfs-blockstore v0.0.1/go.mod h1:d3WClOmRQKFnJ0Jz/jj/zmksX0ma1gROTlovZKBmN08=

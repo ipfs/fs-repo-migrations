@@ -1,2 +1,3 @@
 sharness/bin/*
 *~
+cmd/fs-repo-migrations/fs-repo-migrations

@@ -9,8 +9,6 @@ import (
 	"github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
 )
 
-var CurrentVersion = 11
-
 func YesNoPrompt(prompt string) bool {
 	var s string
 	for {
@@ -27,7 +25,9 @@ func YesNoPrompt(prompt string) bool {
 }
 
 func main() {
-	target := flag.Int("to", CurrentVersion, "specify version to upgrade to")
+	currentVersion, err := migrations.IpfsRepoVersion(context.Background())
+
+	target := flag.Int("to", currentVersion, "specify version to upgrade to")
 	yes := flag.Bool("y", false, "answer yes to all prompts")
 	version := flag.Bool("v", false, "print highest repo version handled and exit")
 	revertOk := flag.Bool("revert-ok", false, "allow running migrations backward")
@@ -35,23 +35,32 @@ func main() {
 	flag.Parse()
 
 	if *version {
-		fmt.Println(CurrentVersion)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "Could not get current version of ipfs:", err)
+			os.Exit(1)
+		}
+		fmt.Println(currentVersion)
 		return
+	}
+
+	if *target == 0 {
+		fmt.Fprintln(os.Stderr, "Please specify a target version to migrate the repo to")
+		os.Exit(1)
 	}
 
 	vnum, err := migrations.RepoVersion("")
 	if err != nil {
-		fmt.Println("ipfs migration: ", err)
+		fmt.Fprintln(os.Stderr, "ipfs migration: ", err)
 		os.Exit(1)
 	}
 
 	if vnum > *target && !*revertOk {
-		fmt.Println("ipfs migration: attempt to run backward migration\nTo allow, run this command again with --revert-ok")
+		fmt.Fprintln(os.Stderr, "ipfs migration: attempt to run backward migration\nTo allow, run this command again with --revert-ok")
 		os.Exit(1)
 	}
 
 	if vnum == *target {
-		fmt.Println("ipfs migration: already at target version number")
+		fmt.Fprintln(os.Stderr, "ipfs migration: already at target version number")
 		return
 	}
 
@@ -64,7 +73,7 @@ func main() {
 
 	err = migrations.RunMigration(context.Background(), *target, "")
 	if err != nil {
-		fmt.Println("ipfs migration: ", err)
+		fmt.Fprintln(os.Stderr, "ipfs migration: ", err)
 		os.Exit(1)
 	}
 }
