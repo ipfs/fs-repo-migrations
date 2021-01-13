@@ -18,7 +18,6 @@ import (
 	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-merkledag"
 
 	migrate "github.com/ipfs/fs-repo-migrations/go-migrate"
-	lock "github.com/ipfs/fs-repo-migrations/ipfs-1-to-2/repolock"
 	mfsr "github.com/ipfs/fs-repo-migrations/mfsr"
 	log "github.com/ipfs/fs-repo-migrations/stump"
 )
@@ -37,14 +36,8 @@ func (m Migration) Apply(opts migrate.Options) error {
 	log.Verbose = opts.Verbose
 	log.Log("applying %s repo migration", m.Versions())
 
-	log.VLog("locking repo at %q", opts.Path)
-	lk, err := lock.Lock2(opts.Path)
+	err := setupPlugins(opts.Path)
 	if err != nil {
-		return err
-	}
-	defer lk.Close()
-
-	if err = setupPlugins(opts.Path); err != nil {
 		log.Error("failed to setup plugins", err.Error())
 		return err
 	}
@@ -75,13 +68,8 @@ func (m Migration) Revert(opts migrate.Options) error {
 	log.Verbose = opts.Verbose
 	log.Log("reverting migration")
 
-	lk, err := lock.Lock2(opts.Path)
+	err := setupPlugins(opts.Path)
 	if err != nil {
-		return err
-	}
-	defer lk.Close()
-
-	if err = setupPlugins(opts.Path); err != nil {
 		log.Error("failed to setup plugins", err.Error())
 		return err
 	}
