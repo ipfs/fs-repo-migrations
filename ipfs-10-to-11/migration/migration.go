@@ -85,6 +85,10 @@ func (m Migration) Revert(opts migrate.Options) error {
 		return err
 	}
 
+	if !fsrepo.IsInitialized(opts.Path) {
+		return fmt.Errorf("ipfs repo %q not initialized", opts.Path)
+	}
+
 	log.VLog("  - opening datastore at %q", opts.Path)
 	r, err := fsrepo.Open(opts.Path)
 	if err != nil {
