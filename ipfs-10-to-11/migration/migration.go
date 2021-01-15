@@ -18,7 +18,6 @@ import (
 	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-merkledag"
 
 	migrate "github.com/ipfs/fs-repo-migrations/go-migrate"
-	lock "github.com/ipfs/fs-repo-migrations/ipfs-1-to-2/repolock"
 	mfsr "github.com/ipfs/fs-repo-migrations/mfsr"
 	log "github.com/ipfs/fs-repo-migrations/stump"
 )
@@ -37,14 +36,8 @@ func (m Migration) Apply(opts migrate.Options) error {
 	log.Verbose = opts.Verbose
 	log.Log("applying %s repo migration", m.Versions())
 
-	log.VLog("locking repo at %q", opts.Path)
-	lk, err := lock.Lock2(opts.Path)
+	err := setupPlugins(opts.Path)
 	if err != nil {
-		return err
-	}
-	defer lk.Close()
-
-	if err = setupPlugins(opts.Path); err != nil {
 		log.Error("failed to setup plugins", err.Error())
 		return err
 	}
@@ -56,7 +49,18 @@ func (m Migration) Apply(opts migrate.Options) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	if err = transferPins(ctx, opts.Path); err != nil {
+	if !fsrepo.IsInitialized(opts.Path) {
+		return fmt.Errorf("ipfs repo %q not initialized", opts.Path)
+	}
+
+	log.VLog("  - opening datastore at %q", opts.Path)
+	r, err := fsrepo.Open(opts.Path)
+	if err != nil {
+		return fmt.Errorf("cannot open datastore: %v", err)
+	}
+	defer r.Close()
+
+	if err = transferPins(ctx, r); err != nil {
 		log.Error("failed to transfer pins:", err.Error())
 		return err
 	}
@@ -75,21 +79,27 @@ func (m Migration) Revert(opts migrate.Options) error {
 	log.Verbose = opts.Verbose
 	log.Log("reverting migration")
 
-	lk, err := lock.Lock2(opts.Path)
+	err := setupPlugins(opts.Path)
 	if err != nil {
-		return err
-	}
-	defer lk.Close()
-
-	if err = setupPlugins(opts.Path); err != nil {
 		log.Error("failed to setup plugins", err.Error())
 		return err
 	}
 
+	if !fsrepo.IsInitialized(opts.Path) {
+		return fmt.Errorf("ipfs repo %q not initialized", opts.Path)
+	}
+
+	log.VLog("  - opening datastore at %q", opts.Path)
+	r, err := fsrepo.Open(opts.Path)
+	if err != nil {
+		return fmt.Errorf("cannot open datastore: %v", err)
+	}
+	defer r.Close()
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	if err = revertPins(ctx, opts.Path); err != nil {
+	if err = revertPins(ctx, r); err != nil {
 		return err
 	}
 
@@ -165,19 +175,8 @@ func makeStore(r repo.Repo) (datastore.Datastore, format.DAGService, format.DAGS
 	return dstore, syncDs, syncInternalDag, nil
 }
 
-func transferPins(ctx context.Context, repopath string) error {
+func transferPins(ctx context.Context, r repo.Repo) error {
 	log.Log("> Upgrading pinning to use datastore")
-
-	if !fsrepo.IsInitialized(repopath) {
-		return fmt.Errorf("ipfs repo %q not initialized", repopath)
-	}
-
-	log.VLog("  - opening datastore at %q", repopath)
-	r, err := fsrepo.Open(repopath)
-	if err != nil {
-		return fmt.Errorf("cannot open datastore: %v", err)
-	}
-	defer r.Close()
 
 	dstore, dserv, internalDag, err := makeStore(r)
 	if err != nil {
@@ -195,15 +194,8 @@ func transferPins(ctx context.Context, repopath string) error {
 	return nil
 }
 
-func revertPins(ctx context.Context, repopath string) error {
+func revertPins(ctx context.Context, r repo.Repo) error {
 	log.Log("> Reverting pinning to use ipld storage")
-
-	log.VLog("  - opening datastore at %q", repopath)
-	r, err := fsrepo.Open(repopath)
-	if err != nil {
-		return fmt.Errorf("cannot open datastore: %v", err)
-	}
-	defer r.Close()
 
 	dstore, dserv, internalDag, err := makeStore(r)
 	if err != nil {
