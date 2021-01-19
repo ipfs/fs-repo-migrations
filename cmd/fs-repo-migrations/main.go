@@ -64,7 +64,7 @@ func main() {
 		return
 	}
 
-	ipfsDir, _ := migrations.IpfsDir()
+	ipfsDir, _ := migrations.IpfsDir("")
 	fmt.Printf("Found fs-repo version %d at %s\n", vnum, ipfsDir)
 	prompt := fmt.Sprintf("Do you want to upgrade this to version %d? [y/n]", *target)
 	if !(*yes || YesNoPrompt(prompt)) {

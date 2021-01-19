@@ -9,7 +9,7 @@ require (
 	github.com/ipfs/go-blockservice v0.1.4
 	github.com/ipfs/go-datastore v0.4.5
 	github.com/ipfs/go-filestore v0.0.3
-	github.com/ipfs/go-ipfs v0.7.1-0.20210112070337-51d4d825bdf1
+	github.com/ipfs/go-ipfs v0.7.1-0.20210115023137-f4877d8d5ee0
 	github.com/ipfs/go-ipfs-blockstore v0.1.4
 	github.com/ipfs/go-ipfs-exchange-offline v0.0.1
 	github.com/ipfs/go-ipfs-pinner v0.1.0

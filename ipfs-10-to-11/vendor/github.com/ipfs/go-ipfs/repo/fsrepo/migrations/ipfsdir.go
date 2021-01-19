@@ -23,17 +23,15 @@ const (
 	shellUpTimeout = 2 * time.Second
 )
 
-var (
-	disableDirCache bool
-	ipfsDirCache    string
-	ipfsDirCacheKey string
-)
+func init() {
+	homedir.DisableCache = true
+}
 
 // ApiEndpoint reads the api file from the local ipfs install directory and
 // returns the address:port read from the file.  If the ipfs directory is not
 // specified then the default location is used.
 func ApiEndpoint(ipfsDir string) (string, error) {
-	ipfsDir, err := checkIpfsDir(ipfsDir)
+	ipfsDir, err := CheckIpfsDir(ipfsDir)
 	if err != nil {
 		return "", err
 	}
@@ -70,109 +68,27 @@ func ApiShell(ipfsDir string) (*api.Shell, string, error) {
 	return sh, ver, nil
 }
 
-// Returns the path of the default ipfs directory.
-func IpfsDir() (string, error) {
-	return checkIpfsDir("")
-}
-
-// RepoVersion returns the version of the repo in the ipfs directory.  If the
-// ipfs directory is not specified then the default location is used.
-func RepoVersion(ipfsDir string) (int, error) {
-	ipfsDir, err := checkIpfsDir(ipfsDir)
-	if err != nil {
-		return 0, err
-	}
-	return repoVersion(ipfsDir)
-}
-
-// WriteRepoVersion writes the specified repo version to the repo located in
-// ipfsDir. If ipfsDir is not specified, then the default location is used.
-func WriteRepoVersion(ipfsDir string, version int) error {
-	ipfsDir, err := checkIpfsDir(ipfsDir)
-	if err != nil {
-		return err
-	}
-
-	vFilePath := path.Join(ipfsDir, versionFile)
-	return ioutil.WriteFile(vFilePath, []byte(fmt.Sprintf("%d\n", version)), 0644)
-}
-
-// CacheIpfsDir enables or disables caching the location of the ipfs directory.
-// Enabled by default, this avoids subsequent search for and check of the same
-// ipfs directory.  Disabling the cache may be useful if the location of the
-// ipfs directory is expected to change.
-func CacheIpfsDir(enable bool) {
-	if !enable {
-		disableDirCache = true
-		ipfsDirCache = ""
-		ipfsDirCacheKey = ""
-		homedir.DisableCache = true
-		homedir.Reset()
-	} else {
-		homedir.DisableCache = false
-		disableDirCache = false
-	}
-}
-
-func repoVersion(ipfsDir string) (int, error) {
-	c, err := ioutil.ReadFile(path.Join(ipfsDir, versionFile))
-	if err != nil {
-		if os.IsNotExist(err) {
-			// IPFS directory exists without version file, so version 0
-			return 0, nil
-		}
-		return 0, fmt.Errorf("cannot read repo version file: %s", err)
-	}
-
-	ver, err := strconv.Atoi(strings.TrimSpace(string(c)))
-	if err != nil {
-		return 0, errors.New("invalid data in repo version file")
-	}
-	return ver, nil
-}
-
-func checkIpfsDir(dir string) (string, error) {
-	if dir == ipfsDirCacheKey && ipfsDirCache != "" {
-		return ipfsDirCache, nil
-	}
-
-	var (
-		err   error
-		found string
-	)
-	if dir == "" {
-		found, err = findIpfsDir()
-		if err != nil {
-			return "", fmt.Errorf("could not find ipfs directory: %s", err)
-		}
-	} else {
-		found, err = homedir.Expand(dir)
+// IpfsDir returns the path of the ipfs directory.  If dir specified, then
+// returns the expanded version dir.  If dir is "", then return the directory
+// set by IPFS_PATH, or if IPFS_PATH is not set, then return the default
+// location in the home directory.
+func IpfsDir(dir string) (string, error) {
+	var err error
+	if dir != "" {
+		dir, err = homedir.Expand(dir)
 		if err != nil {
 			return "", err
 		}
-
-		_, err = os.Stat(found)
-		if err != nil {
-			return "", err
-		}
+		return dir, nil
 	}
 
-	if !disableDirCache {
-		ipfsDirCacheKey = dir
-		ipfsDirCache = found
-	}
-
-	return found, nil
-}
-
-func findIpfsDir() (string, error) {
 	ipfspath := os.Getenv(envIpfsPath)
 	if ipfspath != "" {
-		expandedPath, err := homedir.Expand(ipfspath)
+		dir, err := homedir.Expand(ipfspath)
 		if err != nil {
 			return "", err
 		}
-		return expandedPath, nil
+		return dir, nil
 	}
 
 	home, err := homedir.Dir()
@@ -183,16 +99,56 @@ func findIpfsDir() (string, error) {
 		return "", errors.New("could not determine IPFS_PATH, home dir not set")
 	}
 
-	for _, dir := range []string{".go-ipfs", ".ipfs"} {
-		defaultDir := path.Join(home, dir)
-		_, err = os.Stat(defaultDir)
-		if err == nil {
-			return defaultDir, nil
-		}
-		if !os.IsNotExist(err) {
-			return "", err
-		}
+	return path.Join(home, ".ipfs"), nil
+}
+
+// CheckIpfsDir gets the ipfs directory and checks that the directory exists.
+func CheckIpfsDir(dir string) (string, error) {
+	var err error
+	dir, err = IpfsDir(dir)
+	if err != nil {
+		return "", err
 	}
 
-	return "", err
+	_, err = os.Stat(dir)
+	if err != nil {
+		return "", err
+	}
+
+	return dir, nil
+}
+
+// RepoVersion returns the version of the repo in the ipfs directory.  If the
+// ipfs directory is not specified then the default location is used.
+func RepoVersion(ipfsDir string) (int, error) {
+	ipfsDir, err := CheckIpfsDir(ipfsDir)
+	if err != nil {
+		return 0, err
+	}
+	return repoVersion(ipfsDir)
+}
+
+// WriteRepoVersion writes the specified repo version to the repo located in
+// ipfsDir. If ipfsDir is not specified, then the default location is used.
+func WriteRepoVersion(ipfsDir string, version int) error {
+	ipfsDir, err := IpfsDir(ipfsDir)
+	if err != nil {
+		return err
+	}
+
+	vFilePath := path.Join(ipfsDir, versionFile)
+	return ioutil.WriteFile(vFilePath, []byte(fmt.Sprintf("%d\n", version)), 0644)
+}
+
+func repoVersion(ipfsDir string) (int, error) {
+	c, err := ioutil.ReadFile(path.Join(ipfsDir, versionFile))
+	if err != nil {
+		return 0, err
+	}
+
+	ver, err := strconv.Atoi(strings.TrimSpace(string(c)))
+	if err != nil {
+		return 0, errors.New("invalid data in repo version file")
+	}
+	return ver, nil
 }
