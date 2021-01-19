@@ -8,21 +8,20 @@ import (
 	"os"
 	"path"
 
-	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-blockservice"
-	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-datastore"
-	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-filestore"
-	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-ipfs-blockstore"
-	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-ipfs-exchange-offline"
-	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-ipfs-pinner/pinconv"
-	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-ipfs/plugin/loader"
-	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-ipfs/repo"
-	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-ipfs/repo/fsrepo"
-	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-ipld-format"
-	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-merkledag"
+	"github.com/ipfs/go-blockservice"
+	"github.com/ipfs/go-datastore"
+	"github.com/ipfs/go-filestore"
+	"github.com/ipfs/go-ipfs-blockstore"
+	"github.com/ipfs/go-ipfs-exchange-offline"
+	"github.com/ipfs/go-ipfs-pinner/pinconv"
+	"github.com/ipfs/go-ipfs/plugin/loader"
+	"github.com/ipfs/go-ipfs/repo"
+	"github.com/ipfs/go-ipfs/repo/fsrepo"
+	"github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
+	"github.com/ipfs/go-ipld-format"
+	"github.com/ipfs/go-merkledag"
 
-	migrate "github.com/ipfs/fs-repo-migrations/go-migrate"
-	mfsr "github.com/ipfs/fs-repo-migrations/mfsr"
-	log "github.com/ipfs/fs-repo-migrations/stump"
+	migrate "github.com/ipfs/fs-repo-migrations/tools/go-migrate"
 )
 
 type Migration struct{}
@@ -43,14 +42,22 @@ func (m Migration) Reversible() bool {
 
 func (m Migration) Apply(opts migrate.Options) error {
 	const (
-		fromVer = "10"
-		toVer   = "11"
+		fromVer = 10
+		toVer   = 11
 	)
 	verbose = opts.Verbose
 	log.Printf("applying %s repo migration", m.Versions())
 
-	err := setupPlugins(opts.Path)
+	ver, err := migrations.RepoVersion(opts.Path)
 	if err != nil {
+		return err
+	}
+
+	if ver != fromVer {
+		return fmt.Errorf("versions differ (expected: %d, actual: %d)", fromVer, ver)
+	}
+
+	if err = setupPlugins(opts.Path); err != nil {
 		return fmt.Errorf("failed to setup plugins: %v", err)
 	}
 
@@ -65,7 +72,9 @@ func (m Migration) Apply(opts migrate.Options) error {
 		return fmt.Errorf("ipfs repo %q not initialized", opts.Path)
 	}
 
-	log.VLog("  - opening datastore at %q", opts.Path)
+	if verbose {
+		log.Printf("opening datastore at %q", opts.Path)
+	}
 	r, err := fsrepo.Open(opts.Path)
 	if err != nil {
 		return fmt.Errorf("cannot open datastore: %v", err)
@@ -73,17 +82,16 @@ func (m Migration) Apply(opts migrate.Options) error {
 	defer r.Close()
 
 	if err = transferPins(ctx, r); err != nil {
-		log.Error("failed to transfer pins:", err.Error())
-		return err
+		return fmt.Errorf("failed to transfer pins: %v", err)
 	}
 
-	err = mfsr.RepoPath(opts.Path).WriteVersion(toVer)
+	err = migrations.WriteRepoVersion(opts.Path, toVer)
 	if err != nil {
 		return fmt.Errorf("failed to update version file to %s: %v", toVer, err)
 	}
 
 	log.Print("updated version file")
-	log.Printf("Migration %s to %s succeeded", fromVer, toVer)
+	log.Printf("Migration %d to %d succeeded", fromVer, toVer)
 	return nil
 }
 
@@ -93,29 +101,30 @@ func (m Migration) Revert(opts migrate.Options) error {
 
 	err := setupPlugins(opts.Path)
 	if err != nil {
-		log.Error("failed to setup plugins", err.Error())
-		return err
+		return fmt.Errorf("failed to setup plugins: %v", err)
 	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	if !fsrepo.IsInitialized(opts.Path) {
 		return fmt.Errorf("ipfs repo %q not initialized", opts.Path)
 	}
 
-	log.VLog("  - opening datastore at %q", opts.Path)
+	if verbose {
+		log.Printf("opening datastore at %q", opts.Path)
+	}
 	r, err := fsrepo.Open(opts.Path)
 	if err != nil {
 		return fmt.Errorf("cannot open datastore: %v", err)
 	}
 	defer r.Close()
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
 	if err = revertPins(ctx, r); err != nil {
 		return err
 	}
 
-	err = mfsr.RepoPath(opts.Path).WriteVersion("10")
+	err = migrations.WriteRepoVersion(opts.Path, 10)
 	if err != nil {
 		return fmt.Errorf("failed to update version file to 10: %v", err)
 	}
@@ -187,7 +196,7 @@ func makeStore(r repo.Repo) (datastore.Datastore, format.DAGService, format.DAGS
 }
 
 func transferPins(ctx context.Context, r repo.Repo) error {
-	log.Log("> Upgrading pinning to use datastore")
+	log.Print("upgrading pinning to use datastore")
 
 	dstore, dserv, internalDag, err := makeStore(r)
 	if err != nil {
@@ -203,7 +212,7 @@ func transferPins(ctx context.Context, r repo.Repo) error {
 }
 
 func revertPins(ctx context.Context, r repo.Repo) error {
-	log.Log("> Reverting pinning to use ipld storage")
+	log.Print("reverting pinning to use ipld storage")
 
 	dstore, dserv, internalDag, err := makeStore(r)
 	if err != nil {
