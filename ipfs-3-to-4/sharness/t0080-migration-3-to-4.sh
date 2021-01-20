@@ -2,13 +2,12 @@
 
 test_description="Test migration 3 to 4 with lots of objects"
 
-GUEST_IPFS_3_TO_4="sharness/bin/ipfs-3-to-4"
-
 . lib/test-lib.sh
 
 # setup vars for tests
 
-export IPFS_DIST_PATH="/ipfs/QmUGSSMCcPTeLCyrjKdozh2XY9VUdJVYxA6LjyJjLPcXST"
+export IPFS_DIST_PATH="/ipfs/QmXt92hFRuvQgFhgHoaMxC4wLFcvKsCywQPTNmPYCGfEV4"
+
 
 DEPTH=3
 NBDIR=3
@@ -87,7 +86,6 @@ test_expect_success "add some files with the path clean bug" '
 	printf bccac | ipfs add -q >> buggy_hashes &&
 	echo 0243397916 | ipfs add -q >> buggy_hashes && # produces /../ in binary key
 	sort buggy_hashes -o buggy_hashes
-
 '
 
 test_expect_success "get full ref list" '
@@ -111,7 +109,7 @@ test_expect_success "'ipfs-3-to-4 -no-revert' fails" '
 	test_must_fail ipfs-3-to-4 -no-revert -path="$IPFS_PATH"
 '
 
-test_install_ipfs_nd "v0.4.3-dev"
+test_install_ipfs_nd "v0.4.3"
 
 test_launch_ipfs_daemon
 

@@ -5,9 +5,12 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
 )
+
+const currentVersion = 11
 
 func YesNoPrompt(prompt string) bool {
 	var s string
@@ -25,21 +28,31 @@ func YesNoPrompt(prompt string) bool {
 }
 
 func main() {
-	currentVersion, err := migrations.IpfsRepoVersion(context.Background())
-
 	target := flag.Int("to", currentVersion, "specify version to upgrade to")
 	yes := flag.Bool("y", false, "answer yes to all prompts")
-	version := flag.Bool("v", false, "print highest repo version handled and exit")
+	version := flag.Bool("v", false, "print latest migrationavailable and exit")
 	revertOk := flag.Bool("revert-ok", false, "allow running migrations backward")
 
 	flag.Parse()
 
+	var err error
 	if *version {
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "Could not get current version of ipfs:", err)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+		defer cancel()
+
+		var latestMigration int
+		for i := currentVersion; err == nil; i++ {
+			dist := fmt.Sprintf("ipfs-%d-to-%d", i-1, i)
+			_, err = migrations.LatestDistVersion(ctx, dist)
+			if err == nil {
+				latestMigration = i
+			}
+		}
+		if latestMigration == 0 {
+			fmt.Fprintln(os.Stderr, "Could not get available repo migrations:", err)
 			os.Exit(1)
 		}
-		fmt.Println(currentVersion)
+		fmt.Println(latestMigration)
 		return
 	}
 

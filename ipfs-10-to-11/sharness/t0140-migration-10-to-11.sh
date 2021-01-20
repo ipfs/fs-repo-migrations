@@ -96,19 +96,7 @@ test_expect_success "'ipfs-10-to-11' output looks good" '
 # Cannot GC here until new ipfs installed (old ipfs cannot read new pins)
 #
 
-#test_install_version "v0.8.0"
-# TODO: Replace this with comment above when IPFS v0.8.0 released.
-test_expect_success "install ipfs v0.8.0-dev succeeds" '
-    export GOPATH="$(pwd)/gopath"
-    mkdir -p gopath/bin
-	mkdir xxx &&
-	cd xxx &&
-	go mod init github.com/ipfs/xxx &&
-	go get github.com/ipfs/go-ipfs/cmd/ipfs@e325332ca1f57be258f72afb4ed5e9e1484e39e1 &&
-	cd .. &&
-	docker cp "$GOPATH"/bin/ipfs "$DOCID":/usr/local/bin &&
-	chmod -R u+w "$GOPATH" && rm -rf "GOPATH"
-'
+test_install_version "v0.8.0-rc1"
 
 test_expect_success "added dir is still pinned recursively" '
 	exec_docker "$DOCID" "ipfs pin ls --type=recursive" > recurse_actual2 &&
@@ -154,7 +142,7 @@ test_expect_success "'ipfs repo gc' succeeds" '
 	test_cmp before_gc after_gc
 '
 
-test_expect_success "'ipfs-10-to-11 -revert' succeeds" '
+test_expect_success "'ipfs-update revert' succeeds" '
 	exec_docker "$DOCID" "$GUEST_IPFS_10_TO_11 -verbose -revert -path=/root/.ipfs" >actual
 '
 
@@ -163,7 +151,7 @@ test_expect_success "'ipfs-10-to-11 -revert' output looks good" '
 	test_fsh cat actual
 '
 
-test_install_version "v0.7.0"
+test_revert_to_version "v0.7.0"
 
 test_expect_success "added dir is still pinned recursively" '
 	exec_docker "$DOCID" "ipfs pin ls --type=recursive" > recurse_actual3 &&

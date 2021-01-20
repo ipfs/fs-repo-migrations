@@ -35,9 +35,12 @@ GUEST_TEST_DIR="sharness/$TEST_DIR_BASENAME"
 
 CERTIFS='/etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt'
 
+# TODO: remove this when migrations are availabe one the distributions site                                                                                  
+IPFS_DIST_PATH="/ipfs/QmXt92hFRuvQgFhgHoaMxC4wLFcvKsCywQPTNmPYCGfEV4"
+
 # This writes a docker ID on stdout
 start_docker() {
-	docker run --rm -it -d -v "$CERTIFS" -v "$APP_ROOT_DIR:/mnt" -w "/mnt" "$DOCKER_IMG" /bin/bash
+	docker run --rm -it -d -v "$CERTIFS" -v "$APP_ROOT_DIR:/mnt" -w "/mnt" -e "IPFS_DIST_PATH=$IPFS_DIST_PATH" "$DOCKER_IMG" /bin/bash
 }
 
 # This takes a docker ID and a command as arguments
@@ -91,7 +94,7 @@ test_install_version() {
 		DOCPWD=$(exec_docker "$DOCID" "pwd") &&
 		DOCPATH=$(exec_docker "$DOCID" "echo \$PATH") &&
 		NEWPATH="$DOCPWD/sharness/bin:$DOCPATH" &&
-		exec_docker "$DOCID" "export PATH=\"$NEWPATH\" && $GUEST_IPFS_UPDATE --verbose install $VERSION" >actual 2>&1 ||
+		exec_docker "$DOCID" "export PATH=\"$NEWPATH\" && $GUEST_IPFS_UPDATE --verbose install --allow-downgrade $VERSION" >actual 2>&1 ||
 		test_fsh cat actual
 	'
 
@@ -111,10 +114,39 @@ test_install_version() {
 	'
 }
 
+# Revert to previous IPFS version on a docker container
+test_revert_to_version() {
+	VERSION="$1"
+
+	# Change the PATH so that migration binaries built for this test are found
+	# first, and are run by ipfs-update
+	test_expect_success "'ipfs-update install' works for $VERSION" '
+		DOCPWD=$(exec_docker "$DOCID" "pwd") &&
+		DOCPATH=$(exec_docker "$DOCID" "echo \$PATH") &&
+		NEWPATH="$DOCPWD/sharness/bin:$DOCPATH" &&
+		exec_docker "$DOCID" "export PATH=\"$NEWPATH\" && $GUEST_IPFS_UPDATE --verbose revert" >actual 2>&1 ||
+		test_fsh cat actual
+	'
+
+	test_expect_success "'ipfs-update revert' output looks good" '
+		grep "Revert complete" actual ||
+		test_fsh cat actual
+	'
+
+	test_expect_success "'ipfs-update version' works for $VERSION" '
+		exec_docker "$DOCID" "$GUEST_IPFS_UPDATE version" >actual
+	'
+
+	test_expect_success "'ipfs-update version' output looks good" '
+		echo "$VERSION" >expected &&
+		test_cmp expected actual
+	'
+}
+
 test_start_daemon() {
 	docid="$1"
 	test_expect_success "'ipfs daemon' succeeds" '
-		exec_docker "$docid" "ipfs daemon >\"${GUEST_TEST_DIR}/actual_daemon\" 2>\"${GUEST_TEST_DIR}/daemon_err\" &"
+		exec_docker "$docid" "ipfs daemon >actual_daemon 2>daemon_err &"
 	'
 
 	test_expect_success "api file shows up" '
@@ -236,7 +268,7 @@ test_install_ipfs_nd() {
 	# Change the PATH so that migration binaries built for this test are found
 	# first, and are run by ipfs-update
 	test_expect_success "'ipfs-update install' works for $VERSION" '
-		ipfs-update --verbose install $VERSION > actual 2>&1 ||
+		ipfs-update --verbose install --allow-downgrade $VERSION > actual 2>&1 ||
 		test_fsh cat actual
 	'
 
@@ -247,7 +279,7 @@ test_install_ipfs_nd() {
 	'
 
 	test_expect_success "'ipfs-update version' works for $VERSION" '
-		ipfs-update version > actual
+		ipfs-update version > actual 2>&1
 	'
 
 	test_expect_success "'ipfs-update version' output looks good" '
@@ -331,7 +363,8 @@ test_launch_ipfs_daemon() {
 	test "$TEST_ULIMIT_PRESET" != 1 && ulimit -n 1024
 
 	test_expect_success "'ipfs daemon' succeeds" '
-		ipfs daemon $args >"${GUEST_TEST_DIR}/actual_daemon" 2>"${GUEST_TEST_DIR}/daemon_err" &
+		pwd &&
+		ipfs daemon $args >actual_daemon 2>daemon_err &
 	'
 
 	# wait for api file to show up
@@ -339,13 +372,13 @@ test_launch_ipfs_daemon() {
 		test_wait_for_file 20 100ms "$IPFS_PATH/api"
 	'
 
-	test_set_address_vars_nd "${GUEST_TEST_DIR}/actual_daemon"
+	test_set_address_vars_nd actual_daemon
 
 	# we say the daemon is ready when the API server is ready.
 	test_expect_success "'ipfs daemon' is ready" '
 		IPFS_PID=$! &&
 		pollEndpoint -ep=/version -host=$API_MADDR -v -tout=1s -tries=60 2>poll_apierr > poll_apiout ||
-		test_fsh cat "${GUEST_TEST_DIR}/actual_daemon" || test_fsh cat "${GUEST_TEST_DIR}/daemon_err" || test_fsh cat poll_apierr || test_fsh cat poll_apiout
+		test_fsh cat actual_daemon || test_fsh cat daemon_err || test_fsh cat poll_apierr || test_fsh cat poll_apiout
 	'
 }
 
