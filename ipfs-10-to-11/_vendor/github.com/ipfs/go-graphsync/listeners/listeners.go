@@ -1,4 +1,4 @@
-package hooks
+package listeners
 
 import (
 	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/hannahhoward/go-pubsub"

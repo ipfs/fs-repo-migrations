@@ -631,10 +631,24 @@ func (h *BasicHost) NewStream(ctx context.Context, p peer.ID, pids ...protocol.I
 		}, nil
 	}
 
-	selected, err := msmux.SelectOneOf(pidStrings, s)
-	if err != nil {
+	// Negotiate the protocol in the background, obeying the context.
+	var selected string
+	errCh := make(chan error, 1)
+	go func() {
+		selected, err = msmux.SelectOneOf(pidStrings, s)
+		errCh <- err
+	}()
+	select {
+	case err = <-errCh:
+		if err != nil {
+			s.Reset()
+			return nil, err
+		}
+	case <-ctx.Done():
 		s.Reset()
-		return nil, err
+		// wait for the negotiation to cancel.
+		<-errCh
+		return nil, ctx.Err()
 	}
 
 	selpid := protocol.ID(selected)

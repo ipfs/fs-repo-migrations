@@ -9,7 +9,7 @@ import (
 	tptu "github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/libp2p/go-libp2p-transport-upgrader"
 	ma "github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/multiformats/go-multiaddr"
 	mafmt "github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/multiformats/go-multiaddr-fmt"
-	manet "github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/multiformats/go-multiaddr-net"
+	manet "github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/multiformats/go-multiaddr/net"
 )
 
 // WsProtocol is the multiaddr protocol definition for this transport.

@@ -1,5 +1,37 @@
 # go-graphsync changelog
 
+# go-graphsync 0.5.2
+
+Minor release resolves bugs in notification system
+
+### Changelog
+
+- github.com/ipfs/go-graphsync:
+  - RegisterNetworkErrorListener should fire when there's an error connecting to the peer (#127) ([ipfs/go-graphsync#127](https://github.com/ipfs/go-graphsync/pull/127))
+  - Permit multiple data subscriptions per original topic (#128) ([ipfs/go-graphsync#128](https://github.com/ipfs/go-graphsync/pull/128))
+  - release: v0.5.1 (#123) ([ipfs/go-graphsync#123](https://github.com/ipfs/go-graphsync/pull/123))
+
+### Contributors
+
+| Contributor | Commits | Lines ± | Files Changed |
+|-------------|---------|---------|---------------|
+| dirkmc | 2 | +272/-185 | 10 |
+| Alex Cruikshank | 1 | +188/-110 | 12 |
+| Hannah Howard | 1 | +23/-6 | 3 |
+
+# go-graphsync 0.5.1
+
+### Changelog
+
+- github.com/ipfs/go-graphsync:
+  - feat(responsemanager): allow configuration of max requests (#122) ([ipfs/go-graphsync#122](https://github.com/ipfs/go-graphsync/pull/122))
+
+Contributors
+
+| Contributor | Commits | Lines ± | Files Changed |
+|-------------|---------|---------|---------------|
+| Hannah Howard | 1 | +23/-6 | 3 |
+
 # go-graphsync 0.4.3
 
 Update libp2p to 0.12. This libp2p release includes a breaking change to the libp2p stream interfaces.

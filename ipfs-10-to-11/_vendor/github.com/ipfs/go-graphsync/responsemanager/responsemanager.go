@@ -22,8 +22,7 @@ import (
 var log = logging.Logger("graphsync")
 
 const (
-	maxInProcessRequests = 6
-	thawSpeed            = time.Millisecond * 100
+	thawSpeed = time.Millisecond * 100
 )
 
 type inProgressResponseStatus struct {
@@ -35,7 +34,7 @@ type inProgressResponseStatus struct {
 	signals    signals
 	updates    []gsmsg.GraphSyncRequest
 	isPaused   bool
-	subscriber notifications.MappableSubscriber
+	subscriber *notifications.TopicDataSubscriber
 }
 
 type responseKey struct {
@@ -51,7 +50,7 @@ type signals struct {
 
 type responseTaskData struct {
 	empty      bool
-	subscriber notifications.MappableSubscriber
+	subscriber *notifications.TopicDataSubscriber
 	ctx        context.Context
 	request    gsmsg.GraphSyncRequest
 	loader     ipld.Loader
@@ -129,6 +128,7 @@ type ResponseManager struct {
 	workSignal            chan struct{}
 	qe                    *queryExecutor
 	inProgressResponses   map[responseKey]*inProgressResponseStatus
+	maxInProcessRequests  uint64
 }
 
 // New creates a new response manager from the given context, loader,
@@ -144,6 +144,7 @@ func New(ctx context.Context,
 	cancelledListeners CancelledListeners,
 	blockSentListeners BlockSentListeners,
 	networkErrorListeners NetworkErrorListeners,
+	maxInProcessRequests uint64,
 ) *ResponseManager {
 	ctx, cancelFn := context.WithCancel(ctx)
 	messages := make(chan responseManagerMessage, 16)
@@ -175,6 +176,7 @@ func New(ctx context.Context,
 		workSignal:            workSignal,
 		qe:                    qe,
 		inProgressResponses:   make(map[responseKey]*inProgressResponseStatus),
+		maxInProcessRequests:  maxInProcessRequests,
 	}
 }
 
@@ -294,7 +296,7 @@ func (rm *ResponseManager) cleanupInProcessResponses() {
 
 func (rm *ResponseManager) run() {
 	defer rm.cleanupInProcessResponses()
-	for i := 0; i < maxInProcessRequests; i++ {
+	for i := uint64(0); i < rm.maxInProcessRequests; i++ {
 		go rm.qe.processQueriesWorker()
 	}
 
@@ -330,7 +332,7 @@ func (rm *ResponseManager) processUpdate(key responseKey, update gsmsg.GraphSync
 		}
 		if result.Err != nil {
 			transaction.FinishWithError(graphsync.RequestFailedUnknown)
-			transaction.AddNotifee(notifications.Notifee{Topic: graphsync.RequestFailedUnknown, Subscriber: response.subscriber})
+			transaction.AddNotifee(notifications.Notifee{Data: graphsync.RequestFailedUnknown, Subscriber: response.subscriber})
 		}
 		return nil
 	})
@@ -393,7 +395,7 @@ func (rm *ResponseManager) abortRequest(p peer.ID, requestID graphsync.RequestID
 			rm.cancelledListeners.NotifyCancelledListeners(p, response.request)
 			peerResponseSender.FinishWithCancel(requestID)
 		} else if err != errNetworkError {
-			peerResponseSender.FinishWithError(requestID, graphsync.RequestCancelled, notifications.Notifee{Topic: graphsync.RequestCancelled, Subscriber: response.subscriber})
+			peerResponseSender.FinishWithError(requestID, graphsync.RequestCancelled, notifications.Notifee{Data: graphsync.RequestCancelled, Subscriber: response.subscriber})
 		}
 		delete(rm.inProgressResponses, key)
 		response.cancelFn()
@@ -418,7 +420,7 @@ func (prm *processRequestMessage) handle(rm *ResponseManager) {
 			continue
 		}
 		ctx, cancelFn := context.WithCancel(rm.ctx)
-		sub := notifications.NewMappableSubscriber(&subscriber{
+		sub := notifications.NewTopicDataSubscriber(&subscriber{
 			p:                     key.p,
 			request:               request,
 			ctx:                   rm.ctx,
@@ -426,7 +428,7 @@ func (prm *processRequestMessage) handle(rm *ResponseManager) {
 			blockSentListeners:    rm.blockSentListeners,
 			completedListeners:    rm.completedListeners,
 			networkErrorListeners: rm.networkErrorListeners,
-		}, notifications.IdentityTransform)
+		})
 		rm.inProgressResponses[key] =
 			&inProgressResponseStatus{
 				ctx:        ctx,

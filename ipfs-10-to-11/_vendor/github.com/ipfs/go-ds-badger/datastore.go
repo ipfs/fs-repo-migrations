@@ -3,6 +3,7 @@ package badger
 import (
 	"errors"
 	"fmt"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -42,6 +43,13 @@ type Datastore struct {
 	gcInterval     time.Duration
 
 	syncWrites bool
+}
+
+// Implements the datastore.Batch interface, enabling batching support for
+// the badger Datastore.
+type batch struct {
+	ds         *Datastore
+	writeBatch *badger.WriteBatch
 }
 
 // Implements the datastore.Txn interface, enabling transaction support for
@@ -112,6 +120,7 @@ var _ ds.Datastore = (*Datastore)(nil)
 var _ ds.TxnDatastore = (*Datastore)(nil)
 var _ ds.TTLDatastore = (*Datastore)(nil)
 var _ ds.GCDatastore = (*Datastore)(nil)
+var _ ds.Batching = (*Datastore)(nil)
 
 // NewDatastore creates a new badger datastore.
 //
@@ -388,9 +397,24 @@ func (d *Datastore) Close() error {
 	return d.DB.Close()
 }
 
+// Batch creats a new Batch object. This provides a way to do many writes, when
+// there may be too many to fit into a single transaction.
 func (d *Datastore) Batch() (ds.Batch, error) {
-	tx, _ := d.NewTransaction(false)
-	return tx, nil
+	d.closeLk.RLock()
+	defer d.closeLk.RUnlock()
+	if d.closed {
+		return nil, ErrClosed
+	}
+
+	b := &batch{d, d.DB.NewWriteBatch()}
+	// Ensure that incomplete transaction resources are cleaned up in case
+	// batch is abandoned.
+	runtime.SetFinalizer(b, func(b *batch) {
+		b.cancel()
+		log.Error("batch not committed or canceled")
+	})
+
+	return b, nil
 }
 
 func (d *Datastore) CollectGarbage() (err error) {
@@ -414,6 +438,72 @@ func (d *Datastore) gcOnce() error {
 		return ErrClosed
 	}
 	return d.DB.RunValueLogGC(d.gcDiscardRatio)
+}
+
+var _ ds.Batch = (*batch)(nil)
+
+func (b *batch) Put(key ds.Key, value []byte) error {
+	b.ds.closeLk.RLock()
+	defer b.ds.closeLk.RUnlock()
+	if b.ds.closed {
+		return ErrClosed
+	}
+	return b.put(key, value)
+}
+
+func (b *batch) put(key ds.Key, value []byte) error {
+	return b.writeBatch.Set(key.Bytes(), value)
+}
+
+func (b *batch) Delete(key ds.Key) error {
+	b.ds.closeLk.RLock()
+	defer b.ds.closeLk.RUnlock()
+	if b.ds.closed {
+		return ErrClosed
+	}
+
+	return b.delete(key)
+}
+
+func (b *batch) delete(key ds.Key) error {
+	return b.writeBatch.Delete(key.Bytes())
+}
+
+func (b *batch) Commit() error {
+	b.ds.closeLk.RLock()
+	defer b.ds.closeLk.RUnlock()
+	if b.ds.closed {
+		return ErrClosed
+	}
+
+	return b.commit()
+}
+
+func (b *batch) commit() error {
+	err := b.writeBatch.Flush()
+	if err != nil {
+		// Discard incomplete transaction held by b.writeBatch
+		b.cancel()
+		return err
+	}
+	runtime.SetFinalizer(b, nil)
+	return nil
+}
+
+func (b *batch) Cancel() error {
+	b.ds.closeLk.RLock()
+	defer b.ds.closeLk.RUnlock()
+	if b.ds.closed {
+		return ErrClosed
+	}
+
+	b.cancel()
+	return nil
+}
+
+func (b *batch) cancel() {
+	b.writeBatch.Cancel()
+	runtime.SetFinalizer(b, nil)
 }
 
 var _ ds.Datastore = (*txn)(nil)
