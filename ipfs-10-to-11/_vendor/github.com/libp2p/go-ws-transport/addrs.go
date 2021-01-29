@@ -6,7 +6,7 @@ import (
 	"net/url"
 
 	ma "github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/multiformats/go-multiaddr"
-	manet "github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/multiformats/go-multiaddr-net"
+	manet "github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/multiformats/go-multiaddr/net"
 )
 
 // Addr is an implementation of net.Addr for WebSocket.

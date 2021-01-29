@@ -11,7 +11,7 @@ import (
 	ws "github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/gorilla/websocket"
 	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/libp2p/go-libp2p-core/transport"
 	ma "github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/multiformats/go-multiaddr"
-	manet "github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/multiformats/go-multiaddr-net"
+	manet "github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/multiformats/go-multiaddr/net"
 )
 
 // Default gorilla upgrader

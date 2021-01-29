@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/libp2p/go-libp2p-core/mux"
-	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/libp2p/go-yamux"
+	"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/libp2p/go-yamux/v2"
 )
 
 // stream implements mux.MuxedStream over yamux.Stream.
