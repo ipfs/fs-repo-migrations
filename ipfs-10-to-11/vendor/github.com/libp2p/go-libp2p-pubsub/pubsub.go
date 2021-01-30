@@ -134,6 +134,9 @@ type PubSub struct {
 
 	peers map[peer.ID]chan *RPC
 
+	inboundStreamsMx sync.Mutex
+	inboundStreams   map[peer.ID]network.Stream
+
 	seenMessagesMx sync.Mutex
 	seenMessages   *timecache.TimeCache
 
@@ -253,6 +256,7 @@ func NewPubSub(ctx context.Context, h host.Host, rt PubSubRouter, opts ...Option
 		myRelays:              make(map[string]int),
 		topics:                make(map[string]map[peer.ID]struct{}),
 		peers:                 make(map[peer.ID]chan *RPC),
+		inboundStreams:        make(map[peer.ID]network.Stream),
 		blacklist:             NewMapBlacklist(),
 		blacklistPeer:         make(chan peer.ID),
 		seenMessages:          timecache.NewTimeCache(TimeCacheDuration),
@@ -291,6 +295,8 @@ func NewPubSub(ctx context.Context, h host.Host, rt PubSubRouter, opts ...Option
 	ps.val.Start(ps)
 
 	go ps.processLoop(ctx)
+
+	(*PubSubNotif)(ps).Initialize()
 
 	return ps, nil
 }
@@ -479,7 +485,7 @@ func (p *PubSub) processLoop(ctx context.Context) {
 		select {
 		case pid := <-p.newPeers:
 			if _, ok := p.peers[pid]; ok {
-				log.Warn("already have connection to peer: ", pid)
+				log.Debug("already have connection to peer: ", pid)
 				continue
 			}
 

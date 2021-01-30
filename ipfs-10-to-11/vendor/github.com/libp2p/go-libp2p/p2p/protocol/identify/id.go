@@ -349,7 +349,7 @@ func (ids *IDService) identifyConn(c network.Conn, signal chan struct{}) {
 		}
 	}()
 
-	s, err = c.NewStream()
+	s, err = c.NewStream(context.TODO())
 	if err != nil {
 		log.Debugw("error opening identify stream", "error", err)
 		// the connection is probably already closed if we hit this.
