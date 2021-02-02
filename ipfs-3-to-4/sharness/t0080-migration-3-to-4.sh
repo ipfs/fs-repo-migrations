@@ -6,9 +6,6 @@ test_description="Test migration 3 to 4 with lots of objects"
 
 # setup vars for tests
 
-export IPFS_DIST_PATH="/ipfs/QmXt92hFRuvQgFhgHoaMxC4wLFcvKsCywQPTNmPYCGfEV4"
-
-
 DEPTH=3
 NBDIR=3
 NBFILE=6
