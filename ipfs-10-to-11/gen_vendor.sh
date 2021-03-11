@@ -7,6 +7,16 @@ if [ -d _vendor ]; then
     mv _vendor _vendor.prev
 fi
 
+# Create a version of go-ipfs with s3 plugin built in
+tmpdir=/tmp/tmp.fs-repo-migration_build
+rm -rf "$tmpdir"
+git clone -b release-v0.8.0 https://github.com/ipfs/go-ipfs "${tmpdir}/go-ipfs"
+pushd "${tmpdir}/go-ipfs"
+go get github.com/ipfs/go-ds-s3@latest
+echo "s3ds github.com/ipfs/go-ds-s3/plugin 0" >> plugin/loader/preload_list
+make build
+popd
+
 sed -i "s,\"github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/,\"," *.go **/*.go
 
 # Generate the vendor directory using a go.mod file
@@ -51,5 +61,6 @@ find ./ -name '*.go' | xargs sed -i 's,\(package \w\+\) // import .*,\1,'
 go vet
 echo "===> all done"
 
+rm -rf "$tmpdir"
 rm -f go.mod go.sum "$DEPS_FILE"
 rm -rf _vendor.prev

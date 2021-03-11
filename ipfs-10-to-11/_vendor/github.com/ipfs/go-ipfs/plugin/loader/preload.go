@@ -1,6 +1,7 @@
 package loader
 
 import (
+	plugins3ds "github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-ds-s3/plugin"
 	pluginbadgerds "github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-ipfs/plugin/plugins/badgerds"
 	pluginflatfs "github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-ipfs/plugin/plugins/flatfs"
 	pluginipldgit "github.com/ipfs/fs-repo-migrations/ipfs-10-to-11/_vendor/github.com/ipfs/go-ipfs/plugin/plugins/git"
@@ -16,4 +17,5 @@ func init() {
 	Preload(pluginbadgerds.Plugins...)
 	Preload(pluginflatfs.Plugins...)
 	Preload(pluginlevelds.Plugins...)
+	Preload(plugins3ds.Plugins[0])
 }

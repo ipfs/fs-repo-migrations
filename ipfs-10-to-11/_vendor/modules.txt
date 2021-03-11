@@ -8,6 +8,51 @@ github.com/AndreasBriese/bbloom
 github.com/Stebalien/go-bitfield
 # github.com/alexbrainman/goissue34681 v0.0.0-20191006012335-3fc7a47baff5
 github.com/alexbrainman/goissue34681
+# github.com/aws/aws-sdk-go v1.35.30
+github.com/aws/aws-sdk-go/aws
+github.com/aws/aws-sdk-go/aws/arn
+github.com/aws/aws-sdk-go/aws/awserr
+github.com/aws/aws-sdk-go/aws/awsutil
+github.com/aws/aws-sdk-go/aws/client
+github.com/aws/aws-sdk-go/aws/client/metadata
+github.com/aws/aws-sdk-go/aws/corehandlers
+github.com/aws/aws-sdk-go/aws/credentials
+github.com/aws/aws-sdk-go/aws/credentials/ec2rolecreds
+github.com/aws/aws-sdk-go/aws/credentials/endpointcreds
+github.com/aws/aws-sdk-go/aws/credentials/processcreds
+github.com/aws/aws-sdk-go/aws/credentials/stscreds
+github.com/aws/aws-sdk-go/aws/csm
+github.com/aws/aws-sdk-go/aws/defaults
+github.com/aws/aws-sdk-go/aws/ec2metadata
+github.com/aws/aws-sdk-go/aws/endpoints
+github.com/aws/aws-sdk-go/aws/request
+github.com/aws/aws-sdk-go/aws/session
+github.com/aws/aws-sdk-go/aws/signer/v4
+github.com/aws/aws-sdk-go/internal/context
+github.com/aws/aws-sdk-go/internal/ini
+github.com/aws/aws-sdk-go/internal/s3shared
+github.com/aws/aws-sdk-go/internal/s3shared/arn
+github.com/aws/aws-sdk-go/internal/s3shared/s3err
+github.com/aws/aws-sdk-go/internal/sdkio
+github.com/aws/aws-sdk-go/internal/sdkmath
+github.com/aws/aws-sdk-go/internal/sdkrand
+github.com/aws/aws-sdk-go/internal/sdkuri
+github.com/aws/aws-sdk-go/internal/shareddefaults
+github.com/aws/aws-sdk-go/internal/strings
+github.com/aws/aws-sdk-go/internal/sync/singleflight
+github.com/aws/aws-sdk-go/private/checksum
+github.com/aws/aws-sdk-go/private/protocol
+github.com/aws/aws-sdk-go/private/protocol/eventstream
+github.com/aws/aws-sdk-go/private/protocol/eventstream/eventstreamapi
+github.com/aws/aws-sdk-go/private/protocol/json/jsonutil
+github.com/aws/aws-sdk-go/private/protocol/query
+github.com/aws/aws-sdk-go/private/protocol/query/queryutil
+github.com/aws/aws-sdk-go/private/protocol/rest
+github.com/aws/aws-sdk-go/private/protocol/restxml
+github.com/aws/aws-sdk-go/private/protocol/xml/xmlutil
+github.com/aws/aws-sdk-go/service/s3
+github.com/aws/aws-sdk-go/service/sts
+github.com/aws/aws-sdk-go/service/sts/stsiface
 # github.com/benbjohnson/clock v1.0.3
 github.com/benbjohnson/clock
 # github.com/bren2010/proquint v0.0.0-20160323162903-38337c27106d
@@ -44,7 +89,7 @@ github.com/facebookgo/atomicfile
 github.com/flynn/noise
 # github.com/francoispqt/gojay v1.2.13
 github.com/francoispqt/gojay
-# github.com/gogo/protobuf v1.3.1
+# github.com/gogo/protobuf v1.3.2
 github.com/gogo/protobuf/gogoproto
 github.com/gogo/protobuf/proto
 github.com/gogo/protobuf/protoc-gen-gogo/descriptor
@@ -126,14 +171,18 @@ github.com/ipfs/go-ds-flatfs
 github.com/ipfs/go-ds-leveldb
 # github.com/ipfs/go-ds-measure v0.1.0
 github.com/ipfs/go-ds-measure
+# github.com/ipfs/go-ds-s3 v0.7.0
+github.com/ipfs/go-ds-s3
+github.com/ipfs/go-ds-s3/plugin
 # github.com/ipfs/go-filestore v0.0.3
 ## explicit
 github.com/ipfs/go-filestore
 github.com/ipfs/go-filestore/pb
 # github.com/ipfs/go-fs-lock v0.0.6
 github.com/ipfs/go-fs-lock
-# github.com/ipfs/go-graphsync v0.5.2
+# github.com/ipfs/go-graphsync v0.6.0
 github.com/ipfs/go-graphsync
+github.com/ipfs/go-graphsync/allocator
 github.com/ipfs/go-graphsync/cidset
 github.com/ipfs/go-graphsync/dedupkey
 github.com/ipfs/go-graphsync/impl
@@ -156,15 +205,13 @@ github.com/ipfs/go-graphsync/requestmanager/executor
 github.com/ipfs/go-graphsync/requestmanager/hooks
 github.com/ipfs/go-graphsync/requestmanager/types
 github.com/ipfs/go-graphsync/responsemanager
-github.com/ipfs/go-graphsync/responsemanager/allocator
 github.com/ipfs/go-graphsync/responsemanager/hooks
-github.com/ipfs/go-graphsync/responsemanager/peerresponsemanager
 github.com/ipfs/go-graphsync/responsemanager/persistenceoptions
-github.com/ipfs/go-graphsync/responsemanager/responsebuilder
+github.com/ipfs/go-graphsync/responsemanager/responseassembler
 github.com/ipfs/go-graphsync/responsemanager/runtraversal
 github.com/ipfs/go-graphsync/selectorvalidator
 github.com/ipfs/go-graphsync/storeutil
-# github.com/ipfs/go-ipfs v0.7.1-0.20210128202236-dd295e456085
+# github.com/ipfs/go-ipfs v0.8.0 => /tmp/tmp.fs-repo-migration_build/go-ipfs
 ## explicit
 github.com/ipfs/go-ipfs
 github.com/ipfs/go-ipfs/blocks/blockstoreutil
@@ -201,7 +248,7 @@ github.com/ipfs/go-ipfs/thirdparty/verifbs
 github.com/ipfs/go-ipfs-blockstore
 # github.com/ipfs/go-ipfs-chunker v0.0.5
 github.com/ipfs/go-ipfs-chunker
-# github.com/ipfs/go-ipfs-config v0.11.0
+# github.com/ipfs/go-ipfs-config v0.12.0
 github.com/ipfs/go-ipfs-config
 github.com/ipfs/go-ipfs-config/serialize
 # github.com/ipfs/go-ipfs-delay v0.0.1
@@ -310,6 +357,8 @@ github.com/jbenet/go-temp-err-catcher
 github.com/jbenet/goprocess
 github.com/jbenet/goprocess/context
 github.com/jbenet/goprocess/periodic
+# github.com/jmespath/go-jmespath v0.4.0
+github.com/jmespath/go-jmespath
 # github.com/koron/go-ssdp v0.0.0-20191105050749-2e1c40ed0b5d
 github.com/koron/go-ssdp
 # github.com/libp2p/go-addr-util v0.0.2
@@ -586,7 +635,7 @@ go.uber.org/zap/internal/exit
 go.uber.org/zap/zapcore
 # go4.org v0.0.0-20200411211856-f5505b9728dd
 go4.org/lock
-# golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a
+# golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
 golang.org/x/crypto/blake2b
 golang.org/x/crypto/blake2s
 golang.org/x/crypto/chacha20
@@ -602,7 +651,8 @@ golang.org/x/crypto/poly1305
 golang.org/x/crypto/salsa20
 golang.org/x/crypto/salsa20/salsa
 golang.org/x/crypto/sha3
-# golang.org/x/net v0.0.0-20200707034311-ab3426394381
+# golang.org/x/net v0.0.0-20201021035429-f5854403a974
+## explicit
 golang.org/x/net/bpf
 golang.org/x/net/html
 golang.org/x/net/html/atom
@@ -614,7 +664,7 @@ golang.org/x/net/ipv4
 golang.org/x/net/ipv6
 golang.org/x/net/route
 golang.org/x/net/trace
-# golang.org/x/sys v0.0.0-20200615200032-f1bc736245b1
+# golang.org/x/sys v0.0.0-20210124154548-22da62e12c0c
 golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
@@ -637,7 +687,7 @@ golang.org/x/text/internal/utf8internal
 golang.org/x/text/language
 golang.org/x/text/runes
 golang.org/x/text/transform
-# golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543
+# golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
 golang.org/x/xerrors
 golang.org/x/xerrors/internal
 # google.golang.org/protobuf v1.25.0
@@ -668,3 +718,4 @@ google.golang.org/protobuf/reflect/protoregistry
 google.golang.org/protobuf/runtime/protoiface
 google.golang.org/protobuf/runtime/protoimpl
 # github.com/ipfs/fs-repo-migrations => ../../fs-repo-migrations
+# github.com/ipfs/go-ipfs => /tmp/tmp.fs-repo-migration_build/go-ipfs
