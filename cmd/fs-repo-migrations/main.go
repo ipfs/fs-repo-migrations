@@ -12,7 +12,7 @@ import (
 
 const currentVersion = 11
 
-func YesNoPrompt(prompt string) bool {
+func yesNoPrompt(prompt string) bool {
 	var s string
 	for {
 		fmt.Printf("%s ", prompt)
@@ -27,13 +27,28 @@ func YesNoPrompt(prompt string) bool {
 	}
 }
 
+func createFetcher(distPath string) migrations.Fetcher {
+	fetcher := migrations.NewMultiFetcher(newIpfsFetcher(), migrations.NewHttpFetcher())
+
+	if distPath != "" {
+		fetcher.SetDistPath(distPath)
+	} else {
+		fetcher.SetDistPath(migrations.GetDistPathEnv(migrations.CurrentIpfsDist))
+	}
+
+	return fetcher
+}
+
 func main() {
+	var distPath string
 	target := flag.Int("to", currentVersion, "specify version to upgrade to")
 	yes := flag.Bool("y", false, "answer yes to all prompts")
 	version := flag.Bool("v", false, "print latest migrationavailable and exit")
 	revertOk := flag.Bool("revert-ok", false, "allow running migrations backward")
-
+	flag.StringVar(&distPath, "distpath", "", "specify the distributions build to use")
 	flag.Parse()
+
+	fetcher := createFetcher(distPath)
 
 	var err error
 	if *version {
@@ -43,7 +58,7 @@ func main() {
 		var latestMigration int
 		for i := currentVersion; err == nil; i++ {
 			dist := fmt.Sprintf("ipfs-%d-to-%d", i-1, i)
-			_, err = migrations.LatestDistVersion(ctx, dist)
+			_, err = migrations.LatestDistVersion(ctx, fetcher, dist, false)
 			if err == nil {
 				latestMigration = i
 			}
@@ -80,11 +95,11 @@ func main() {
 	ipfsDir, _ := migrations.IpfsDir("")
 	fmt.Printf("Found fs-repo version %d at %s\n", vnum, ipfsDir)
 	prompt := fmt.Sprintf("Do you want to upgrade this to version %d? [y/n]", *target)
-	if !(*yes || YesNoPrompt(prompt)) {
+	if !(*yes || yesNoPrompt(prompt)) {
 		os.Exit(1)
 	}
 
-	err = migrations.RunMigration(context.Background(), *target, "")
+	err = migrations.RunMigration(context.Background(), fetcher, *target, "", *revertOk)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "ipfs migration: ", err)
 		os.Exit(1)
