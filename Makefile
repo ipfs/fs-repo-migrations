@@ -2,7 +2,9 @@ GO111MODULE = on
 
 MIG_DIRS = $(shell ls -d ipfs-*-to-*)
 
-.PHONY: build clean cmd sharness test test_go
+.PHONY: all build clean cmd sharness test test_go
+
+all: build
 
 show: $(MIG_DIRS)
 	@echo "$(MIG_DIRS)"
@@ -12,7 +14,7 @@ build: $(shell ls -d ipfs-*-to-* | sed -e 's/ipfs/build.ipfs/') cmd
 
 build.%: MIGRATION=$*
 build.%:
-	cd $(MIGRATION) && go build -mod=vendor
+	make -C $(MIGRATION)
 
 cmd: cmd/fs-repo-migrations/fs-repo-migrations
 
@@ -31,7 +33,7 @@ clean: $(shell ls -d ipfs-*-to-* | sed -e 's/ipfs/clean.ipfs/')
 
 clean.%: MIGRATION=$*
 clean.%:
-	cd $(MIGRATION) && go clean
+	make -C $(MIGRATION) clean
 
 test_go: $(shell ls -d ipfs-*-to-* | sed -e 's/ipfs/test_go.ipfs/')
 	@echo OK

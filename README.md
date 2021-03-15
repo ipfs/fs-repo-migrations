@@ -16,6 +16,7 @@ These are migrations for the filesystem repository of [ipfs](https://github.com/
   - [When should I migrate](#when-should-i-migrate)
   - [How to Run Migrations](#how-to-run-migrations)
   - [Developing Migrations](#developing-migrations)
+  - [Building with Plugin](#building-with-plugin)
 - [Contribute](#contribute)
   - [Want to hack on IPFS?](#want-to-hack-on-ipfs)
 - [License](#license)
@@ -70,6 +71,14 @@ If the migration directory contains a subdirectory named `sharness`, tests conta
 ### Dependencies
 
 Dependencies must be vendored independently for each migration. Each migration is a separate go module with its own `vendor` directory (created with `go mod vendor` for that migration).  All migrations are built using `go build -mod=vendor` to ensure dependencies come from the module's `vendor` directory.
+
+
+### Building with Plugin
+Migrations starting with ipfs-10-to-11 can be built with plugins.  This is done by building the migration separately, using the appropriate make target.  For example, to build the ipfs-10-to-11 migtation with the s3 plugin:
+```
+cd ipfs-10-to-11
+make s3plugin
+```
 
 ## Contribute
 
