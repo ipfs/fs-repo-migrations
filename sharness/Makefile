@@ -62,6 +62,7 @@ clean: clean-test-results
 clean-test-results:
 	@echo "*** $@ ***"
 	-rm -rf test-results
+	-rm -f ../actual_daemon ../daemon_err
 
 sharness:
 	@echo "*** checking $@ ***"

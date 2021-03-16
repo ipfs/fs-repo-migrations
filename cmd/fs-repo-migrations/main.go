@@ -28,15 +28,15 @@ func yesNoPrompt(prompt string) bool {
 }
 
 func createFetcher(distPath string) migrations.Fetcher {
-	fetcher := migrations.NewMultiFetcher(newIpfsFetcher(), migrations.NewHttpFetcher())
+	const userAgent = "fs-repo-migrations"
 
-	if distPath != "" {
-		fetcher.SetDistPath(distPath)
-	} else {
-		fetcher.SetDistPath(migrations.GetDistPathEnv(migrations.CurrentIpfsDist))
+	if distPath == "" {
+		distPath = migrations.GetDistPathEnv(migrations.CurrentIpfsDist)
 	}
 
-	return fetcher
+	return migrations.NewMultiFetcher(
+		newIpfsFetcher(distPath, 0),
+		migrations.NewHttpFetcher(distPath, "", userAgent, 0))
 }
 
 func main() {
