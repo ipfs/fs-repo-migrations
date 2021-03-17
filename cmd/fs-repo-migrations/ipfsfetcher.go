@@ -34,7 +34,7 @@ type ipfsFetcher struct {
 func newIpfsFetcher(distPath string, fetchLimit int64) *ipfsFetcher {
 	f := &ipfsFetcher{
 		limit:    defaultFetchLimit,
-		distPath: migrations.IpnsIpfsDist,
+		distPath: migrations.LatestIpfsDist,
 	}
 
 	if distPath != "" {
