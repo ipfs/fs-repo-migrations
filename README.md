@@ -16,6 +16,7 @@ These are migrations for the filesystem repository of [ipfs](https://github.com/
   - [When should I migrate](#when-should-i-migrate)
   - [How to Run Migrations](#how-to-run-migrations)
   - [Developing Migrations](#developing-migrations)
+  - [Building with Plugins]((#building-with-plugins)
 - [Contribute](#contribute)
   - [Want to hack on IPFS?](#want-to-hack-on-ipfs)
 - [License](#license)
@@ -70,6 +71,14 @@ If the migration directory contains a subdirectory named `sharness`, tests conta
 ### Dependencies
 
 Dependencies must be vendored independently for each migration. Each migration is a separate go module with its own `vendor` directory (created with `go mod vendor` for that migration).  All migrations are built using `go build -mod=vendor` to ensure dependencies come from the module's `vendor` directory.
+
+## Building with Plugins
+This `build-plugin.sh` script builds migrations with a datastore plugin.  Specify the datastore plugin repo and one or more migrations to build.  Each migration binary is built in its module subdirectory.  Run a migration binary directly, or copy it into a directory in `PATH` to be run by `ipfs-update` or `fs-repo-migrations`.
+
+Example:
+```
+./build-plugin.sh github.com/ipfs/go-ds-s3 10-to-11
+```
 
 ## Contribute
 
