@@ -7,13 +7,13 @@
 #
 # To run an individual test, make deps then run the test. For example:
 #   $ make deps
-#   $ ../ipfs-2-to-3/sharness/t0040-migration-2-to-3.sh
+#   $ ../fs-repo-2-to-3/sharness/t0040-migration-2-to-3.sh
 #
 
 # Find tests in local sharness directory and in sharness directory of every
 # migration.
 T = $(sort $(wildcard t[0-9][0-9][0-9][0-9]-*.sh))
-T += $(sort $(shell find ../ipfs-*-to-*/sharness -name 't[0-9][0-9][0-9][0-9]-*.sh'))
+T += $(sort $(shell find ../fs-repo-*-to-*/sharness -name 't[0-9][0-9][0-9][0-9]-*.sh'))
 
 GO111MODULE = on
 LIBDIR = lib
@@ -26,8 +26,6 @@ BINS += bin/random-files
 BINS += bin/go-sleep
 BINS += bin/pollEndpoint
 BINS += bin/iptb
-
-# TODO: removed this when go-ipfs and ipfs-update support migration binaries.
 BINS += bin/fs-repo-migrations
 
 # User might want to override those on the command line
@@ -47,7 +45,7 @@ $(T): clean-test-results deps
 deps: sharness $(BINS) build
 
 # Build all migrations
-build: $(shell ls -d ../ipfs-*-to-* | sed -e 's/..\/ipfs/build.ipfs/')
+build: $(shell ls -d ../fs-repo-*-to-* | sed -e 's/..\/fs-repo/build.fs-repo/')
 	@echo "===> OK built migrations"
 
 build.%: MIGRATION=$*
@@ -57,7 +55,7 @@ build.%:
 clean: clean-test-results
 	@echo "*** $@ ***"
 	-rm -rf $(BINS)
-	-rm -f bin/ipfs-*-to-*
+	-rm -f bin/fs-repo-*-to-*
 
 clean-test-results:
 	@echo "*** $@ ***"
@@ -90,7 +88,6 @@ bin/pollEndpoint: BUILD-OPTIONS
 	@echo "*** installing $@ ***"
 	cd dependencies && go build $(GOFLAGS) -o ../$@ ./pollEndpoint
 
-# TODO: removed this when go-ipfs and ipfs-update support migration binaries.
 bin/fs-repo-migrations: BUILD-OPTIONS
 	@echo "*** installing $@ ***"
 	cd ../cmd/fs-repo-migrations && go build $(GOFLAGS) -o ../../sharness/$@

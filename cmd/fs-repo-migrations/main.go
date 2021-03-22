@@ -57,7 +57,7 @@ func main() {
 
 		var latestMigration int
 		for i := currentVersion; err == nil; i++ {
-			dist := fmt.Sprintf("ipfs-%d-to-%d", i-1, i)
+			dist := fmt.Sprintf("fs-repo-%d-to-%d", i-1, i)
 			_, err = migrations.LatestDistVersion(ctx, fetcher, dist, false)
 			if err == nil {
 				latestMigration = i
