@@ -90,7 +90,7 @@ bin/pollEndpoint: BUILD-OPTIONS
 
 bin/fs-repo-migrations: BUILD-OPTIONS
 	@echo "*** installing $@ ***"
-	cd ../cmd/fs-repo-migrations && go build $(GOFLAGS) -o ../../sharness/$@
+	cd ../fs-repo-migrations && go build $(GOFLAGS) -o ../sharness/$@
 
 BUILD-OPTIONS: FORCE
 	@bin/checkflags '$@' '$(GOFLAGS)' '*** new Go flags ***'

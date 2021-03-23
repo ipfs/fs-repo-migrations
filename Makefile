@@ -16,10 +16,10 @@ build.%: MIGRATION=$*
 build.%:
 	make -C $(MIGRATION)
 
-cmd: cmd/fs-repo-migrations/fs-repo-migrations
+cmd: fs-repo-migrations/fs-repo-migrations
 
-cmd/fs-repo-migrations/fs-repo-migrations:
-	cd cmd/fs-repo-migrations && go build
+fs-repo-migrations/fs-repo-migrations:
+	cd fs-repo-migrations && go build
 
 sharness:
 	make -C sharness
@@ -28,7 +28,7 @@ test: test_go sharness
 
 clean: $(shell ls -d fs-repo-*-to-* | sed -e 's/fs-repo/clean.fs-repo/')
 	@make -C sharness clean
-	@cd cmd/fs-repo-migrations && go clean
+	@cd fs-repo-migrations && go clean
 	@echo OK
 
 clean.%: MIGRATION=$*

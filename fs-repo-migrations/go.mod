@@ -1,4 +1,4 @@
-module github.com/ipfs/fs-repo-migrations/cmd
+module github.com/ipfs/fs-repo-migrations/fs-repo-migrations
 
 go 1.15
 
