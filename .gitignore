@@ -1,7 +1,7 @@
 *~
 cmd/fs-repo-migrations/fs-repo-migrations
 sharness/bin/fs-repo-migrations
-sharness/bin/ipfs-*-to-*
+sharness/bin/fs-repo-*-to-*
 sharness/bin/go-sleep
 sharness/bin/ipfs-update
 sharness/bin/iptb
