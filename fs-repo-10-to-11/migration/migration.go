@@ -30,6 +30,7 @@ var verbose bool
 
 func init() {
 	log.SetOutput(os.Stdout)
+	log.SetFlags(0)
 }
 
 func (m Migration) Versions() string {
