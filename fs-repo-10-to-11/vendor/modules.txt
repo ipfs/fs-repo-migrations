@@ -79,7 +79,7 @@ github.com/huin/goupnp/soap
 github.com/huin/goupnp/ssdp
 # github.com/ipfs/bbloom v0.0.4
 github.com/ipfs/bbloom
-# github.com/ipfs/fs-repo-migrations/tools v0.0.1 => ../tools
+# github.com/ipfs/fs-repo-migrations/tools v0.0.0-20210323144402-297a63449538
 ## explicit
 github.com/ipfs/fs-repo-migrations/tools/go-migrate
 # github.com/ipfs/go-bitswap v0.3.3
@@ -163,7 +163,7 @@ github.com/ipfs/go-graphsync/responsemanager/responseassembler
 github.com/ipfs/go-graphsync/responsemanager/runtraversal
 github.com/ipfs/go-graphsync/selectorvalidator
 github.com/ipfs/go-graphsync/storeutil
-# github.com/ipfs/go-ipfs v0.7.1-0.20210129220329-0942e3be66b0
+# github.com/ipfs/go-ipfs v0.7.1-0.20210323141657-684b8b5bb7b0
 ## explicit
 github.com/ipfs/go-ipfs
 github.com/ipfs/go-ipfs/blocks/blockstoreutil
@@ -195,9 +195,6 @@ github.com/ipfs/go-ipfs/repo/fsrepo/migrations
 github.com/ipfs/go-ipfs/thirdparty/cidv0v1
 github.com/ipfs/go-ipfs/thirdparty/dir
 github.com/ipfs/go-ipfs/thirdparty/verifbs
-# github.com/ipfs/go-ipfs-api v0.2.0
-github.com/ipfs/go-ipfs-api
-github.com/ipfs/go-ipfs-api/options
 # github.com/ipfs/go-ipfs-blockstore v0.1.4
 ## explicit
 github.com/ipfs/go-ipfs-blockstore
@@ -555,8 +552,6 @@ github.com/whyrusleeping/go-keyspace
 github.com/whyrusleeping/mdns
 # github.com/whyrusleeping/multiaddr-filter v0.0.0-20160516205228-e903e4adabd7
 github.com/whyrusleeping/multiaddr-filter
-# github.com/whyrusleeping/tar-utils v0.0.0-20201201191210-20a61371de5b
-github.com/whyrusleeping/tar-utils
 # github.com/whyrusleeping/timecache v0.0.0-20160911033111-cfcb2f1abfee
 github.com/whyrusleeping/timecache
 # go.opencensus.io v0.22.5
@@ -671,4 +666,3 @@ google.golang.org/protobuf/reflect/protoreflect
 google.golang.org/protobuf/reflect/protoregistry
 google.golang.org/protobuf/runtime/protoiface
 google.golang.org/protobuf/runtime/protoimpl
-# github.com/ipfs/fs-repo-migrations/tools => ../tools

@@ -15,27 +15,25 @@ type Flags struct {
 	NoRevert bool
 }
 
-func (f *Flags) Setup() {
+func SetupFlags() Flags {
+	f := Flags{}
 	flag.BoolVar(&f.Force, "f", false, "whether to force a migration (ignores warnings)")
 	flag.BoolVar(&f.Revert, "revert", false, "whether to apply the migration backwards")
 	flag.BoolVar(&f.Verbose, "verbose", false, "enable verbose logging")
 	flag.BoolVar(&f.Help, "help", false, "display help message")
 	flag.StringVar(&f.Path, "path", "", "file path to migrate for fs based migrations (required)")
 	flag.BoolVar(&f.NoRevert, "no-revert", false, "do not attempt to automatically revert on failure")
+
+	flag.Parse()
+	return f
 }
 
 var SupportNoRevert = map[string]bool{
 	"4-to-5": true,
 }
 
-func (f *Flags) Parse() {
-	flag.Parse()
-}
-
 func Run(m Migration) error {
-	f := Flags{}
-	f.Setup()
-	f.Parse()
+	f := SetupFlags()
 
 	if f.Help {
 		flag.Usage()
@@ -65,12 +63,12 @@ func Run(m Migration) error {
 			Flags:   f,
 			Verbose: f.Verbose,
 		})
-	} else {
-		return m.Apply(Options{
-			Flags:   f,
-			Verbose: f.Verbose,
-		})
 	}
+
+	return m.Apply(Options{
+		Flags:   f,
+		Verbose: f.Verbose,
+	})
 }
 
 func Main(m Migration) {

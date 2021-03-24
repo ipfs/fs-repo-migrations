@@ -8,64 +8,18 @@ import (
 	"path"
 	"strconv"
 	"strings"
-	"time"
 
-	api "github.com/ipfs/go-ipfs-api"
 	"github.com/mitchellh/go-homedir"
 )
 
 const (
 	envIpfsPath = "IPFS_PATH"
+	defIpfsDir  = ".ipfs"
 	versionFile = "version"
-
-	// Local IPFS API
-	apiFile        = "api"
-	shellUpTimeout = 2 * time.Second
 )
 
 func init() {
 	homedir.DisableCache = true
-}
-
-// ApiEndpoint reads the api file from the local ipfs install directory and
-// returns the address:port read from the file.  If the ipfs directory is not
-// specified then the default location is used.
-func ApiEndpoint(ipfsDir string) (string, error) {
-	ipfsDir, err := CheckIpfsDir(ipfsDir)
-	if err != nil {
-		return "", err
-	}
-	apiPath := path.Join(ipfsDir, apiFile)
-
-	apiData, err := ioutil.ReadFile(apiPath)
-	if err != nil {
-		return "", err
-	}
-
-	val := strings.TrimSpace(string(apiData))
-	parts := strings.Split(val, "/")
-	if len(parts) != 5 {
-		return "", fmt.Errorf("incorrectly formatted api string: %q", val)
-	}
-
-	return parts[2] + ":" + parts[4], nil
-}
-
-// ApiShell creates a new ipfs api shell and checks that it is up.  If the shell
-// is available, then the shell and ipfs version are returned.
-func ApiShell(ipfsDir string) (*api.Shell, string, error) {
-	apiEp, err := ApiEndpoint("")
-	if err != nil {
-		return nil, "", err
-	}
-	sh := api.NewShell(apiEp)
-	sh.SetTimeout(shellUpTimeout)
-	ver, _, err := sh.Version()
-	if err != nil {
-		return nil, "", errors.New("ipfs api shell not up")
-	}
-	sh.SetTimeout(0)
-	return sh, ver, nil
 }
 
 // IpfsDir returns the path of the ipfs directory.  If dir specified, then
@@ -74,17 +28,11 @@ func ApiShell(ipfsDir string) (*api.Shell, string, error) {
 // location in the home directory.
 func IpfsDir(dir string) (string, error) {
 	var err error
+	if dir == "" {
+		dir = os.Getenv(envIpfsPath)
+	}
 	if dir != "" {
 		dir, err = homedir.Expand(dir)
-		if err != nil {
-			return "", err
-		}
-		return dir, nil
-	}
-
-	ipfspath := os.Getenv(envIpfsPath)
-	if ipfspath != "" {
-		dir, err := homedir.Expand(ipfspath)
 		if err != nil {
 			return "", err
 		}
@@ -99,7 +47,7 @@ func IpfsDir(dir string) (string, error) {
 		return "", errors.New("could not determine IPFS_PATH, home dir not set")
 	}
 
-	return path.Join(home, ".ipfs"), nil
+	return path.Join(home, defIpfsDir), nil
 }
 
 // CheckIpfsDir gets the ipfs directory and checks that the directory exists.

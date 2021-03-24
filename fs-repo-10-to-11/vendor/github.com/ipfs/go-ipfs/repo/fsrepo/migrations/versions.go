@@ -5,10 +5,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os/exec"
 	"path"
 	"sort"
-	"strconv"
 	"strings"
 
 	"github.com/coreos/go-semver/semver"
@@ -18,17 +16,21 @@ const distVersions = "versions"
 
 // LatestDistVersion returns the latest version, of the specified distribution,
 // that is available on the distribution site.
-func LatestDistVersion(ctx context.Context, dist string) (string, error) {
-	vs, err := DistVersions(ctx, dist, false)
+func LatestDistVersion(ctx context.Context, fetcher Fetcher, dist string, stableOnly bool) (string, error) {
+	vs, err := DistVersions(ctx, fetcher, dist, false)
 	if err != nil {
 		return "", err
 	}
 
 	for i := len(vs) - 1; i >= 0; i-- {
 		ver := vs[i]
-		if !strings.Contains(ver, "-dev") {
-			return ver, nil
+		if stableOnly && strings.Contains(ver, "-rc") {
+			continue
 		}
+		if strings.Contains(ver, "-dev") {
+			continue
+		}
+		return ver, nil
 	}
 	return "", errors.New("could not find a non dev version")
 }
@@ -36,8 +38,8 @@ func LatestDistVersion(ctx context.Context, dist string) (string, error) {
 // DistVersions returns all versions of the specified distribution, that are
 // available on the distriburion site.  List is in ascending order, unless
 // sortDesc is true.
-func DistVersions(ctx context.Context, dist string, sortDesc bool) ([]string, error) {
-	rc, err := fetch(ctx, path.Join(ipfsDistPath, dist, distVersions))
+func DistVersions(ctx context.Context, fetcher Fetcher, dist string, sortDesc bool) ([]string, error) {
+	rc, err := fetcher.Fetch(ctx, path.Join(dist, distVersions))
 	if err != nil {
 		return nil, err
 	}
@@ -54,9 +56,8 @@ func DistVersions(ctx context.Context, dist string, sortDesc bool) ([]string, er
 		}
 		vers = append(vers, ver)
 	}
-	err = scan.Err()
-	if err != nil {
-		return nil, fmt.Errorf("could not read versions: %s", err)
+	if scan.Err() != nil {
+		return nil, fmt.Errorf("could not read versions: %s", scan.Err())
 	}
 
 	if sortDesc {
@@ -71,20 +72,4 @@ func DistVersions(ctx context.Context, dist string, sortDesc bool) ([]string, er
 	}
 
 	return out, nil
-}
-
-// IpfsRepoVersion returns the repo version required by the ipfs daemon
-func IpfsRepoVersion(ctx context.Context) (int, error) {
-	out, err := exec.CommandContext(ctx, "ipfs", "version", "--repo").CombinedOutput()
-	if err != nil {
-		return 0, fmt.Errorf("%s: %s", err, string(out))
-	}
-
-	verStr := strings.TrimSpace(string(out))
-	ver, err := strconv.Atoi(verStr)
-	if err != nil {
-		return 0, fmt.Errorf("repo version is not an integer: %s", verStr)
-	}
-
-	return ver, nil
 }
