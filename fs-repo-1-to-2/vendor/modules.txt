@@ -1,0 +1,6 @@
+# github.com/ipfs/fs-repo-migrations/tools v0.0.0-20210323144402-297a63449538
+## explicit
+github.com/ipfs/fs-repo-migrations/tools/go-migrate
+github.com/ipfs/fs-repo-migrations/tools/lock
+github.com/ipfs/fs-repo-migrations/tools/mfsr
+github.com/ipfs/fs-repo-migrations/tools/repolock

@@ -1,10 +1,10 @@
 module github.com/ipfs/fs-repo-migrations/sharness/dependencies
 
-go 1.13
+go 1.15
 
 require (
 	github.com/chriscool/go-sleep v0.0.0-20150606204034-743ab5f1bb48
-	github.com/ipfs/ipfs-update v1.6.1-0.20210115024939-0445554b0312
+	github.com/ipfs/ipfs-update v1.6.1-0.20210323142304-8a5f9eabe3fa
 	github.com/ipfs/iptb v1.4.0
 	github.com/ipfs/iptb-plugins v0.2.1
 	github.com/jbenet/go-random-files v0.0.0-20190219210431-31b3f20ebded

@@ -63,7 +63,7 @@ Migrations are one of those things that can be extremely painful on users. At th
 
 #### Build and Test
 
-To create a new migration, create a go module in a directory named `ipfs-X-to-Y`, where `X` is the repo "from" version and `Y` the repo "to" version.  Vendor the module's dependencies. The build tooling will find this module and build the migration binary.
+To create a new migration, create a go module in a directory named `fs-repo-X-to-Y`, where `X` is the repo "from" version and `Y` the repo "to" version.  Vendor the module's dependencies. The build tooling will find this module and build the migration binary.
 
 If the migration directory contains a subdirectory named `sharness`, tests contained in it are run using the sharness test tool. Tests must be named `tNNNN-*.sh`, where NNNN is a 4-digit sequence number.
 
