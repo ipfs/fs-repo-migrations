@@ -8,6 +8,9 @@ test_expect_success "fs-repo-migrations binary is here" '
 	test -f "$LOCAL_FS_REPO_MIG"
 '
 
+# TODO: remove this when migrations are availabe at the distributions site
+export IPFS_DIST_PATH="/ipfs/QmWLyhqWDsWbcWE8vjmHkzGKLGgvHh84cLxM3ceLsojwrx"
+
 test_expect_success "'fs-repo-migrations -v' works" '
 	"$LOCAL_FS_REPO_MIG" -v >actual
 '
@@ -47,11 +50,12 @@ test_expect_success ".ipfs/ has been created" '
 '
 
 test_expect_success "'fs-repo-migrations -y' works" '
-	exec_docker "$DOCID" "$GUEST_FS_REPO_MIG -y -to=3" >actual
+	exec_docker "$DOCID" "$GUEST_FS_REPO_MIG -y -to=3" >actual 2>&1
 '
 
 test_expect_success "'fs-repo-migrations -y' output looks good" '
-	grep "Migration 2 to 3 succeeded" actual
+	grep "fs-repo migrated to version 3" actual || 
+	test_fsh cat actual
 '
 
 test_install_version "v0.4.0"

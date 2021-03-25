@@ -35,9 +35,12 @@ GUEST_TEST_DIR="sharness/$TEST_DIR_BASENAME"
 
 CERTIFS='/etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt'
 
+# TODO: remove this when migrations are availabe one the distributions site                                                                                  
+IPFS_DIST_PATH="/ipfs/QmWLyhqWDsWbcWE8vjmHkzGKLGgvHh84cLxM3ceLsojwrx"
+
 # This writes a docker ID on stdout
 start_docker() {
-	docker run -it -d -v "$CERTIFS" -v "$APP_ROOT_DIR:/mnt" -w "/mnt" "$DOCKER_IMG" /bin/bash
+	docker run --rm -it -d -v "$CERTIFS" -v "$APP_ROOT_DIR:/mnt" -w "/mnt" -e "IPFS_DIST_PATH=$IPFS_DIST_PATH" "$DOCKER_IMG" /bin/bash
 }
 
 # This takes a docker ID and a command as arguments
@@ -79,30 +82,54 @@ GUEST_IPFS_UPDATE="sharness/bin/ipfs-update"
 LOCAL_FS_REPO_MIG="../bin/fs-repo-migrations"
 GUEST_FS_REPO_MIG="sharness/bin/fs-repo-migrations"
 
-GUEST_IPFS_0_TO_1="sharness/bin/ipfs-0-to-1"
-GUEST_IPFS_1_TO_2="sharness/bin/ipfs-1-to-2"
-GUEST_IPFS_2_TO_3="sharness/bin/ipfs-2-to-3"
-GUEST_IPFS_3_TO_4="sharness/bin/ipfs-3-to-4"
-GUEST_IPFS_10_TO_11="sharness/bin/ipfs-10-to-11"
-
 GUEST_RANDOM_FILES="sharness/bin/random-files"
 
 # Install an IPFS version on a docker container
 test_install_version() {
 	VERSION="$1"
 
-	# We have to change the PATH as ipfs-update might call fs-repo-migrations
+	# Change the PATH so that migration binaries built for this test are found
+	# first, and are run by ipfs-update
 	test_expect_success "'ipfs-update install' works for $VERSION" '
 		DOCPWD=$(exec_docker "$DOCID" "pwd") &&
 		DOCPATH=$(exec_docker "$DOCID" "echo \$PATH") &&
 		NEWPATH="$DOCPWD/sharness/bin:$DOCPATH" &&
-		exec_docker "$DOCID" "export PATH=\"$NEWPATH\" && $GUEST_IPFS_UPDATE --verbose install $VERSION" >actual 2>&1 ||
+		exec_docker "$DOCID" "export PATH=\"$NEWPATH\" && $GUEST_IPFS_UPDATE --verbose install --allow-downgrade $VERSION" >actual 2>&1 ||
 		test_fsh cat actual
 	'
 
 	test_expect_success "'ipfs-update install' output looks good" '
 		grep "fetching go-ipfs version $VERSION" actual &&
 		grep "Installation complete!" actual ||
+		test_fsh cat actual
+	'
+
+	test_expect_success "'ipfs-update version' works for $VERSION" '
+		exec_docker "$DOCID" "$GUEST_IPFS_UPDATE version" >actual
+	'
+
+	test_expect_success "'ipfs-update version' output looks good" '
+		echo "$VERSION" >expected &&
+		test_cmp expected actual
+	'
+}
+
+# Revert to previous IPFS version on a docker container
+test_revert_to_version() {
+	VERSION="$1"
+
+	# Change the PATH so that migration binaries built for this test are found
+	# first, and are run by ipfs-update
+	test_expect_success "'ipfs-update install' works for $VERSION" '
+		DOCPWD=$(exec_docker "$DOCID" "pwd") &&
+		DOCPATH=$(exec_docker "$DOCID" "echo \$PATH") &&
+		NEWPATH="$DOCPWD/sharness/bin:$DOCPATH" &&
+		exec_docker "$DOCID" "export PATH=\"$NEWPATH\" && $GUEST_IPFS_UPDATE --verbose revert" >actual 2>&1 ||
+		test_fsh cat actual
+	'
+
+	test_expect_success "'ipfs-update revert' output looks good" '
+		grep "Revert complete" actual ||
 		test_fsh cat actual
 	'
 
@@ -238,9 +265,10 @@ test_repo_version() {
 test_install_ipfs_nd() {
 	VERSION="$1"
 
-	# We have to change the PATH as ipfs-update might call fs-repo-migrations
+	# Change the PATH so that migration binaries built for this test are found
+	# first, and are run by ipfs-update
 	test_expect_success "'ipfs-update install' works for $VERSION" '
-		ipfs-update --verbose install $VERSION > actual 2>&1 ||
+		ipfs-update --verbose install --allow-downgrade $VERSION > actual 2>&1 ||
 		test_fsh cat actual
 	'
 
@@ -251,7 +279,7 @@ test_install_ipfs_nd() {
 	'
 
 	test_expect_success "'ipfs-update version' works for $VERSION" '
-		ipfs-update version > actual
+		ipfs-update version > actual 2>&1
 	'
 
 	test_expect_success "'ipfs-update version' output looks good" '
@@ -335,6 +363,7 @@ test_launch_ipfs_daemon() {
 	test "$TEST_ULIMIT_PRESET" != 1 && ulimit -n 1024
 
 	test_expect_success "'ipfs daemon' succeeds" '
+		pwd &&
 		ipfs daemon $args >actual_daemon 2>daemon_err &
 	'
 
@@ -401,4 +430,3 @@ test_kill_ipfs_daemon() {
 		test_kill_repeat_10_sec $IPFS_PID
 	'
 }
-

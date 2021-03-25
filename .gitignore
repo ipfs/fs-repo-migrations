@@ -1,6 +1,13 @@
-fs-repo-migrations
-ipfs-0-to-1/ipfs-0-to-1
-ipfs-1-to-2/ipfs-1-to-2
-ipfs-10-to-11/ipfs-10-to-11
-sharness/bin/*
 *~
+cmd/fs-repo-migrations/fs-repo-migrations
+sharness/bin/fs-repo-migrations
+sharness/bin/fs-repo-*-to-*
+sharness/bin/go-sleep
+sharness/bin/ipfs-update
+sharness/bin/iptb
+sharness/bin/pollEndpoint
+sharness/bin/random-files
+sharness/BUILD-OPTIONS
+sharness/lib/sharness/
+sharness/test-results/
+sharness/trash directory.*.sh/
