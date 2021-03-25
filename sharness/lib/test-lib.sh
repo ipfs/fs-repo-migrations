@@ -36,7 +36,7 @@ GUEST_TEST_DIR="sharness/$TEST_DIR_BASENAME"
 CERTIFS='/etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt'
 
 # TODO: remove this when migrations are availabe one the distributions site                                                                                  
-IPFS_DIST_PATH="/ipfs/QmZqzacg5Q8WpDL7SymogoaSZYw6RZT2kgPavymCmMwWse"
+IPFS_DIST_PATH="/ipfs/QmWLyhqWDsWbcWE8vjmHkzGKLGgvHh84cLxM3ceLsojwrx"
 
 # This writes a docker ID on stdout
 start_docker() {

@@ -11,9 +11,6 @@ import (
 	"github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
 )
 
-// When searching for latest migration, start looking using this repo version
-const currentVersion = 11
-
 func yesNoPrompt(prompt string) bool {
 	var s string
 	for {
@@ -123,6 +120,12 @@ func main() {
 }
 
 func latestRepoMigration(fetcher migrations.Fetcher) (int, error) {
+	// TODO: Remove currentVersion and get list of all fs-repo-*-to-* in one
+	// request and calculate latest
+	//
+	// When searching for latest migration, start looking using this repo version
+	const currentVersion = 11
+
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 
