@@ -67,6 +67,18 @@ To create a new migration, create a go module in a directory named `fs-repo-X-to
 
 If the migration directory contains a subdirectory named `sharness`, tests contained in it are run using the sharness test tool. Tests must be named `tNNNN-*.sh`, where NNNN is a 4-digit sequence number.
 
+After the migration is merged into the main repo branch, create a version tag for it.  This is necessary for versioning individual migrations within the repo.
+```sh
+git tag <migration>/v<version>
+git push origin <migration>/v<version>
+```
+
+Example:
+```sh
+git tag fs-repo-99-100/v1.0.1
+git push origin fs-repo-99-100/v1.0.1
+```
+
 ### Dependencies
 
 Dependencies must be vendored independently for each migration. Each migration is a separate go module with its own `vendor` directory (created with `go mod vendor` for that migration).  All migrations are built using `go build -mod=vendor` to ensure dependencies come from the module's `vendor` directory.
