@@ -8,9 +8,6 @@ test_expect_success "fs-repo-migrations binary is here" '
 	test -f "$LOCAL_FS_REPO_MIG"
 '
 
-# TODO: remove this when migrations are availabe at the distributions site
-export IPFS_DIST_PATH="/ipfs/QmVxxcTSuryJYdQJGcS8SyhzN7NBNLTqVPAxpu6gp2ZcrR"
-
 test_expect_success "'fs-repo-migrations -v' works" '
 	"$LOCAL_FS_REPO_MIG" -v >actual
 '
