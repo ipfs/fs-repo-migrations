@@ -4,7 +4,7 @@ go 1.15
 
 require (
 	github.com/chriscool/go-sleep v0.0.0-20150606204034-743ab5f1bb48
-	github.com/ipfs/ipfs-update v1.6.1-0.20210331193409-8472f132b57b
+	github.com/ipfs/ipfs-update v1.7.1
 	github.com/ipfs/iptb v1.4.0
 	github.com/ipfs/iptb-plugins v0.2.1
 	github.com/jbenet/go-random-files v0.0.0-20190219210431-31b3f20ebded
