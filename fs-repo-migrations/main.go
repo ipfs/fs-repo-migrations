@@ -30,7 +30,7 @@ func createFetcher(distPath string) migrations.Fetcher {
 	const userAgent = "fs-repo-migrations"
 
 	if distPath == "" {
-		distPath = migrations.GetDistPathEnv(migrations.CurrentIpfsDist)
+		distPath = migrations.GetDistPathEnv(migrations.LatestIpfsDist)
 	}
 
 	return migrations.NewMultiFetcher(

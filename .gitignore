@@ -1,5 +1,5 @@
 *~
-cmd/fs-repo-migrations/fs-repo-migrations
+fs-repo-migrations/fs-repo-migrations
 sharness/bin/fs-repo-migrations
 sharness/bin/fs-repo-*-to-*
 sharness/bin/go-sleep
