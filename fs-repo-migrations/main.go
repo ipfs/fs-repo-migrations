@@ -46,6 +46,12 @@ func main() {
 	yes := flag.Bool("y", false, "answer yes to all prompts")
 	flag.Parse()
 
+	if flag.NArg() != 0 {
+		fmt.Fprintln(os.Stderr, "unrecognized arguments")
+		flag.Usage()
+		os.Exit(1)
+	}
+
 	fetcher := createFetcher(*distPath)
 
 	var (
