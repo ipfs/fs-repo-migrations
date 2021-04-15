@@ -4,8 +4,7 @@ test_description="Test migration 7 to 9"
 
 . lib/test-lib.sh
 
-# Dist specially built with a v0.5.0-dev-8to9pre1 release
-export IPFS_DIST_PATH="/ipfs/QmaaN2kipZfUpRSzwvUeG4Xi3yp1JJB294Vj8pnZ24hesF"
+export IPFS_DIST_PATH="/ipfs/QmVxxcTSuryJYdQJGcS8SyhzN7NBNLTqVPAxpu6gp2ZcrR"
 export GOPATH="$(pwd)/gopath"
 mkdir -p gopath/bin
 export PATH="$(pwd)/../bin:$GOPATH/bin:$PATH"
@@ -66,7 +65,7 @@ test_expect_success "migrated files exist" '
   [ -f "${IPFS_PATH}/keystore/key_nnsxsmq" ]
 '
 
-test_install_ipfs_nd "v0.5.0-dev-8to9pre2"
+test_install_ipfs_nd "v0.5.0-rc2"
 
 test_expect_success "ipfs key list is the same" '
    ipfs key list > new_key_list
