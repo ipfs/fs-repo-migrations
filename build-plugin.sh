@@ -13,7 +13,7 @@
 set -eou pipefail
 
 function usage() {
-    echo "usage: $0 plugin_repo x-to-y ...">&2
+    echo "usage: $0 plugin_repo[@<version_or_hash>] x-to-y ...">&2
     echo "example: $0 github.com/ipfs/go-ds-s3 10-to-11" >&2
 }
 
@@ -25,6 +25,13 @@ if [ $# -lt 2 ]; then
 fi
 
 plugin_repo="$1"
+if [[ "$plugin_repo" == *"@"* ]]; then
+    plugin_version="$(echo $plugin_repo | cut -d '@' -f 2)"
+    plugin_repo="$(echo $plugin_repo | cut -d '@' -f 1)"
+else
+    plugin_version=latest
+fi
+echo "plugin version: $plugin_version"
 plugin_name="$(echo $plugin_repo | rev | cut -d '-' -f 1 | rev)"
 ds_name="${plugin_name}ds"
 
@@ -73,7 +80,7 @@ function clone_ipfs() {
 function bundle_ipfs_plugin() {
     echo "===> Building go-ipfs with datastore plugin $plugin_name"
     pushd "$BUILD_GOIPFS"
-    go get "${plugin_repo}@latest"
+    go get "${plugin_repo}@${plugin_version}"
     popd
 
     echo "$ds_name ${plugin_repo}/plugin 0" >> "${BUILD_GOIPFS}/plugin/loader/preload_list"
