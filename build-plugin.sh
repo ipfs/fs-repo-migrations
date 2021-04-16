@@ -1,20 +1,22 @@
 #!/bin/bash
 #
-# Building migrations with datastore plugin
+# Build a migration with datastore plugins
 #
-# This script builds migrations with a datastore plugin.  Specify the datastore
-# plugin repo and one or more migrations to build.  Each migration binary is
-# built in its module subdirectory.  Run a migration binary directly, or copy
-# it into a directory in PATH to be run by ipfs-update or fs-repo-migrations.
+# This script builds a migration with datastore plugins.  Specify the
+# migration, such as 10-to-11, and one or more plugin repos to build with.  A
+# specific version of a plugin is specified by following it with
+# @<version_or_hash>.  The migration binary is built in its module
+# subdirectory.  Run the migration binary directly, or copy it into a directory
+# in PATH to be run by ipfs-update or fs-repo-migrations.
 #
 # Example:
-# ./build-plugin.sh github.com/ipfs/go-ds-s3 10-to-11 11-to-12
+# ./build-plugin.sh 10-to-11 github.com/ipfs/go-ds-s3 github.com/ipfs/go-ds-swift@v0.1.0
 #
 set -eou pipefail
 
 function usage() {
-    echo "usage: $0 plugin_repo[@<version_or_hash>] x-to-y ...">&2
-    echo "example: $0 github.com/ipfs/go-ds-s3 10-to-11" >&2
+    echo "usage: $0 x-to-y plugin_repo[@<version_or_hash>] ...">&2
+    echo "example: $0 10-to-11 github.com/ipfs/go-ds-s3" >&2
 }
 
 if [ $# -lt 2 ]; then
@@ -24,17 +26,7 @@ if [ $# -lt 2 ]; then
     exit 1
 fi
 
-plugin_repo="$1"
-if [[ "$plugin_repo" == *"@"* ]]; then
-    plugin_version="$(echo $plugin_repo | cut -d '@' -f 2)"
-    plugin_repo="$(echo $plugin_repo | cut -d '@' -f 1)"
-else
-    plugin_version=latest
-fi
-echo "plugin version: $plugin_version"
-plugin_name="$(echo $plugin_repo | rev | cut -d '-' -f 1 | rev)"
-ds_name="${plugin_name}ds"
-
+MIGRATION="$1"
 BUILD_DIR="$(mktemp -d --suffix=migration_build)"
 BUILD_GOIPFS="${BUILD_DIR}/go-ipfs"
 IPFS_REPO="github.com/ipfs/go-ipfs"
@@ -78,6 +70,17 @@ function clone_ipfs() {
 }
     
 function bundle_ipfs_plugin() {
+    local plugin_repo="$1"
+    echo "===> Bundling plugin $plugin_repo info go-ipfs for migration"
+    local plugin_version=latest
+    if [[ "$plugin_repo" == *"@"* ]]; then
+        plugin_version="$(echo $plugin_repo | cut -d '@' -f 2)"
+        plugin_repo="$(echo $plugin_repo | cut -d '@' -f 1)"
+    fi
+    echo "plugin version: $plugin_version"
+    local plugin_name="$(echo $plugin_repo | rev | cut -d '-' -f 1 | rev)"
+    local ds_name="${plugin_name}ds"
+    
     echo "===> Building go-ipfs with datastore plugin $plugin_name"
     pushd "$BUILD_GOIPFS"
     go get "${plugin_repo}@${plugin_version}"
@@ -91,7 +94,7 @@ function bundle_ipfs_plugin() {
 function build_migration() {
     local mig="$1"
     echo
-    echo "===> Building migration $mig with $ds_name plugin"
+    echo "===> Building migration $mig with plugins"
     pushd "$mig"
     go mod edit -replace "${IPFS_REPO}=${BUILD_GOIPFS}"
     go mod vendor
@@ -103,23 +106,23 @@ function build_migration() {
         git checkout go.sum
     fi
     popd
-    echo "===> Done building migration $mig with $ds_name plugin"
+    echo "===> Done building migration $mig with plugins"
 }
 
+migration="$(get_migration ${MIGRATION})"
+if [ -z "$migration" ]; then
+    echo "migration $migration does not exist" >&2
+    exit 1
+fi
+
+clone_ipfs "$migration"
+if [ $? -ne 0 ]; then
+    continue
+fi
+
 shift 1
-for i in "$@"; do
-    migration="$(get_migration ${i})"
-    if [ -z "$migration" ]; then
-        echo "migration $i does not exist" >&2
-        exit 1
-    fi
-
-    clone_ipfs "$migration"
-    if [ $? -ne 0 ]; then
-        continue
-    fi
-
-    bundle_ipfs_plugin
-
-    build_migration "$migration"
+for repo in "$@"; do
+    bundle_ipfs_plugin "$repo"
 done
+
+build_migration "$migration"
