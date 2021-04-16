@@ -81,17 +81,17 @@ function bundle_ipfs_plugin() {
     local plugin_name="$(echo $plugin_repo | rev | cut -d '-' -f 1 | rev)"
     local ds_name="${plugin_name}ds"
     
-    echo "===> Building go-ipfs with datastore plugin $plugin_name"
     pushd "$BUILD_GOIPFS"
     go get "${plugin_repo}@${plugin_version}"
     popd
-
     echo "$ds_name ${plugin_repo}/plugin 0" >> "${BUILD_GOIPFS}/plugin/loader/preload_list"
-    sed -i '/^\tgo fmt .*/a \\tgo mod tidy' "${BUILD_GOIPFS}/plugin/loader/Rules.mk"
-    make -C "$BUILD_GOIPFS" build
 }
 
 function build_migration() {
+    echo "===> Building go-ipfs with datastore plugins"
+    sed -i '/^\tgo fmt .*/a \\tgo mod tidy' "${BUILD_GOIPFS}/plugin/loader/Rules.mk"
+    make -C "$BUILD_GOIPFS" build
+
     local mig="$1"
     echo
     echo "===> Building migration $mig with plugins"
