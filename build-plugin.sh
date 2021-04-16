@@ -84,7 +84,7 @@ function bundle_ipfs_plugin() {
     pushd "$BUILD_GOIPFS"
     go get "${plugin_repo}@${plugin_version}"
     popd
-    echo "$ds_name ${plugin_repo}/plugin 0" >> "${BUILD_GOIPFS}/plugin/loader/preload_list"
+    echo "$ds_name ${plugin_repo}/plugin *" >> "${BUILD_GOIPFS}/plugin/loader/preload_list"
 }
 
 function build_migration() {
