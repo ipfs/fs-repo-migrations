@@ -6,10 +6,9 @@ import (
 	"sync/atomic"
 
 	log "github.com/ipfs/fs-repo-migrations/stump"
-	"github.com/ipfs/go-cid"
-	"github.com/ipfs/go-datastore"
+	cid "github.com/ipfs/go-cid"
 	ds "github.com/ipfs/go-datastore"
-	"github.com/ipfs/go-datastore/query"
+	query "github.com/ipfs/go-datastore/query"
 	dshelp "github.com/ipfs/go-ipfs-ds-help"
 )
 
@@ -23,8 +22,9 @@ var NWorkers int = 4
 // Swap holds the datastore keys for the original CID and for the
 // destination Multihash.
 type Swap struct {
-	Old ds.Key
-	New ds.Key
+	Old           ds.Key
+	New           ds.Key
+	NewKeyExisted bool
 }
 
 // CidSwapper reads all the keys in a datastore and replaces
@@ -133,10 +133,25 @@ func (cswap *CidSwapper) swapWorker(dryRun bool, resultsCh <-chan query.Result) 
 		mh := c.Hash()
 		// /path/to/old/<cid> -> /path/to/old/<multihash>
 		newKey := oldKey.Parent().Child(dshelp.MultihashToDsKey(mh))
+
+		// Check if the new key exists already because the user had
+		// both the CidV0 and a CidV1 for the same multihash, in which
+		// case it must be kept during the revert. This takes
+		// advantage that the migration does a dryRun first. Otherwise
+		// it has no point since other workers may have created it
+		// when processing a different, but equivalent CidV1.
+		newKeyExists := false
 		if dryRun {
-			sw.swapped++
+			_, err = cswap.Store.Get(newKey)
+			if err == nil {
+				newKeyExists = true
+			}
+		}
+
+		if dryRun {
+			sw.swapped++ // otherwise this is done in sw.swap
 		} else {
-			err = sw.swap(oldKey, newKey)
+			err = sw.swap(oldKey, newKey, false)
 			if err != nil {
 				log.Error("swapping %s for %s: %s", oldKey, newKey, err)
 				errored++
@@ -145,7 +160,7 @@ func (cswap *CidSwapper) swapWorker(dryRun bool, resultsCh <-chan query.Result) 
 		}
 
 		if cswap.SwapCh != nil {
-			cswap.SwapCh <- Swap{Old: oldKey, New: newKey}
+			cswap.SwapCh <- Swap{Old: oldKey, New: newKey, NewKeyExisted: newKeyExists}
 		}
 	}
 
@@ -182,7 +197,7 @@ func (cswap *CidSwapper) unswapWorker(unswapCh <-chan Swap) (uint64, uint64) {
 
 	// Process keys from the results channel
 	for sw := range unswapCh {
-		err := swker.swap(sw.New, sw.Old)
+		err := swker.swap(sw.New, sw.Old, sw.NewKeyExisted)
 
 		// Handle the case where a block had actually multiple CIDs
 		// and we already deleted the multihash-addressed block.  This
@@ -250,7 +265,7 @@ type swapWorker struct {
 // swap replaces old keys with new ones. It Syncs() when the
 // number of items written reaches SyncSize. Upon that it proceeds
 // to delete the old items.
-func (sw *swapWorker) swap(old, new ds.Key) error {
+func (sw *swapWorker) swap(old, new ds.Key, keepOld bool) error {
 	v, err := sw.store.Get(old)
 	vLen := uint64(len(v))
 	if err != nil {
@@ -259,7 +274,11 @@ func (sw *swapWorker) swap(old, new ds.Key) error {
 	if err := sw.store.Put(new, v); err != nil {
 		return err
 	}
-	sw.toDelete = append(sw.toDelete, old)
+
+	// Sometimes we want to keep multihashes (CidV0s) on revert.
+	if !keepOld {
+		sw.toDelete = append(sw.toDelete, old)
+	}
 
 	sw.swapped++
 	sw.curSyncSize += vLen
@@ -301,7 +320,7 @@ func (sw *swapWorker) sync() error {
 }
 
 // Copied from go-ipfs-ds-help as that one is gone.
-func dsKeyToCid(dsKey datastore.Key) (cid.Cid, error) {
+func dsKeyToCid(dsKey ds.Key) (cid.Cid, error) {
 	kb, err := dshelp.BinaryFromDsKey(dsKey)
 	if err != nil {
 		return cid.Cid{}, err

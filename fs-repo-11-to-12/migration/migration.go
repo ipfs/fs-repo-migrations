@@ -10,15 +10,15 @@ import (
 	"os"
 	"path/filepath"
 
+	log "github.com/ipfs/fs-repo-migrations/stump"
+
 	migrate "github.com/ipfs/fs-repo-migrations/go-migrate"
 	lock "github.com/ipfs/fs-repo-migrations/ipfs-1-to-2/repolock"
-	"github.com/ipfs/fs-repo-migrations/mfsr"
-	"github.com/ipfs/go-filestore"
-	dshelp "github.com/ipfs/go-ipfs-ds-help"
-
-	log "github.com/ipfs/fs-repo-migrations/stump"
+	mfsr "github.com/ipfs/fs-repo-migrations/mfsr"
 	ds "github.com/ipfs/go-datastore"
-	"github.com/ipfs/go-ipfs/plugin/loader"
+	filestore "github.com/ipfs/go-filestore"
+	dshelp "github.com/ipfs/go-ipfs-ds-help"
+	loader "github.com/ipfs/go-ipfs/plugin/loader"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 )
 
@@ -130,6 +130,11 @@ func (m Migration) Apply(opts migrate.Options) error {
 	writingDone := make(chan struct{})
 	go func() {
 		for sw := range swapCh {
+			// Mark if the new key already existed. When using the
+			// file for revert, we will not delete these.
+			if sw.NewKeyExisted {
+				fmt.Fprint(buf, "+")
+			}
 			// Only write the Old string (a CID). We can derive
 			// the multihash from it.
 			fmt.Fprint(buf, sw.Old.String(), "\n")
@@ -217,7 +222,16 @@ func (m Migration) Revert(opts migrate.Options) error {
 		defer close(unswapCh)
 
 		for scanner.Scan() {
-			cidPath := ds.NewKey(scanner.Text())
+			line := scanner.Text()
+			if len(line) == 0 {
+				continue
+			}
+			newKeyExisted := false
+			if line[0] == '+' {
+				newKeyExisted = true
+				line = line[1:]
+			}
+			cidPath := ds.NewKey(line)
 			cidKey := ds.NewKey(cidPath.BaseNamespace())
 			prefix := cidPath.Parent()
 			cid, err := dsKeyToCid(cidKey)
@@ -230,7 +244,7 @@ func (m Migration) Revert(opts migrate.Options) error {
 			// This is the original swap object which is what we
 			// wanted to rebuild. Old is the old path and new is
 			// the new path and the unswapper will revert this.
-			sw := Swap{Old: cidPath, New: mhashPath}
+			sw := Swap{Old: cidPath, New: mhashPath, NewKeyExisted: newKeyExisted}
 			unswapCh <- sw
 		}
 		if err := scanner.Err(); err != nil {
