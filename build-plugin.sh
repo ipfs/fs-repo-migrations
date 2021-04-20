@@ -9,15 +9,24 @@
 # subdirectory.  Run the migration binary directly, or copy it into a directory
 # in PATH to be run by ipfs-update or fs-repo-migrations.
 #
+# For each plugin built, the script asks which plugin to load. Use the -y flag
+# to avoid the prompt and choose 'plugin *' automatically.
+#
 # Example:
 # ./build-plugin.sh 10-to-11 github.com/ipfs/go-ds-s3 github.com/ipfs/go-ds-swift@v0.1.0
 #
 set -eou pipefail
 
 function usage() {
-    echo "usage: $0 x-to-y plugin_repo[@<version_or_hash>] ...">&2
+    echo "usage: $0 [-y] x-to-y plugin_repo[@<version_or_hash>] ...">&2
     echo "example: $0 10-to-11 github.com/ipfs/go-ds-s3" >&2
 }
+
+AUTO_ANSWER=no
+if [ "$1" = "-y" ]; then
+    AUTO_ANSWER=yes
+    shift 1
+fi
 
 if [ $# -lt 2 ]; then
     echo "too few arguments" >&2
@@ -68,6 +77,18 @@ function clone_ipfs() {
         git clone -b "$ver" "$IPFS_REPO_URL" "$BUILD_GOIPFS"
     fi
 }
+
+function ask_yes_no() {
+    local prompt="$1"
+    while true; do
+        read -p "$prompt [y/n]?" yn
+        case "$yn" in
+            [Yy]* ) return 0;;
+            [Nn]* ) return 1;;
+            * ) echo "Please answer y or n";;
+        esac
+    done
+}
     
 function bundle_ipfs_plugin() {
     local plugin_repo="$1"
@@ -84,7 +105,19 @@ function bundle_ipfs_plugin() {
     pushd "$BUILD_GOIPFS"
     go get "${plugin_repo}@${plugin_version}"
     popd
-    echo "$ds_name ${plugin_repo}/plugin *" >> "${BUILD_GOIPFS}/plugin/loader/preload_list"
+
+    # Prompt for plugin to load
+    load_plugin='plugin *'
+    if [ "$AUTO_ANSWER" != "yes" ]; then
+        while true; do
+            if ask_yes_no "For $plugin_repo, load '$load_plugin'"; then
+                break
+            else
+                read -p "Enter new value: " load_plugin
+            fi
+        done
+    fi
+    echo "$ds_name ${plugin_repo}/${load_plugin}" >> "${BUILD_GOIPFS}/plugin/loader/preload_list"
 }
 
 function build_migration() {
