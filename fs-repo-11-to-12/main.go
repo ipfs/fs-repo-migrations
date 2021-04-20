@@ -1,8 +1,8 @@
 package main
 
 import (
+	mg11 "github.com/ipfs/fs-repo-migrations/fs-repo-11-to-12/migration"
 	migrate "github.com/ipfs/fs-repo-migrations/go-migrate"
-	mg11 "github.com/ipfs/fs-repo-migrations/ipfs-11-to-12/migration"
 )
 
 func main() {
