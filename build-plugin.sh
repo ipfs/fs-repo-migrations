@@ -22,18 +22,24 @@ function usage() {
     echo "example: $0 10-to-11 github.com/ipfs/go-ds-s3" >&2
 }
 
+function check_args() {
+    if [ $1 -lt 2 ]; then
+        echo "too few arguments" >&2
+        echo >&2
+        usage
+        exit 1
+    fi
+}
+
+check_args $#
+
 AUTO_ANSWER=no
 if [ "$1" = "-y" ]; then
     AUTO_ANSWER=yes
     shift 1
 fi
 
-if [ $# -lt 2 ]; then
-    echo "too few arguments" >&2
-    echo >&2
-    usage
-    exit 1
-fi
+check_args $#
 
 MIGRATION="$1"
 BUILD_DIR="$(mktemp -d --suffix=migration_build)"
@@ -100,12 +106,29 @@ function bundle_ipfs_plugin() {
     fi
     echo "plugin version: $plugin_version"
     local plugin_name="$(echo $plugin_repo | rev | cut -d '-' -f 1 | rev)"
-    local ds_name="${plugin_name}ds"
-    
+
     pushd "$BUILD_GOIPFS"
     go get "${plugin_repo}@${plugin_version}"
     popd
 
+    local ds_name="${plugin_name}ds"
+    # While there is a plugin name conflict, ask for or generate new name.
+    # When run non-interactively, keep appending "1" until no conflict.
+    while grep -q "^${ds_name} " "${BUILD_GOIPFS}/plugin/loader/preload_list"; do
+        old_ds_name="$ds_name"
+        ds_name="${ds_name}1"
+        if [ "$AUTO_ANSWER" != "yes" ]; then
+            echo -n "\"$old_ds_name\" already in use, " 
+            while true; do
+                if ask_yes_no "use plugin name \"$ds_name\""; then
+                    break
+                else
+                    read -p "Enter new value: " ds_name
+                fi
+            done
+        fi
+    done
+    
     # Prompt for plugin to load
     load_plugin='plugin *'
     if [ "$AUTO_ANSWER" != "yes" ]; then
