@@ -19,27 +19,40 @@ set -eou pipefail
 
 function usage() {
     echo "usage: $0 [-y] x-to-y plugin_repo[@<version_or_hash>] ...">&2
+    echo
     echo "example: $0 10-to-11 github.com/ipfs/go-ds-s3" >&2
 }
 
-function check_args() {
-    if [ $1 -lt 2 ]; then
-        echo "too few arguments" >&2
+AUTO_ANSWER=no
+
+if [ $# -ge 1 ]; then
+    if [ "$1" = "-h" -o "$1" = "-?" -o "$1" = "-help" ]; then
+        echo "Build a migration with one or more plugins"
+        echo
+        usage
+        echo
+        echo "Options and arguments"
+        echo "-y     Automatically answer 'y' to all promots"
+        echo "First postional argument, specifies the migration to build."
+        echo "Remaining positional arguments specify plugin repos with optional version."
+        exit 0
+    elif [ "$1" = "-y" ]; then
+        AUTO_ANSWER=yes
+        shift 1
+    else
+        echo "unrecognized option $1" >&2
         echo >&2
         usage
         exit 1
     fi
-}
-
-check_args $#
-
-AUTO_ANSWER=no
-if [ "$1" = "-y" ]; then
-    AUTO_ANSWER=yes
-    shift 1
 fi
-
-check_args $#
+       
+if [ $# -lt 2 ]; then
+    echo "too few arguments" >&2
+    echo >&2
+    usage
+    exit 1
+fi
 
 MIGRATION="$1"
 BUILD_DIR="$(mktemp -d --suffix=migration_build)"
