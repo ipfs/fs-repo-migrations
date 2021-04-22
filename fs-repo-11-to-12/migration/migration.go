@@ -361,6 +361,10 @@ func walkPinsAndMFS(unswapCh chan Swap, dstore ds.Batching) error {
 	// We have everything. We send unswap requests
 	// for all these blocks.
 	err = gcs.ForEach(func(c cid.Cid) error {
+		// CidV0s are always fine. We do not need to unswap them.
+		if c.Version() == 0 {
+			return nil
+		}
 		mhash := c.Hash()
 		mhashKey := dshelp.MultihashToDsKey(mhash)
 		cidKey := cidToDsKey(c)
