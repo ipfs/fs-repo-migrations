@@ -5,24 +5,32 @@ package mg11
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 
 	log "github.com/ipfs/fs-repo-migrations/stump"
+	cid "github.com/ipfs/go-cid"
+	"github.com/ipfs/go-datastore"
+	"github.com/ipfs/go-ipfs-pinner/dspinner"
 
+	ipfslite "github.com/hsanjuan/ipfs-lite"
 	migrate "github.com/ipfs/fs-repo-migrations/go-migrate"
 	lock "github.com/ipfs/fs-repo-migrations/ipfs-1-to-2/repolock"
 	mfsr "github.com/ipfs/fs-repo-migrations/mfsr"
 	ds "github.com/ipfs/go-datastore"
 	filestore "github.com/ipfs/go-filestore"
 	dshelp "github.com/ipfs/go-ipfs-ds-help"
+	"github.com/ipfs/go-ipfs/gc"
 	loader "github.com/ipfs/go-ipfs/plugin/loader"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 )
 
 const backupFile = "11-to-12-cids.txt"
+
+var mfsRootKey = datastore.NewKey("/local/filesroot")
 
 var migrationPrefixes = []ds.Key{
 	ds.NewKey("blocks"),
@@ -48,7 +56,7 @@ func (m Migration) lock(opts migrate.Options) (io.Closer, error) {
 	return lock.Lock2(opts.Path)
 }
 
-// open the repo
+// open the datastore
 func (m Migration) open(opts migrate.Options) (ds.Batching, error) {
 	log.VLog("  - loading repo configurations")
 	plugins, err := loader.NewPluginLoader(opts.Path)
@@ -130,11 +138,6 @@ func (m Migration) Apply(opts migrate.Options) error {
 	writingDone := make(chan struct{})
 	go func() {
 		for sw := range swapCh {
-			// Mark if the new key already existed. When using the
-			// file for revert, we will not delete these.
-			if sw.NewKeyExisted {
-				fmt.Fprint(buf, "+")
-			}
 			// Only write the Old string (a CID). We can derive
 			// the multihash from it.
 			fmt.Fprint(buf, sw.Old.String(), "\n")
@@ -226,11 +229,6 @@ func (m Migration) Revert(opts migrate.Options) error {
 			if len(line) == 0 {
 				continue
 			}
-			newKeyExisted := false
-			if line[0] == '+' {
-				newKeyExisted = true
-				line = line[1:]
-			}
 			cidPath := ds.NewKey(line)
 			cidKey := ds.NewKey(cidPath.BaseNamespace())
 			prefix := cidPath.Parent()
@@ -244,10 +242,17 @@ func (m Migration) Revert(opts migrate.Options) error {
 			// This is the original swap object which is what we
 			// wanted to rebuild. Old is the old path and new is
 			// the new path and the unswapper will revert this.
-			sw := Swap{Old: cidPath, New: mhashPath, NewKeyExisted: newKeyExisted}
+			sw := Swap{Old: cidPath, New: mhashPath}
 			unswapCh <- sw
 		}
 		if err := scanner.Err(); err != nil {
+			log.Error(err)
+			return
+		}
+
+		// Ensure all pins/MFS which may have happened post-migration
+		// are reverted.
+		if err := walkPinsAndMFS(unswapCh, dstore); err != nil {
 			log.Error(err)
 			return
 		}
@@ -285,5 +290,89 @@ func (m Migration) Revert(opts migrate.Options) error {
 		log.Error("could not rename the backup file, but migration worked: %s", err)
 		return err
 	}
+	return nil
+}
+
+func walkPinsAndMFS(unswapCh chan Swap, dstore ds.Batching) error {
+	// The easiest way to get a dag service that we can use with the
+	// pinner on top of the datastore we opened.
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Wrapping a datastore all the way up to a DagService.
+	// This is the shortest way.
+	dags, err := ipfslite.New(
+		ctx,
+		dstore,
+		nil,
+		nil,
+		&ipfslite.Config{
+			Offline: true,
+		},
+	)
+	if err != nil {
+		return err
+	}
+
+	var bestEffortRoots []cid.Cid
+
+	// Find the MFS root.
+	mfsRoot, err := dstore.Get(mfsRootKey)
+	if err == datastore.ErrNotFound {
+		log.Error("empty MFS root")
+		return err
+	} else if err != nil {
+		log.Error(err)
+		return err
+	} else {
+		c, err := cid.Cast(mfsRoot)
+		if err != nil {
+			log.Error(err)
+			return err
+		}
+		log.Log("MFS Root: %s\n", c)
+		bestEffortRoots = append(bestEffortRoots, c)
+	}
+
+	// Get a pinner.
+	pinner, err := dspinner.New(ctx, dstore, dags)
+	if err != nil {
+		return err
+	}
+
+	output := make(chan gc.Result, 10)
+	defer close(output)
+	// consume any errors sent to this channel
+	go func() {
+		for r := range output {
+			log.Error(r.Error)
+		}
+	}()
+
+	// Obtain the total set of CIDs that we need to make sure are
+	// not
+	gcs, err := gc.ColoredSet(ctx, pinner, dags, bestEffortRoots, output)
+	if err != nil {
+		return err
+	}
+
+	blocksPath := ds.NewKey("/blocks")
+
+	// We have everything. We send unswap requests
+	// for all these blocks.
+	err = gcs.ForEach(func(c cid.Cid) error {
+		mhash := c.Hash()
+		mhashKey := dshelp.MultihashToDsKey(mhash)
+		cidKey := cidToDsKey(c)
+		mhashPath := blocksPath.Child(mhashKey)
+		cidPath := blocksPath.Child(cidKey)
+		sw := Swap{Old: cidPath, New: mhashPath}
+		unswapCh <- sw
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

@@ -7,6 +7,7 @@ import (
 
 	log "github.com/ipfs/fs-repo-migrations/stump"
 	cid "github.com/ipfs/go-cid"
+	"github.com/ipfs/go-datastore"
 	ds "github.com/ipfs/go-datastore"
 	query "github.com/ipfs/go-datastore/query"
 	dshelp "github.com/ipfs/go-ipfs-ds-help"
@@ -22,9 +23,8 @@ var NWorkers int = 4
 // Swap holds the datastore keys for the original CID and for the
 // destination Multihash.
 type Swap struct {
-	Old           ds.Key
-	New           ds.Key
-	NewKeyExisted bool
+	Old ds.Key
+	New ds.Key
 }
 
 // CidSwapper reads all the keys in a datastore and replaces
@@ -134,23 +134,10 @@ func (cswap *CidSwapper) swapWorker(dryRun bool, resultsCh <-chan query.Result) 
 		// /path/to/old/<cid> -> /path/to/old/<multihash>
 		newKey := oldKey.Parent().Child(dshelp.MultihashToDsKey(mh))
 
-		// Check if the new key exists already because the user had
-		// both the CidV0 and a CidV1 for the same multihash, in which
-		// case it must be kept during the revert. This takes
-		// advantage that the migration does a dryRun first. Otherwise
-		// it has no point since other workers may have created it
-		// when processing a different, but equivalent CidV1.
-		newKeyExists := false
-		if dryRun {
-			_, err = cswap.Store.Get(newKey)
-			if err == nil {
-				newKeyExists = true
-			}
-		}
-
 		if dryRun {
 			sw.swapped++ // otherwise this is done in sw.swap
 		} else {
+			// delete the old keys
 			err = sw.swap(oldKey, newKey, false)
 			if err != nil {
 				log.Error("swapping %s for %s: %s", oldKey, newKey, err)
@@ -160,7 +147,7 @@ func (cswap *CidSwapper) swapWorker(dryRun bool, resultsCh <-chan query.Result) 
 		}
 
 		if cswap.SwapCh != nil {
-			cswap.SwapCh <- Swap{Old: oldKey, New: newKey, NewKeyExisted: newKeyExists}
+			cswap.SwapCh <- Swap{Old: oldKey, New: newKey}
 		}
 	}
 
@@ -192,37 +179,17 @@ func (cswap *CidSwapper) unswapWorker(unswapCh <-chan Swap) (uint64, uint64) {
 		syncPrefix: cswap.Prefix,
 	}
 
-	// A map from multihash to Cid
-	unswappedMap := make(map[ds.Key]ds.Key)
-
 	// Process keys from the results channel
 	for sw := range unswapCh {
-		err := swker.swap(sw.New, sw.Old, sw.NewKeyExisted)
+		// During revert, we always keep the old keys.  This addresses
+		// corner cases with keys that were referenced with both CIDv1
+		// and CIDv0 and with pins added post migration.
+		err := swker.swap(sw.New, sw.Old, true)
 
-		// Handle the case where a block had actually multiple CIDs
-		// and we already deleted the multihash-addressed block.  This
-		// needs a manual swap from the CID we reverted to before.
+		// Did the user GC a migrated block?
 		if err == ds.ErrNotFound {
-			// Is it because we swapped it already?
-			swappedTo, ok := unswappedMap[sw.New]
-			if !ok {
-				log.Error("could not revert %s->%s. Could not find %s", sw.Old, sw.New, sw.New)
-				errored++
-				continue
-			}
-			swker.sync()
-			log.VLog("  - %s is duplicated under additional CIDs (%s). This is ok.", sw.New, sw.Old)
-			v, err := swker.store.Get(swappedTo)
-			if err != nil {
-				log.Error("could not get previously reverted value %s: %s", swappedTo, err)
-				errored++
-				continue
-			}
-			if err := swker.store.Put(sw.Old, v); err != nil {
-				log.Error(err)
-				errored++
-			}
-			swker.swapped++
+			log.Error("could not revert %s->%s. Could not find %s. Was it GC'ed? This error is not fatal", sw.Old, sw.New, sw.New)
+			continue
 		} else if err != nil {
 			log.Error("swapping %s for %s: %s", sw.New, sw.Old, err)
 			errored++
@@ -231,8 +198,6 @@ func (cswap *CidSwapper) unswapWorker(unswapCh <-chan Swap) (uint64, uint64) {
 		if cswap.SwapCh != nil {
 			cswap.SwapCh <- Swap{Old: sw.New, New: sw.Old}
 		}
-		// Remember that we switched certain multiash for a Cid already
-		unswappedMap[sw.New] = sw.Old
 	}
 
 	// final sync to added things
@@ -326,4 +291,9 @@ func dsKeyToCid(dsKey ds.Key) (cid.Cid, error) {
 		return cid.Cid{}, err
 	}
 	return cid.Cast(kb)
+}
+
+// Copied from go-ipfs-ds-help as that one is gone.
+func cidToDsKey(k cid.Cid) datastore.Key {
+	return dshelp.NewKeyFromBinary(k.Bytes())
 }
