@@ -7,7 +7,6 @@ import (
 
 	log "github.com/ipfs/fs-repo-migrations/stump"
 	cid "github.com/ipfs/go-cid"
-	"github.com/ipfs/go-datastore"
 	ds "github.com/ipfs/go-datastore"
 	query "github.com/ipfs/go-datastore/query"
 	dshelp "github.com/ipfs/go-ipfs-ds-help"
@@ -294,6 +293,6 @@ func dsKeyToCid(dsKey ds.Key) (cid.Cid, error) {
 }
 
 // Copied from go-ipfs-ds-help as that one is gone.
-func cidToDsKey(k cid.Cid) datastore.Key {
+func cidToDsKey(k cid.Cid) ds.Key {
 	return dshelp.NewKeyFromBinary(k.Bytes())
 }

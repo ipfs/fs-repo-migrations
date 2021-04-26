@@ -12,4 +12,6 @@ require (
 	github.com/ipfs/go-ipfs-blockstore v1.0.3 // indirect
 	github.com/ipfs/go-ipfs-ds-help v1.0.0
 	github.com/ipfs/go-ipfs-pinner v0.1.1
+	github.com/ipfs/go-ipld-format v0.2.0
+	github.com/otiai10/copy v1.5.1
 )
