@@ -35,7 +35,7 @@ clean.%: MIGRATION=$*
 clean.%:
 	make -C $(MIGRATION) clean
 
-test_go: $(shell ls -d fs-repo-*-to-* | sed -e 's/fs-repo/test_go.fs-repo/')
+test_go: $(shell ls -d fs-repo-*-to-*/migration | sed -e 's/fs-repo/test_go.fs-repo/')
 	@echo OK
 
 test_go.%: MIGRATION=$*

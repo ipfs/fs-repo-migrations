@@ -130,7 +130,7 @@ func latestRepoMigration(fetcher migrations.Fetcher) (int, error) {
 	// request and calculate latest
 	//
 	// When searching for latest migration, start looking using this repo version
-	const currentVersion = 11
+	const currentVersion = 12
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
