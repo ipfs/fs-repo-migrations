@@ -13,7 +13,7 @@ test_expect_success "'fs-repo-migrations -v' works" '
 '
 
 test_expect_success "'fs-repo-migrations -v' output looks good" '
-	echo "12" >expected &&
+	echo "11" >expected &&
 	test_cmp expected actual
 '
 
@@ -30,7 +30,7 @@ test_expect_success "'fs-repo-migrations -v' works" '
 '
 
 test_expect_success "'fs-repo-migrations -v' output looks good" '
-	echo "12" >expected &&
+	echo "11" >expected &&
 	test_cmp expected actual
 '
 
