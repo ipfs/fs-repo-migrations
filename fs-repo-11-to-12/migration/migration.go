@@ -7,36 +7,34 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
+	"sync"
 
 	log "github.com/ipfs/fs-repo-migrations/stump"
-	format "github.com/ipfs/go-ipld-format"
 
-	ipfslite "github.com/hsanjuan/ipfs-lite"
 	migrate "github.com/ipfs/fs-repo-migrations/go-migrate"
-	lock "github.com/ipfs/fs-repo-migrations/ipfs-1-to-2/repolock"
 	mfsr "github.com/ipfs/fs-repo-migrations/mfsr"
 	cid "github.com/ipfs/go-cid"
 	ds "github.com/ipfs/go-datastore"
 	filestore "github.com/ipfs/go-filestore"
 	dshelp "github.com/ipfs/go-ipfs-ds-help"
-	ipfspinner "github.com/ipfs/go-ipfs-pinner"
-	dspinner "github.com/ipfs/go-ipfs-pinner/dspinner"
 	gc "github.com/ipfs/go-ipfs/gc"
-	loader "github.com/ipfs/go-ipfs/plugin/loader"
-	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 )
 
 const backupFile = "11-to-12-cids.txt"
 
+// mfs root key path in the datastore
 var mfsRootKey = ds.NewKey("/local/filesroot")
 
+// blocks prefix in the datastore
 var blocksPrefix = ds.NewKey("/blocks")
 
+// filestore prefix in the datastore
 var filestorePrefix = filestore.FilestorePrefix
 
+// keyspace that we will be migrating and that contains paths in the form
+// <prefix>/<cid>.
 var migrationPrefixes = []ds.Key{
 	blocksPrefix,
 	filestorePrefix,
@@ -44,8 +42,8 @@ var migrationPrefixes = []ds.Key{
 
 // Migration implements the migration described above.
 type Migration struct {
-	plugins *loader.PluginLoader
-	dstore  ds.Batching
+	loadPluginsOnce sync.Once
+	dstore          ds.Batching
 }
 
 // Versions returns the current version string for this migration.
@@ -58,65 +56,12 @@ func (m *Migration) Reversible() bool {
 	return true
 }
 
-// lock the repo
-func (m *Migration) lock(opts migrate.Options) (io.Closer, error) {
-	log.VLog("locking repo at %q", opts.Path)
-	return lock.Lock2(opts.Path)
-}
-
-func (m *Migration) setupPlugins(opts migrate.Options) error {
-	if m.plugins != nil {
-		return nil
-	}
-
-	log.VLog("  - loading repo configurations")
-	plugins, err := loader.NewPluginLoader(opts.Path)
-	if err != nil {
-		return fmt.Errorf("error loading plugins: %s", err)
-	}
-	m.plugins = plugins
-
-	if err := plugins.Initialize(); err != nil {
-		return fmt.Errorf("error initializing plugins: %s", err)
-	}
-
-	if err := plugins.Inject(); err != nil {
-		return fmt.Errorf("error injecting plugins: %s", err)
-	}
-
-	return nil
-}
-
-// open the datastore
-func (m *Migration) open(opts migrate.Options) error {
-	if err := m.setupPlugins(opts); err != nil {
-		return err
-	}
-
-	// assume already opened. We cannot initalize plugins twice.
-	if m.dstore != nil {
-		m.dstore.Close()
-	}
-
-	cfg, err := fsrepo.ConfigAt(opts.Path)
-	if err != nil {
-		return err
-	}
-
-	dsc, err := fsrepo.AnyDatastoreConfig(cfg.Datastore.Spec)
-	if err != nil {
-		return err
-	}
-
-	dstore, err := dsc.Create(opts.Path)
-	if err != nil {
-		return err
-	}
-	m.dstore = dstore
-	return nil
-}
-
 // Apply runs the migration and writes a log file that can be used by Revert.
+// Steps:
+// - Open a raw datastore using go-ipfs settings
+// - Simulate the migration and save a backup log
+// - Run the migration by storing all CIDv1 addressed logs as raw-multihash
+//   addressed.
 func (m *Migration) Apply(opts migrate.Options) error {
 	log.Verbose = opts.Verbose
 	log.Log("applying %s repo migration", m.Versions())
@@ -142,21 +87,7 @@ func (m *Migration) Apply(opts migrate.Options) error {
 
 	log.VLog("  - starting CIDv1 to raw multihash block migration")
 
-	// Prepare backing up of CIDs
-	backupPath := filepath.Join(opts.Path, backupFile)
-	log.VLog("  - backup file will be written to %s", backupPath)
-	_, err = os.Stat(backupPath)
-	if err != nil {
-		if !os.IsNotExist(err) {
-			log.Error(err)
-			return err
-		}
-	} else { // backup file exists
-		log.Log("WARN: backup file %s already exists. CIDs-Multihash pairs will be appended", backupPath)
-	}
-
-	// If it exists, append to it.
-	f, err := os.OpenFile(backupPath, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+	f, err := createBackupFile(opts.Path, backupFile)
 	if err != nil {
 		log.Error(err)
 		return err
@@ -165,8 +96,9 @@ func (m *Migration) Apply(opts migrate.Options) error {
 	buf := bufio.NewWriter(f)
 
 	swapCh := make(chan Swap, 1000)
-
 	writingDone := make(chan struct{})
+
+	// Write the old CIDv1-key of every swapped item to the buffer.
 	go func() {
 		for sw := range swapCh {
 			// Only write the Old string (a CID). We can derive
@@ -176,7 +108,14 @@ func (m *Migration) Apply(opts migrate.Options) error {
 		close(writingDone)
 	}()
 
-	// Add all the keys to migrate to the backup file
+	// DRY RUN: A swapper for each migration prefix and write everything
+	// to the file.
+	//
+	// Reasoning: We do not want a broken or unwritten file if the
+	// migration blows up. If it does blow up half-way through, and we
+	// need to run it again, we will only append to this file. Having
+	// potential duplicate entries in the backup file will not break
+	// reverts.
 	for _, prefix := range migrationPrefixes {
 		log.VLog("  - Adding keys in prefix %s to backup file", prefix)
 		cidSwapper := CidSwapper{Prefix: prefix, Store: m.dstore, SwapCh: swapCh}
@@ -193,7 +132,7 @@ func (m *Migration) Apply(opts migrate.Options) error {
 	<-writingDone
 	buf.Flush()
 
-	// The backup file is ready. Run the migration.
+	// MIGRATION: Run the real migration.
 	for _, prefix := range migrationPrefixes {
 		log.VLog("  - Migrating keys in prefix %s", prefix)
 		cidSwapper := CidSwapper{Prefix: prefix, Store: m.dstore}
@@ -205,6 +144,7 @@ func (m *Migration) Apply(opts migrate.Options) error {
 		log.Log("%d CIDv1 keys in %s have been migrated", total, prefix)
 	}
 
+	// Wrap up, we are now in repo-version 12.
 	if err := repo.WriteVersion("12"); err != nil {
 		log.Error("failed to write version file")
 		return err
@@ -215,6 +155,12 @@ func (m *Migration) Apply(opts migrate.Options) error {
 }
 
 // Revert attempts to undo the migration using the log file written by Apply.
+// Steps:
+// - Read the backup log and write all entries as a CIDv1-addressed block
+// - Do the same with the MFS root
+// - Do the same with all the CidV1 blocks recursively referenced in the pinset
+//
+// Revert does not delete blocks that are reverted so cover some corner cases.
 func (m *Migration) Revert(opts migrate.Options) error {
 	log.Verbose = opts.Verbose
 	log.Log("reverting %s repo migration", m.Versions())
@@ -241,8 +187,7 @@ func (m *Migration) Revert(opts migrate.Options) error {
 
 	// Open revert path for reading
 	backupPath := filepath.Join(opts.Path, backupFile)
-	log.VLog("  - backup file will be read from %s", backupPath)
-	f, err := os.Open(backupPath)
+	f, err := getBackupFile(backupPath)
 	if err != nil {
 		log.Error(err)
 		return err
@@ -252,14 +197,21 @@ func (m *Migration) Revert(opts migrate.Options) error {
 	scanner := bufio.NewScanner(f)
 	var scannerErr error
 
+	// This will send swap objects to the Unswapper on unswapCh as they
+	// are read from the backup file on disk. It will also send MFS and
+	// pinset pins for reversal.
 	go func() {
 		defer close(unswapCh)
 
+		// Process backup file first.
 		for scanner.Scan() {
 			line := scanner.Text()
 			if len(line) == 0 {
 				continue
 			}
+			// The backup file only contains the original cidv1
+			// path. Do the path massaging magic to figure out the
+			// actual Cidv1 and derived Cidv0-path (current key).
 			cidPath := ds.NewKey(line)
 			cidKey := ds.NewKey(cidPath.BaseNamespace())
 			prefix := cidPath.Parent()
@@ -281,8 +233,9 @@ func (m *Migration) Revert(opts migrate.Options) error {
 			return
 		}
 
-		// Ensure all pins/MFS which may have happened post-migration
-		// are reverted.
+		// Process MFS/pinset. We have to do this in cases the user
+		// has been running with the migration for some time and made changes to
+		// the pinset or the MFS root.
 		if err := walkPinsAndMFS(unswapCh, m.dstore); err != nil {
 			log.Error(err)
 			return
@@ -291,7 +244,7 @@ func (m *Migration) Revert(opts migrate.Options) error {
 	}()
 
 	// The backup file contains prefixed keys, so we do not need to set
-	// them.
+	// Prefix in the CidSwapper.
 	cidSwapper := CidSwapper{Store: m.dstore}
 	total, err := cidSwapper.Revert(unswapCh)
 	if err != nil {
@@ -304,6 +257,7 @@ func (m *Migration) Revert(opts migrate.Options) error {
 		return err
 	}
 
+	// Wrap up the Revert. We are back at version 11.
 	log.Log("%d multihashes reverted to CidV1s", total)
 	if err := repo.WriteVersion("11"); err != nil {
 		log.Error("failed to write version file")
@@ -316,6 +270,8 @@ func (m *Migration) Revert(opts migrate.Options) error {
 		log.Error("could not close backup file")
 		return err
 	}
+
+	// Move the backup file out of the way.
 	err = os.Rename(backupPath, backupPath+".reverted")
 	if err != nil {
 		log.Error("could not rename the backup file, but migration worked: %s", err)
@@ -324,52 +280,23 @@ func (m *Migration) Revert(opts migrate.Options) error {
 	return nil
 }
 
-func getPinner(ctx context.Context, dstore ds.Batching) (ipfspinner.Pinner, format.DAGService, error) {
-	// Wrapping a datastore all the way up to a DagService.
-	// This is the shortest way.
-	dags, err := ipfslite.New(
-		ctx,
-		dstore,
-		nil,
-		nil,
-		&ipfslite.Config{
-			Offline: true,
-		},
-	)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	// Get a pinner.
-	pinner, err := dspinner.New(ctx, dstore, dags)
-	if err != nil {
-		return nil, nil, err
-	}
-	return pinner, dags, nil
-}
-
-func getMFSRoot(dstore ds.Batching) (cid.Cid, error) {
-	// Find the MFS root.
-	mfsRoot, err := dstore.Get(mfsRootKey)
-	if err != nil {
-		return cid.Undef, err
-	}
-	c, err := cid.Cast(mfsRoot)
-	if err != nil {
-		log.Error(err)
-		return cid.Undef, err
-	}
-	return c, nil
-}
-
+// sends all pins in the pinset and the MFS root to the unswap channel when
+// they are CidV1s. This is used during revert. Pins may have been added or
+// MFS root changed at some point between the migration and the revert.  If we
+// do not revert those CIDv1s, we might find that go-ipfs does not know
+// anymore how to find those blocks (they should be reverted and addressed as
+// CIDv1 in the blockstore).
+//
+// In the best case, most of those blocks will already be stored correctly and
+// the revert can swiftly do nothing.
 func walkPinsAndMFS(unswapCh chan Swap, dstore ds.Batching) error {
-	// The easiest way to get a dag service that we can use with the
-	// pinner on top of the datastore we opened.
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	var bestEffortRoots []cid.Cid
 
+	// There should always be an MFS root. We add it to the list of things
+	// to revert.
 	mfsRoot, err := getMFSRoot(dstore)
 	if err == ds.ErrNotFound {
 		log.Error("empty MFS root")
@@ -382,7 +309,7 @@ func walkPinsAndMFS(unswapCh chan Swap, dstore ds.Batching) error {
 	log.Log("MFS Root: %s\n", mfsRoot)
 	bestEffortRoots = append(bestEffortRoots, mfsRoot)
 
-	// Get a pinner.
+	// Get a pinner so that we can recursively list all pins.
 	pinner, dags, err := getPinner(ctx, dstore)
 	if err != nil {
 		return err
@@ -397,15 +324,15 @@ func walkPinsAndMFS(unswapCh chan Swap, dstore ds.Batching) error {
 		}
 	}()
 
-	// Obtain the total set of CIDs that we need to make sure are
-	// not
+	// This GC method returns adds the things that cannot be GC'ed (so all
+	// the things that are pinned).
 	gcs, err := gc.ColoredSet(ctx, pinner, dags, bestEffortRoots, output)
 	if err != nil {
 		return err
 	}
 
-	// We have everything. We send unswap requests
-	// for all these blocks.
+	// We have everything. We send unswap requests for all these blocks,
+	// when they are CIDv1s.
 	err = gcs.ForEach(func(c cid.Cid) error {
 		// CidV0s are always fine. We do not need to unswap them.
 		if c.Version() == 0 {
