@@ -11,14 +11,14 @@ import (
 	"github.com/ipfs/go-blockservice"
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-filestore"
-	"github.com/ipfs/go-ipfs-blockstore"
-	"github.com/ipfs/go-ipfs-exchange-offline"
+	blockstore "github.com/ipfs/go-ipfs-blockstore"
+	offline "github.com/ipfs/go-ipfs-exchange-offline"
 	"github.com/ipfs/go-ipfs-pinner/pinconv"
 	"github.com/ipfs/go-ipfs/plugin/loader"
 	"github.com/ipfs/go-ipfs/repo"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	"github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
-	"github.com/ipfs/go-ipld-format"
+	format "github.com/ipfs/go-ipld-format"
 	"github.com/ipfs/go-merkledag"
 
 	migrate "github.com/ipfs/fs-repo-migrations/tools/go-migrate"
@@ -88,7 +88,7 @@ func (m Migration) Apply(opts migrate.Options) error {
 
 	err = migrations.WriteRepoVersion(opts.Path, toVer)
 	if err != nil {
-		return fmt.Errorf("failed to update version file to %s: %v", toVer, err)
+		return fmt.Errorf("failed to update version file to %d: %v", toVer, err)
 	}
 
 	log.Print("updated version file")
