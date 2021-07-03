@@ -25,7 +25,7 @@ function usage() {
 
 AUTO_ANSWER=no
 
-if [ $# -ge 1 ]; then
+if [[ $# -ge 1 ]] && [[ "$1" =~ ^-.* ]]; then
     if [ "$1" = "-h" -o "$1" = "-?" -o "$1" = "-help" ]; then
         echo "Build a migration with one or more plugins"
         echo
