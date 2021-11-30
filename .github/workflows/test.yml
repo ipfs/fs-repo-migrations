@@ -1,5 +1,8 @@
 name: Tests
 
+env:
+  GO: 1.17
+
 on:
   push:
     branches: [ master ]
@@ -14,6 +17,11 @@ jobs:
     - uses: actions/checkout@v2
       with:
         fetch-depth: 2
+
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: ${{ env.GO }}
 
     - name: Make
       run: make -k test
