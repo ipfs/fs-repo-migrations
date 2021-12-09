@@ -77,8 +77,8 @@ git push origin <migration>/v<version>
 
 Example:
 ```sh
-git tag fs-repo-99-100/v1.0.1
-git push origin fs-repo-99-100/v1.0.1
+git tag fs-repo-99-to-100/v1.0.1
+git push origin fs-repo-99-to-100/v1.0.1
 ```
 
 ### Dependencies
