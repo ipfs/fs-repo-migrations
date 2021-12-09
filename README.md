@@ -48,7 +48,7 @@ Here is the table showing which repo version corresponds to which go-ipfs versio
 |                 9 | 0.5.0 - 0.6.0    |
 |                10 | 0.6.0 - 0.7.0    |
 |                11 | 0.8.0 - 0.11.0   |
-|                12 | 0.12.0 - current  |
+|                12 | 0.12.0 - current |
 
 ### How to Run Migrations
 
