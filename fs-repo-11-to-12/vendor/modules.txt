@@ -84,11 +84,12 @@ github.com/ipfs/bbloom
 ## explicit
 github.com/ipfs/fs-repo-migrations/ipfs-1-to-2/lock
 github.com/ipfs/fs-repo-migrations/ipfs-1-to-2/repolock
-github.com/ipfs/fs-repo-migrations/mfsr
 github.com/ipfs/fs-repo-migrations/stump
 # github.com/ipfs/fs-repo-migrations/tools v0.0.0-20210323144402-297a63449538
 ## explicit
 github.com/ipfs/fs-repo-migrations/tools/go-migrate
+github.com/ipfs/fs-repo-migrations/tools/mfsr
+github.com/ipfs/fs-repo-migrations/tools/stump
 # github.com/ipfs/go-bitswap v0.3.3
 github.com/ipfs/go-bitswap
 github.com/ipfs/go-bitswap/decision

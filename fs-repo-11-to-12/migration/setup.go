@@ -9,8 +9,8 @@ import (
 
 	ipfslite "github.com/hsanjuan/ipfs-lite"
 	lock "github.com/ipfs/fs-repo-migrations/ipfs-1-to-2/repolock"
-	log "github.com/ipfs/fs-repo-migrations/stump"
 	migrate "github.com/ipfs/fs-repo-migrations/tools/go-migrate"
+	log "github.com/ipfs/fs-repo-migrations/tools/stump"
 	cid "github.com/ipfs/go-cid"
 	ds "github.com/ipfs/go-datastore"
 	ipfspinner "github.com/ipfs/go-ipfs-pinner"
