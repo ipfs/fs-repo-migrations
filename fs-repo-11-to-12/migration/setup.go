@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 
 	ipfslite "github.com/hsanjuan/ipfs-lite"
-	lock "github.com/ipfs/fs-repo-migrations/ipfs-1-to-2/repolock"
 	migrate "github.com/ipfs/fs-repo-migrations/tools/go-migrate"
+	lock "github.com/ipfs/fs-repo-migrations/tools/repolock"
 	log "github.com/ipfs/fs-repo-migrations/tools/stump"
 	cid "github.com/ipfs/go-cid"
 	ds "github.com/ipfs/go-datastore"
