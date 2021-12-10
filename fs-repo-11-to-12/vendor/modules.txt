@@ -80,8 +80,6 @@ github.com/huin/goupnp/soap
 github.com/huin/goupnp/ssdp
 # github.com/ipfs/bbloom v0.0.4
 github.com/ipfs/bbloom
-# github.com/ipfs/fs-repo-migrations v1.7.1
-## explicit
 # github.com/ipfs/fs-repo-migrations/tools v0.0.0-20210323144402-297a63449538
 ## explicit
 github.com/ipfs/fs-repo-migrations/tools/go-migrate
@@ -204,7 +202,6 @@ github.com/ipfs/go-ipfs/thirdparty/cidv0v1
 github.com/ipfs/go-ipfs/thirdparty/dir
 github.com/ipfs/go-ipfs/thirdparty/verifbs
 # github.com/ipfs/go-ipfs-blockstore v1.0.3
-## explicit
 github.com/ipfs/go-ipfs-blockstore
 # github.com/ipfs/go-ipfs-chunker v0.0.5
 github.com/ipfs/go-ipfs-chunker
