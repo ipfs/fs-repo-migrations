@@ -13,8 +13,8 @@ import (
 
 	log "github.com/ipfs/fs-repo-migrations/stump"
 
-	migrate "github.com/ipfs/fs-repo-migrations/go-migrate"
 	mfsr "github.com/ipfs/fs-repo-migrations/mfsr"
+	migrate "github.com/ipfs/fs-repo-migrations/tools/go-migrate"
 	cid "github.com/ipfs/go-cid"
 	ds "github.com/ipfs/go-datastore"
 	filestore "github.com/ipfs/go-filestore"

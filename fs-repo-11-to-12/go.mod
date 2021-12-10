@@ -3,6 +3,7 @@ module github.com/ipfs/fs-repo-migrations/fs-repo-11-to-12
 go 1.15
 
 require (
+	github.com/ipfs/fs-repo-migrations/tools v0.0.0-20210323144402-297a63449538
 	github.com/hsanjuan/ipfs-lite v1.1.19
 	github.com/ipfs/fs-repo-migrations v1.7.1
 	github.com/ipfs/go-cid v0.0.7

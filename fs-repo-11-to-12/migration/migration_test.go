@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	migrate "github.com/ipfs/fs-repo-migrations/go-migrate"
+	migrate "github.com/ipfs/fs-repo-migrations/tools/go-migrate"
 	cid "github.com/ipfs/go-cid"
 	ds "github.com/ipfs/go-datastore"
 	query "github.com/ipfs/go-datastore/query"
