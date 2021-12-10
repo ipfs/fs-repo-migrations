@@ -80,13 +80,13 @@ github.com/huin/goupnp/soap
 github.com/huin/goupnp/ssdp
 # github.com/ipfs/bbloom v0.0.4
 github.com/ipfs/bbloom
-# github.com/ipfs/fs-repo-migrations v1.7.1
+# github.com/ipfs/fs-repo-migrations/tools v0.0.0-20211209222258-754a2dcb82ea
 ## explicit
-github.com/ipfs/fs-repo-migrations/go-migrate
-github.com/ipfs/fs-repo-migrations/ipfs-1-to-2/lock
-github.com/ipfs/fs-repo-migrations/ipfs-1-to-2/repolock
-github.com/ipfs/fs-repo-migrations/mfsr
-github.com/ipfs/fs-repo-migrations/stump
+github.com/ipfs/fs-repo-migrations/tools/go-migrate
+github.com/ipfs/fs-repo-migrations/tools/lock
+github.com/ipfs/fs-repo-migrations/tools/mfsr
+github.com/ipfs/fs-repo-migrations/tools/repolock
+github.com/ipfs/fs-repo-migrations/tools/stump
 # github.com/ipfs/go-bitswap v0.3.3
 github.com/ipfs/go-bitswap
 github.com/ipfs/go-bitswap/decision
@@ -202,7 +202,6 @@ github.com/ipfs/go-ipfs/thirdparty/cidv0v1
 github.com/ipfs/go-ipfs/thirdparty/dir
 github.com/ipfs/go-ipfs/thirdparty/verifbs
 # github.com/ipfs/go-ipfs-blockstore v1.0.3
-## explicit
 github.com/ipfs/go-ipfs-blockstore
 # github.com/ipfs/go-ipfs-chunker v0.0.5
 github.com/ipfs/go-ipfs-chunker

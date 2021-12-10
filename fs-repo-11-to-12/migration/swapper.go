@@ -5,7 +5,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	log "github.com/ipfs/fs-repo-migrations/stump"
+	log "github.com/ipfs/fs-repo-migrations/tools/stump"
 	cid "github.com/ipfs/go-cid"
 	ds "github.com/ipfs/go-datastore"
 	query "github.com/ipfs/go-datastore/query"
