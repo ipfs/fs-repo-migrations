@@ -67,12 +67,7 @@ func (cswap *CidSwapper) Revert(unswapCh <-chan Swap) (uint64, error) {
 	swapWorkerFunc := func() (uint64, uint64) {
 		return cswap.unswapWorker(unswapCh)
 	}
-	// We only run 1 worker for revert. Migrations
-	// many-cid-to-one-multihash mappings, but reverts can have the
-	// opposite. The unswapWorker keeps a cache to handle that, but
-	// this only works with a single worker. Otherwise we'd need
-	// complex syncing, or delayed removal (increased datastore size).
-	return cswap.runWorkers(1, swapWorkerFunc)
+	return cswap.runWorkers(NWorkers, swapWorkerFunc)
 }
 
 // Run workers launches several workers to run the given function which returns
