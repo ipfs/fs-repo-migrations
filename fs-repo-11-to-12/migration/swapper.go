@@ -2,6 +2,8 @@ package mg11
 
 import (
 	"errors"
+	"os"
+	"strconv"
 	"sync"
 	"sync/atomic"
 
@@ -18,6 +20,32 @@ var SyncSize uint64 = 20 * 1024 * 1024 // 20MiB
 // NWorkers sets the number of swapping threads to run when applying a
 // migration.
 var NWorkers int = 4
+
+func init() {
+	workerEnvVar := "IPFS_FS_MIGRATION_11_TO_12_NWORKERS"
+	syncSizeEnvVar := "IPFS_FS_MIGRATION_11_TO_12_SYNC_SIZE"
+	if nworkersStr, nworkerInEnv := os.LookupEnv(workerEnvVar); nworkerInEnv {
+		nworkers, err := strconv.Atoi(nworkersStr)
+		if err != nil {
+			panic(err)
+		}
+		if nworkers < 1 {
+			panic("number of workers must be at least 1")
+		}
+		NWorkers = nworkers
+	}
+
+	if syncSizeStr, syncSizeInEnv := os.LookupEnv(syncSizeEnvVar); syncSizeInEnv {
+		syncSize, err := strconv.ParseUint(syncSizeStr, 10, 64)
+		if err != nil {
+			panic(err)
+		}
+		if syncSize < 1 {
+			panic("sync size bytes must be at least 1")
+		}
+		SyncSize = syncSize
+	}
+}
 
 // Swap holds the datastore keys for the original CID and for the
 // destination Multihash.
