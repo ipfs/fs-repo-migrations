@@ -123,7 +123,7 @@ github.com/ipfs/go-datastore/mount
 github.com/ipfs/go-datastore/namespace
 github.com/ipfs/go-datastore/query
 github.com/ipfs/go-datastore/sync
-# github.com/ipfs/go-ds-badger v0.2.7-0.20211210151007-a2805355dcf5
+# github.com/ipfs/go-ds-badger v0.2.7-0.20220117180822-159330558612
 ## explicit
 github.com/ipfs/go-ds-badger
 # github.com/ipfs/go-ds-flatfs v0.4.5
