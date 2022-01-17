@@ -4,6 +4,8 @@ test_description="Simple fs-repo-migrations tests"
 
 . lib/test-lib.sh
 
+latestRepoVersion="12"
+
 test_expect_success "fs-repo-migrations binary is here" '
 	test -f "$LOCAL_FS_REPO_MIG"
 '
@@ -13,7 +15,7 @@ test_expect_success "'fs-repo-migrations -v' works" '
 '
 
 test_expect_success "'fs-repo-migrations -v' output looks good" '
-	echo "11" >expected &&
+	echo "$latestRepoVersion" >expected &&
 	test_cmp expected actual
 '
 
@@ -30,7 +32,7 @@ test_expect_success "'fs-repo-migrations -v' works" '
 '
 
 test_expect_success "'fs-repo-migrations -v' output looks good" '
-	echo "11" >expected &&
+	echo "$latestRepoVersion" >expected &&
 	test_cmp expected actual
 '
 
