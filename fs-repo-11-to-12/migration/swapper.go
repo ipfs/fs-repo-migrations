@@ -143,8 +143,11 @@ func (cswap *CidSwapper) swapWorker(dryRun bool, resultsCh <-chan query.Result) 
 		c, err := dsKeyToCid(ds.NewKey(oldKey.BaseNamespace())) // remove prefix
 		if err != nil {
 			// complain if we find anything that is not a CID but
-			// leave it as it is.
-			log.Log("could not parse %s as a Cid", oldKey)
+			// leave it as it is.  This can potentially be raw
+			// multihashes that are not CIDv0s (i.e. using
+			// anything other than sha256). They may come from a
+			// previous migration.
+			log.VLog("could not parse %s as a Cid", oldKey)
 			continue
 		}
 		if c.Version() == 0 { // CidV0 are multihashes, leave them.
