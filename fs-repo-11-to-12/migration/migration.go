@@ -92,7 +92,6 @@ func (m *Migration) Apply(opts migrate.Options) error {
 		log.Error(err)
 		return err
 	}
-	defer f.Close()
 	buf := bufio.NewWriter(f)
 
 	swapCh := make(chan Swap, 1000)
@@ -119,7 +118,7 @@ func (m *Migration) Apply(opts migrate.Options) error {
 	for _, prefix := range migrationPrefixes {
 		log.VLog("  - Adding keys in prefix %s to backup file", prefix)
 		cidSwapper := CidSwapper{Prefix: prefix, Store: m.dstore, SwapCh: swapCh}
-		total, err := cidSwapper.Run(true) // DRY RUN
+		total, err := cidSwapper.Prepare() // DRY RUN
 		if err != nil {
 			close(swapCh)
 			log.Error(err)
@@ -131,17 +130,12 @@ func (m *Migration) Apply(opts migrate.Options) error {
 	// Wait for our writing to finish before doing the flushing.
 	<-writingDone
 	buf.Flush()
+	f.Close()
 
-	// MIGRATION: Run the real migration.
-	for _, prefix := range migrationPrefixes {
-		log.VLog("  - Migrating keys in prefix %s", prefix)
-		cidSwapper := CidSwapper{Prefix: prefix, Store: m.dstore}
-		total, err := cidSwapper.Run(false) // NOT a Dry Run
-		if err != nil {
-			log.Error(err)
-			return err
-		}
-		log.Log("%d CIDv1 keys in %s have been migrated", total, prefix)
+	err = m.scanAndSwap(filepath.Join(opts.Path, backupFile), false) // revert=false
+	if err != nil {
+		log.Error(err)
+		return err
 	}
 
 	// Wrap up, we are now in repo-version 12.
@@ -187,21 +181,48 @@ func (m *Migration) Revert(opts migrate.Options) error {
 
 	// Open revert path for reading
 	backupPath := filepath.Join(opts.Path, backupFile)
-	f, err := getBackupFile(backupPath)
+	err = m.scanAndSwap(backupPath, true) // revert = true
 	if err != nil {
 		log.Error(err)
 		return err
 	}
 
-	unswapCh := make(chan Swap, 1000)
+	// Wrap up the Revert. We are back at version 11.
+	if err := repo.WriteVersion("11"); err != nil {
+		log.Error("failed to write version file")
+		return err
+	}
+
+	log.Log("reverted version file to version 11")
+
+	// Move the backup file out of the way.
+	err = os.Rename(backupPath, backupPath+".reverted")
+	if err != nil {
+		log.Error("could not rename the backup file, but migration worked: %s", err)
+		return err
+	}
+	return nil
+}
+
+// Receives a backup file which contains all the things that need to be
+// migrated and reads every line, performing swaps in the needed direction.
+func (m *Migration) scanAndSwap(backupPath string, revert bool) error {
+	f, err := getBackupFile(backupPath)
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+	defer f.Close()
+
+	swapCh := make(chan Swap, 1000)
 	scanner := bufio.NewScanner(f)
 	var scannerErr error
 
-	// This will send swap objects to the Unswapper on unswapCh as they
+	// This will send swap objects to the swapping channel as they
 	// are read from the backup file on disk. It will also send MFS and
-	// pinset pins for reversal.
+	// pinset pins for reversal when doing a revert.
 	go func() {
-		defer close(unswapCh)
+		defer close(swapCh)
 
 		// Process backup file first.
 		for scanner.Scan() {
@@ -222,60 +243,53 @@ func (m *Migration) Revert(opts migrate.Options) error {
 				break
 			}
 			mhashPath := prefix.Child(dshelp.MultihashToDsKey(cid.Hash()))
-			// This is the original swap object which is what we
-			// wanted to rebuild. Old is the old path and new is
-			// the new path and the unswapper will revert this.
+
+			// The swapper will move cidPath to mhashPath, and the unswapper
+			// will do the opposite.
 			sw := Swap{Old: cidPath, New: mhashPath}
-			unswapCh <- sw
+			swapCh <- sw
 		}
 		if err := scanner.Err(); err != nil {
 			log.Error(err)
 			return
 		}
 
-		// Process MFS/pinset. We have to do this in cases the user
-		// has been running with the migration for some time and made changes to
-		// the pinset or the MFS root.
-		if err := walkPinsAndMFS(unswapCh, m.dstore); err != nil {
-			log.Error(err)
-			return
+		if revert {
+			// Process MFS/pinset. We have to do this in cases the
+			// user has been running with the migration for some
+			// time and made changes to the pinset or the MFS
+			// root.
+			if err := walkPinsAndMFS(swapCh, m.dstore); err != nil {
+				log.Error(err)
+				return
+			}
 		}
-
 	}()
 
 	// The backup file contains prefixed keys, so we do not need to set
 	// Prefix in the CidSwapper.
 	cidSwapper := CidSwapper{Store: m.dstore}
-	total, err := cidSwapper.Revert(unswapCh)
+	var total uint64
+	if revert {
+		total, err = cidSwapper.Revert(swapCh)
+	} else {
+		total, err = cidSwapper.Run(swapCh)
+	}
 	if err != nil {
 		log.Error(err)
 		return err
 	}
-	// Revert will only return after unswapCh is closed, so we know
+
+	// The swapper will only return after swapCh is closed, so we know
 	// scannerErr is safe to read at this point.
 	if scannerErr != nil {
 		return err
 	}
 
-	// Wrap up the Revert. We are back at version 11.
-	log.Log("%d multihashes reverted to CidV1s", total)
-	if err := repo.WriteVersion("11"); err != nil {
-		log.Error("failed to write version file")
-		return err
-	}
-
-	log.Log("reverted version file to version 11")
-	err = f.Close()
-	if err != nil {
-		log.Error("could not close backup file")
-		return err
-	}
-
-	// Move the backup file out of the way.
-	err = os.Rename(backupPath, backupPath+".reverted")
-	if err != nil {
-		log.Error("could not rename the backup file, but migration worked: %s", err)
-		return err
+	if revert {
+		log.Log("%d multihashes swapped to CidV1s", total)
+	} else {
+		log.Log("%d CidV1s swapped to multihashes", total)
 	}
 	return nil
 }

@@ -62,13 +62,11 @@ type CidSwapper struct {
 	SwapCh chan Swap   // a channel that gets notified for every swap
 }
 
-// Run lists all the keys in the datastore and triggers a swap operation for
-// those corresponding to CIDv1s (replacing them by their raw multihash).
-// When dryRun is true, it will not perform any changes, but notify SwapCh
-// as if it would.
+// Prepare performs a dry run without copying anything but notifying SwapCh
+// as it runs.
 //
-// Run returns the total number of keys swapped.
-func (cswap *CidSwapper) Run(dryRun bool) (uint64, error) {
+// Retruns the total number of keys swapped.
+func (cswap *CidSwapper) Prepare() (uint64, error) {
 	// Query all keys. We will loop all keys
 	// and swap those that can be parsed as CIDv1.
 	queryAll := query.Query{
@@ -83,7 +81,18 @@ func (cswap *CidSwapper) Run(dryRun bool) (uint64, error) {
 	defer results.Close()
 	resultsCh := results.Next()
 	swapWorkerFunc := func() (uint64, uint64) {
-		return cswap.swapWorker(dryRun, resultsCh)
+		return cswap.prepareWorker(resultsCh) // dry-run=true
+	}
+	return cswap.runWorkers(NWorkers, swapWorkerFunc)
+}
+
+// Run performs a migration reading the Swaps that need to be performed
+// from the given Swap channel. The swaps can be obtained with Prepare().
+//
+// Run returns the total number of keys swapped.
+func (cswap *CidSwapper) Run(swapCh <-chan Swap) (uint64, error) {
+	swapWorkerFunc := func() (uint64, uint64) {
+		return cswap.swapWorker(swapCh, false) // reverting=false
 	}
 	return cswap.runWorkers(NWorkers, swapWorkerFunc)
 }
@@ -93,7 +102,7 @@ func (cswap *CidSwapper) Run(dryRun bool) (uint64, error) {
 // swap operations performed.
 func (cswap *CidSwapper) Revert(unswapCh <-chan Swap) (uint64, error) {
 	swapWorkerFunc := func() (uint64, uint64) {
-		return cswap.unswapWorker(unswapCh)
+		return cswap.swapWorker(unswapCh, true) // reverting=true
 	}
 	return cswap.runWorkers(NWorkers, swapWorkerFunc)
 }
@@ -120,10 +129,10 @@ func (cswap *CidSwapper) runWorkers(nWorkers int, f func() (uint64, uint64)) (ui
 	return total, nil
 }
 
-// swapWorkers reads query results from a channel and renames CIDv1 keys to
+// prepareWorker reads query results from a channel and renames CIDv1 keys to
 // raw multihashes by reading the blocks and storing them with the new
 // key. Returns the number of keys swapped and the number of errors.
-func (cswap *CidSwapper) swapWorker(dryRun bool, resultsCh <-chan query.Result) (uint64, uint64) {
+func (cswap *CidSwapper) prepareWorker(resultsCh <-chan query.Result) (uint64, uint64) {
 	var errored uint64
 
 	sw := &swapWorker{
@@ -142,9 +151,9 @@ func (cswap *CidSwapper) swapWorker(dryRun bool, resultsCh <-chan query.Result) 
 		oldKey := ds.NewKey(res.Key)
 		c, err := dsKeyToCid(ds.NewKey(oldKey.BaseNamespace())) // remove prefix
 		if err != nil {
-			// complain if we find anything that is not a CID but
-			// leave it as it is.  This can potentially be raw
-			// multihashes that are not CIDv0s (i.e. using
+			// This means we have found something that is not a
+			// CID. We leave it as it is. This can potentially be
+			// raw multihashes that are not CIDv0s (i.e. using
 			// anything other than sha256). They may come from a
 			// previous migration.
 			log.VLog("could not parse %s as a Cid", oldKey)
@@ -159,34 +168,9 @@ func (cswap *CidSwapper) swapWorker(dryRun bool, resultsCh <-chan query.Result) 
 		// /path/to/old/<cid> -> /path/to/old/<multihash>
 		newKey := oldKey.Parent().Child(dshelp.MultihashToDsKey(mh))
 
-		if dryRun {
-			sw.swapped++ // otherwise this is done in sw.swap
-		} else {
-			// delete the old keys
-			err = sw.swap(oldKey, newKey, false)
-			if err != nil {
-				log.Error("swapping %s for %s: %s", oldKey, newKey, err)
-				errored++
-				continue
-			}
-		}
-
+		sw.swapped++
 		if cswap.SwapCh != nil {
 			cswap.SwapCh <- Swap{Old: oldKey, New: newKey}
-		}
-	}
-
-	if !dryRun {
-		// final sync
-		err := sw.syncAndDelete()
-		if err != nil {
-			log.Error("error performing last sync: %s", err)
-			errored++
-		}
-		err = sw.sync() // sync deleted items
-		if err != nil {
-			log.Error("error performing last sync for deletions: %s", err)
-			errored++
 		}
 	}
 
@@ -196,7 +180,7 @@ func (cswap *CidSwapper) swapWorker(dryRun bool, resultsCh <-chan query.Result) 
 // unswap worker takes notifications from unswapCh (as they would be sent by
 // the swapWorker) and undoes them. It ignores NotFound errors so that reverts
 // can succeed even if they failed half-way.
-func (cswap *CidSwapper) unswapWorker(unswapCh <-chan Swap) (uint64, uint64) {
+func (cswap *CidSwapper) swapWorker(swapCh <-chan Swap, reverting bool) (uint64, uint64) {
 	var errored uint64
 
 	swker := &swapWorker{
@@ -205,23 +189,26 @@ func (cswap *CidSwapper) unswapWorker(unswapCh <-chan Swap) (uint64, uint64) {
 	}
 
 	// Process keys from the results channel
-	for sw := range unswapCh {
-		// During revert, we always keep the old keys.  This addresses
-		// corner cases with keys that were referenced with both CIDv1
-		// and CIDv0 and with pins added post migration.
-		err := swker.swap(sw.New, sw.Old, true)
+	for sw := range swapCh {
+		if reverting {
+			old := sw.Old
+			sw.Old = sw.New
+			sw.New = old
+		}
+		err := swker.swap(sw.Old, sw.New, reverting)
 
-		// Did the user GC a migrated block?
+		// The datastore does not have the block we are planning to
+		// migrate.
 		if err == ds.ErrNotFound {
-			log.Error("could not revert %s->%s. Could not find %s. Was it GC'ed? This error is not fatal", sw.Old, sw.New, sw.New)
+			log.Error("could not swap %s->%s. Could not find %s even though it was in the backup file. Skipping.", sw.Old, sw.New, sw.Old)
 			continue
 		} else if err != nil {
-			log.Error("swapping %s for %s: %s", sw.New, sw.Old, err)
+			log.Error("swapping %s->%s: %s", sw.Old, sw.New, err)
 			errored++
 			continue
 		}
 		if cswap.SwapCh != nil {
-			cswap.SwapCh <- Swap{Old: sw.New, New: sw.Old}
+			cswap.SwapCh <- Swap{Old: sw.Old, New: sw.New}
 		}
 	}
 
