@@ -23,7 +23,7 @@ var NWorkers int = 4
 
 func init() {
 	workerEnvVar := "IPFS_FS_MIGRATION_11_TO_12_NWORKERS"
-	syncSizeEnvVar := "IPFS_FS_MIGRATION_11_TO_12_SYNC_SIZE"
+	syncSizeEnvVar := "IPFS_FS_MIGRATION_11_TO_12_SYNC_SIZE_BYTES"
 	if nworkersStr, nworkerInEnv := os.LookupEnv(workerEnvVar); nworkerInEnv {
 		nworkers, err := strconv.Atoi(nworkersStr)
 		if err != nil {
