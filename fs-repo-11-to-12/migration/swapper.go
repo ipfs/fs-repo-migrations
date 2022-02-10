@@ -142,9 +142,11 @@ func (cswap *CidSwapper) swapWorker(dryRun bool, resultsCh <-chan query.Result) 
 		oldKey := ds.NewKey(res.Key)
 		c, err := dsKeyToCid(ds.NewKey(oldKey.BaseNamespace())) // remove prefix
 		if err != nil {
-			// complain if we find anything that is not a CID but
+			// complain if we find anything that is not a CID or multihash but
 			// leave it as it is.
-			log.Log("could not parse %s as a Cid", oldKey)
+			if _, err := dshelp.DsKeyToMultihash(ds.NewKey(oldKey.BaseNamespace())); err != nil {
+				log.Log("could not parse %s as a Cid or Multihash", oldKey)
+			}
 			continue
 		}
 		if c.Version() == 0 { // CidV0 are multihashes, leave them.
