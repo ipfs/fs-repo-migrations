@@ -15,11 +15,11 @@ import (
 )
 
 // SyncSize specifies how much we batch data before committing and syncing.
-var SyncSize uint64 = 20 * 1024 * 1024 // 20MiB
+var SyncSize uint64 = 100 * 1024 * 1024 // 100MiB
 
 // NWorkers sets the number of swapping threads to run when applying a
 // migration.
-var NWorkers int = 4
+var NWorkers int = 1
 
 func init() {
 	workerEnvVar := "IPFS_FS_MIGRATION_11_TO_12_NWORKERS"
