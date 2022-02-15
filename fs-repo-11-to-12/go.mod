@@ -7,7 +7,7 @@ require (
 	github.com/ipfs/fs-repo-migrations/tools v0.0.0-20211209222258-754a2dcb82ea
 	github.com/ipfs/go-cid v0.0.7
 	github.com/ipfs/go-datastore v0.4.5
-	github.com/ipfs/go-ds-badger v0.2.7-0.20211210151007-a2805355dcf5 // indirect
+	github.com/ipfs/go-ds-badger v0.2.7-0.20220117180822-159330558612 // indirect
 	github.com/ipfs/go-filestore v1.0.0
 	github.com/ipfs/go-ipfs v0.8.0
 	github.com/ipfs/go-ipfs-ds-help v1.0.0

@@ -87,7 +87,7 @@ var DefaultOptions Options
 
 func init() {
 	DefaultOptions = Options{
-		GcDiscardRatio: 0.2,
+		GcDiscardRatio: 0.5,
 		GcInterval:     2 * time.Minute,
 		GcSleep:        10 * time.Second,
 		Options:        badger.LSMOnlyOptions(""),
