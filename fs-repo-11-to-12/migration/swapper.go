@@ -2,7 +2,9 @@ package mg11
 
 import (
 	"errors"
+	flatfs "github.com/ipfs/go-ds-flatfs"
 	"os"
+	"path/filepath"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -10,6 +12,7 @@ import (
 	log "github.com/ipfs/fs-repo-migrations/tools/stump"
 	cid "github.com/ipfs/go-cid"
 	ds "github.com/ipfs/go-datastore"
+	ktds "github.com/ipfs/go-datastore/keytransform"
 	query "github.com/ipfs/go-datastore/query"
 	dshelp "github.com/ipfs/go-ipfs-ds-help"
 )
@@ -177,10 +180,74 @@ func (cswap *CidSwapper) prepareWorker(resultsCh <-chan query.Result) (uint64, u
 	return sw.swapped, errored
 }
 
+func (cswap *CidSwapper) swapWorkerFlatFS(fsdsPath string, fsdsShard *flatfs.ShardIdV1, swapCh <-chan Swap, reverting bool) (uint64, uint64) {
+	var swapped, errored uint64
+
+	const flatfsExtension = ".data"
+	prefix := ktds.PrefixTransform{Prefix: blocksPrefix}
+
+	getPath := func(basePath string, key ds.Key) (string, string) {
+		child := prefix.InvertKey(key)
+		noslash := child.String()[1:]
+		dir := filepath.Join(fsdsPath, fsdsShard.Func()(noslash))
+		file := filepath.Join(dir, noslash+flatfsExtension)
+
+		return dir, file
+	}
+
+	// Process keys from the results channel
+	for sw := range swapCh {
+		if reverting {
+			old := sw.Old
+			sw.Old = sw.New
+			sw.New = old
+		}
+
+		_, oldPath := getPath(fsdsPath, sw.Old)
+		newDir, newPath := getPath(fsdsPath, sw.New)
+
+		_, err := os.Stat(oldPath)
+		if err != nil {
+			log.Error("could not swap %s->%s. Could not find %s even though it was in the backup file %s. Skipping.", sw.Old, sw.New, sw.Old, err.Error())
+			continue
+		}
+
+		if err := os.Mkdir(newDir, 0755); err != nil && !os.IsExist(err) {
+			log.Error("could not swap %s->%s. Skipping.", sw.Old, sw.New, err.Error())
+			continue
+		}
+
+		if err := os.Rename(oldPath, newPath); err != nil {
+			log.Error("could not swap %s->%s. Skipping.", sw.Old, sw.New, err.Error())
+			errored++
+			continue
+		}
+		swapped++
+
+		if cswap.SwapCh != nil {
+			cswap.SwapCh <- Swap{Old: sw.Old, New: sw.New}
+		}
+	}
+
+	return swapped, errored
+}
+
 // unswap worker takes notifications from unswapCh (as they would be sent by
 // the swapWorker) and undoes them. It ignores NotFound errors so that reverts
 // can succeed even if they failed half-way.
 func (cswap *CidSwapper) swapWorker(swapCh <-chan Swap, reverting bool) (uint64, uint64) {
+	// Use the more generic datastore swapper if not using a simple FlatFS setup.
+	// Also use it for reversion since the FlatFS specific code doesn't specifically
+	// handle some reversion edge cases.
+	fsdsPath, fsDsShard, err := IsBasicFlatFSBlockstore(cswap.Store)
+	if err != nil || reverting || !cswap.Prefix.Equal(blocksPrefix) {
+		return cswap.swapWorkerDS(swapCh, reverting)
+	}
+
+	return cswap.swapWorkerFlatFS(fsdsPath, fsDsShard, swapCh, reverting)
+}
+
+func (cswap *CidSwapper) swapWorkerDS(swapCh <-chan Swap, reverting bool) (uint64, uint64) {
 	var errored uint64
 
 	swker := &swapWorker{

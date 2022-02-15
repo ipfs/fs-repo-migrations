@@ -2,10 +2,13 @@ package mg11
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"reflect"
+	"unsafe"
 
 	ipfslite "github.com/hsanjuan/ipfs-lite"
 	migrate "github.com/ipfs/fs-repo-migrations/tools/go-migrate"
@@ -18,6 +21,9 @@ import (
 	loader "github.com/ipfs/go-ipfs/plugin/loader"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 	format "github.com/ipfs/go-ipld-format"
+
+	"github.com/ipfs/go-datastore/mount"
+	flatfs "github.com/ipfs/go-ds-flatfs"
 )
 
 // locks the repo
@@ -81,6 +87,58 @@ func (m *Migration) open(opts migrate.Options) error {
 	}
 	m.dstore = dstore
 	return nil
+}
+
+func getUnexportedField(field reflect.Value) interface{} {
+	return reflect.NewAt(field.Type(), unsafe.Pointer(field.UnsafeAddr())).Elem().Interface()
+}
+
+func IsBasicFlatFSBlockstore(dstore ds.Datastore) (dsPath string, v1 *flatfs.ShardIdV1, err error) {
+	errNotDefault := errors.New("not the default config")
+	defer func() {
+		if err := recover(); err != nil {
+			err = errNotDefault
+		}
+	}()
+
+	mds, ok := dstore.(*mount.Datastore)
+	if !ok {
+		return "", nil, errNotDefault
+	}
+
+	mnts, ok := getUnexportedField(reflect.ValueOf(mds).Elem().FieldByName("mounts")).([]mount.Mount)
+	if !ok {
+		return "", nil, errNotDefault
+	}
+
+	if len(mnts) != 2 {
+		return "", nil, errNotDefault
+	}
+
+	var blkDs ds.Datastore
+	if mnts[0].Prefix.Equal(blocksPrefix) {
+		blkDs = mnts[0].Datastore
+	} else if mnts[1].Prefix.Equal(blocksPrefix) {
+		blkDs = mnts[1].Datastore
+	} else {
+		return "", nil, errNotDefault
+	}
+
+	if reflect.TypeOf(blkDs).String() != "*measure.measure" {
+		return "", nil, errNotDefault
+	}
+
+	fsds, ok := getUnexportedField(reflect.ValueOf(blkDs).Elem().FieldByName("backend")).(*flatfs.Datastore)
+	if !ok {
+		return "", nil, errNotDefault
+	}
+	fsdsPath := reflect.ValueOf(fsds).Elem().FieldByName("path").String()
+
+	shard, err := flatfs.ParseShardFunc(fsds.ShardStr())
+	if err != nil {
+		return "", nil, errNotDefault
+	}
+	return fsdsPath, shard, nil
 }
 
 // Create a file to store the list of migrated CIDs. If it exists, it is
