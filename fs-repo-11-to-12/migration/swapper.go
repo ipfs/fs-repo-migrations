@@ -212,6 +212,9 @@ func (cswap *CidSwapper) swapWorkerFlatFS(fsdsPath string, fsdsShard *flatfs.Sha
 		syncPrefix: cswap.Prefix,
 	}
 
+	// the frequency with which we log flatfs moves
+	const swapLogThreshold = 10000
+
 	// Process keys from the results channel
 	for sw := range swapCh {
 		if reverting {
@@ -267,7 +270,6 @@ func (cswap *CidSwapper) swapWorkerFlatFS(fsdsPath string, fsdsShard *flatfs.Sha
 		}
 		swapped++
 
-		const swapLogThreshold = 10000
 		if swapped%swapLogThreshold == 0 {
 			log.Log("%v: Migration worker has moved %d flatfs files and %d in total", time.Now(), swapLogThreshold, swapped)
 		}
@@ -275,6 +277,11 @@ func (cswap *CidSwapper) swapWorkerFlatFS(fsdsPath string, fsdsShard *flatfs.Sha
 		if cswap.SwapCh != nil {
 			cswap.SwapCh <- Swap{Old: sw.Old, New: sw.New}
 		}
+	}
+
+	// log the leftover flatfs moves that were not already logged
+	if rem := swapped % swapLogThreshold; rem != 0 {
+		log.Log("%v: Migration worker has moved %d flatfs files and %d in total", time.Now(), rem, swapped)
 	}
 
 	// handle generic worker sync
