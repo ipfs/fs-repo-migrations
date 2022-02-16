@@ -195,12 +195,43 @@ func (cswap *CidSwapper) swapWorkerFlatFS(fsdsPath string, fsdsShard *flatfs.Sha
 		return dir, file
 	}
 
+	genericSwker := &swapWorker{
+		store:      cswap.Store,
+		syncPrefix: cswap.Prefix,
+	}
+
 	// Process keys from the results channel
 	for sw := range swapCh {
 		if reverting {
 			old := sw.Old
 			sw.Old = sw.New
 			sw.New = old
+		}
+
+		if !sw.Old.Parent().Equal(sw.New.Parent()) {
+			log.Error("could not swap %s->%s. The namespaces changed. Skipping.", sw.Old, sw.New)
+			errored++
+			continue
+		}
+
+		if !sw.Old.Parent().Equal(blocksPrefix) {
+			err := genericSwker.swap(sw.Old, sw.New, reverting)
+
+			// The datastore does not have the block we are planning to
+			// migrate.
+			if err == ds.ErrNotFound {
+				log.Error("could not swap %s->%s. Could not find %s even though it was in the backup file. Skipping.", sw.Old, sw.New, sw.Old)
+				continue
+			} else if err != nil {
+				log.Error("swapping %s->%s: %s", sw.Old, sw.New, err)
+				errored++
+				continue
+			}
+
+			if cswap.SwapCh != nil {
+				cswap.SwapCh <- Swap{Old: sw.Old, New: sw.New}
+			}
+			continue
 		}
 
 		_, oldPath := getPath(fsdsPath, sw.Old)
@@ -224,12 +255,30 @@ func (cswap *CidSwapper) swapWorkerFlatFS(fsdsPath string, fsdsShard *flatfs.Sha
 		}
 		swapped++
 
+		const swapLogThreshold = 10000
+		if swapped%swapLogThreshold == 0 {
+			log.Log("Migration worker has moved %d flatfs files", swapLogThreshold)
+		}
+
 		if cswap.SwapCh != nil {
 			cswap.SwapCh <- Swap{Old: sw.Old, New: sw.New}
 		}
 	}
 
-	return swapped, errored
+	// handle generic worker sync
+	// final sync to added things
+	err := genericSwker.syncAndDelete()
+	if err != nil {
+		log.Error("error performing last sync: %s", err)
+		errored++
+	}
+	err = genericSwker.sync() // final sync for deletes.
+	if err != nil {
+		log.Error("error performing last sync for deletions: %s", err)
+		errored++
+	}
+
+	return genericSwker.swapped + swapped, errored
 }
 
 // unswap worker takes notifications from unswapCh (as they would be sent by
@@ -240,7 +289,7 @@ func (cswap *CidSwapper) swapWorker(swapCh <-chan Swap, reverting bool) (uint64,
 	// Also use it for reversion since the FlatFS specific code doesn't specifically
 	// handle some reversion edge cases.
 	fsdsPath, fsDsShard, err := IsBasicFlatFSBlockstore(cswap.Store)
-	if err != nil || reverting || !cswap.Prefix.Equal(blocksPrefix) {
+	if err != nil || reverting {
 		return cswap.swapWorkerDS(swapCh, reverting)
 	}
 
