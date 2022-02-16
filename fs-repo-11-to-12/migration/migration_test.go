@@ -194,6 +194,7 @@ func testMigrationBase(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer m.dstore.Close()
 
 	// Check that the CIDv1s that we explicitally pinned or
 	// added to MFS are now retrievable as CIDv1-addressed nodes.

@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"sync"
 	"unsafe"
 
 	ipfslite "github.com/hsanjuan/ipfs-lite"
@@ -32,14 +33,18 @@ func (m *Migration) lock(opts migrate.Options) (io.Closer, error) {
 	return lock.Lock2(opts.Path)
 }
 
+var loadPluginsOnce sync.Once
+
 // this is just setup so that we can open the datastore.
 // Plugins are loaded once only.
-func (m *Migration) setupPlugins(opts migrate.Options) error {
+// Note: this means plugins cannot be loaded from multiple repos within the same binary
+// however, this does not seem relevant for migrations
+func setupPlugins(repoPath string) error {
 	var err error
 	var plugins *loader.PluginLoader
-	m.loadPluginsOnce.Do(func() {
+	loadPluginsOnce.Do(func() {
 		log.VLog("  - loading repo configurations")
-		plugins, err = loader.NewPluginLoader(opts.Path)
+		plugins, err = loader.NewPluginLoader(repoPath)
 		if err != nil {
 			err = fmt.Errorf("error loading plugins: %s", err)
 			return
@@ -62,7 +67,7 @@ func (m *Migration) setupPlugins(opts migrate.Options) error {
 // user's IPFS configuration says that should be used. If we had a datastore,
 // we close it and re-open it.
 func (m *Migration) open(opts migrate.Options) error {
-	if err := m.setupPlugins(opts); err != nil {
+	if err := setupPlugins(opts.Path); err != nil {
 		return err
 	}
 
