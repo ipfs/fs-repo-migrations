@@ -428,7 +428,7 @@ func (sw *swapWorker) syncAndDelete() error {
 }
 
 func (sw *swapWorker) sync() error {
-	log.Log("%v: Migration worker syncing after %d objects migrated", time.Now(), sw.swapped)
+	log.Log("%v: Generic migration worker syncing after %d objects migrated", time.Now(), sw.swapped)
 	err := sw.store.Sync(sw.syncPrefix)
 	if err != nil {
 		return err
