@@ -17,6 +17,24 @@ const (
 	workingRepo = "repotest_copy"
 )
 
+func TestGenericMigration(t *testing.T) {
+	origSetting := EnableFlatFSFastPath
+	defer func() {
+		EnableFlatFSFastPath = origSetting
+	}()
+	EnableFlatFSFastPath = false
+	testMigrationBase(t)
+}
+
+func TestFlatFSMigration(t *testing.T) {
+	origSetting := EnableFlatFSFastPath
+	defer func() {
+		EnableFlatFSFastPath = origSetting
+	}()
+	EnableFlatFSFastPath = true
+	testMigrationBase(t)
+}
+
 // TestMigration works on an IPFS repository as created by running steps.sh
 // with ipfs v0.8.0 on using the $repotest folder:
 //
@@ -28,7 +46,7 @@ const (
 // added bafybeie4pduk2uwvr5dq36wnbhxspgox7dtqo3fprri4r2wpa7vrej5jqq b
 // added Qmesmmf1EEG1orJb6XdK6DabxexsseJnCfw8pqWgonbkoj c/file3
 // added QmT3zhz9ZZjEpbzWib95EQ5ESUQs4YasrMQwPScpNGLEXZ c
-func TestMigration(t *testing.T) {
+func testMigrationBase(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 

@@ -25,9 +25,12 @@ var SyncSize uint64 = 100 * 1024 * 1024 // 100MiB
 // migration.
 var NWorkers int = 1
 
+var EnableFlatFSFastPath bool = true
+
 func init() {
 	workerEnvVar := "IPFS_FS_MIGRATION_11_TO_12_NWORKERS"
 	syncSizeEnvVar := "IPFS_FS_MIGRATION_11_TO_12_SYNC_SIZE_BYTES"
+	flatfsFastPathEnvVar := "IPFS_FS_MIGRATION_11_TO_12_ENABLE_FLATFS_FASTPATH"
 	if nworkersStr, nworkerInEnv := os.LookupEnv(workerEnvVar); nworkerInEnv {
 		nworkers, err := strconv.Atoi(nworkersStr)
 		if err != nil {
@@ -48,6 +51,14 @@ func init() {
 			panic("sync size bytes must be at least 1")
 		}
 		SyncSize = syncSize
+	}
+
+	if flatfsFastPathStr, flatfsFastPathInEnv := os.LookupEnv(flatfsFastPathEnvVar); flatfsFastPathInEnv {
+		enableFlatfsFastPath, err := strconv.ParseBool(flatfsFastPathStr)
+		if err != nil {
+			panic(err)
+		}
+		EnableFlatFSFastPath = enableFlatfsFastPath
 	}
 }
 
@@ -286,11 +297,16 @@ func (cswap *CidSwapper) swapWorkerFlatFS(fsdsPath string, fsdsShard *flatfs.Sha
 // the swapWorker) and undoes them. It ignores NotFound errors so that reverts
 // can succeed even if they failed half-way.
 func (cswap *CidSwapper) swapWorker(swapCh <-chan Swap, reverting bool) (uint64, uint64) {
-	// Use the more generic datastore swapper if not using a simple FlatFS setup.
+	// Use the more generic datastore swapper if the FlatFS fast path has been explicitly disabled
 	// Also use it for reversion since the FlatFS specific code doesn't specifically
 	// handle some reversion edge cases.
+	if !EnableFlatFSFastPath || reverting {
+		return cswap.swapWorkerDS(swapCh, reverting)
+	}
+
+	// Use the more generic datastore swapper if not using a simple FlatFS setup.
 	fsdsPath, fsDsShard, err := IsBasicFlatFSBlockstore(cswap.Store)
-	if err != nil || reverting {
+	if err != nil {
 		return cswap.swapWorkerDS(swapCh, reverting)
 	}
 
