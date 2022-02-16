@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	log "github.com/ipfs/fs-repo-migrations/tools/stump"
 	cid "github.com/ipfs/go-cid"
@@ -257,7 +258,7 @@ func (cswap *CidSwapper) swapWorkerFlatFS(fsdsPath string, fsdsShard *flatfs.Sha
 
 		const swapLogThreshold = 10000
 		if swapped%swapLogThreshold == 0 {
-			log.Log("Migration worker has moved %d flatfs files", swapLogThreshold)
+			log.Log("%v: Migration worker has moved %d flatfs files and %d in total", time.Now(), swapLogThreshold, swapped)
 		}
 
 		if cswap.SwapCh != nil {
@@ -404,7 +405,7 @@ func (sw *swapWorker) syncAndDelete() error {
 }
 
 func (sw *swapWorker) sync() error {
-	log.Log("Migration worker syncing after %d objects migrated", sw.swapped)
+	log.Log("%v: Migration worker syncing after %d objects migrated", time.Now(), sw.swapped)
 	err := sw.store.Sync(sw.syncPrefix)
 	if err != nil {
 		return err
