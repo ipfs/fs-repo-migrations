@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sync"
 
 	log "github.com/ipfs/fs-repo-migrations/tools/stump"
 
@@ -42,8 +41,7 @@ var migrationPrefixes = []ds.Key{
 
 // Migration implements the migration described above.
 type Migration struct {
-	loadPluginsOnce sync.Once
-	dstore          ds.Batching
+	dstore ds.Batching
 }
 
 // Versions returns the current version string for this migration.

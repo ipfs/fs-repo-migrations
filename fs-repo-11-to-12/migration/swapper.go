@@ -2,14 +2,18 @@ package mg11
 
 import (
 	"errors"
+	flatfs "github.com/ipfs/go-ds-flatfs"
 	"os"
+	"path/filepath"
 	"strconv"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	log "github.com/ipfs/fs-repo-migrations/tools/stump"
 	cid "github.com/ipfs/go-cid"
 	ds "github.com/ipfs/go-datastore"
+	ktds "github.com/ipfs/go-datastore/keytransform"
 	query "github.com/ipfs/go-datastore/query"
 	dshelp "github.com/ipfs/go-ipfs-ds-help"
 )
@@ -21,9 +25,12 @@ var SyncSize uint64 = 100 * 1024 * 1024 // 100MiB
 // migration.
 var NWorkers int = 1
 
+var EnableFlatFSFastPath bool = true
+
 func init() {
 	workerEnvVar := "IPFS_FS_MIGRATION_11_TO_12_NWORKERS"
 	syncSizeEnvVar := "IPFS_FS_MIGRATION_11_TO_12_SYNC_SIZE_BYTES"
+	flatfsFastPathEnvVar := "IPFS_FS_MIGRATION_11_TO_12_ENABLE_FLATFS_FASTPATH"
 	if nworkersStr, nworkerInEnv := os.LookupEnv(workerEnvVar); nworkerInEnv {
 		nworkers, err := strconv.Atoi(nworkersStr)
 		if err != nil {
@@ -44,6 +51,14 @@ func init() {
 			panic("sync size bytes must be at least 1")
 		}
 		SyncSize = syncSize
+	}
+
+	if flatfsFastPathStr, flatfsFastPathInEnv := os.LookupEnv(flatfsFastPathEnvVar); flatfsFastPathInEnv {
+		enableFlatfsFastPath, err := strconv.ParseBool(flatfsFastPathStr)
+		if err != nil {
+			panic(err)
+		}
+		EnableFlatFSFastPath = enableFlatfsFastPath
 	}
 }
 
@@ -177,10 +192,135 @@ func (cswap *CidSwapper) prepareWorker(resultsCh <-chan query.Result) (uint64, u
 	return sw.swapped, errored
 }
 
+func (cswap *CidSwapper) swapWorkerFlatFS(fsdsPath string, fsdsShard *flatfs.ShardIdV1, swapCh <-chan Swap, reverting bool) (uint64, uint64) {
+	var swapped, errored uint64
+
+	const flatfsExtension = ".data"
+	prefix := ktds.PrefixTransform{Prefix: blocksPrefix}
+
+	getPath := func(basePath string, key ds.Key) (string, string) {
+		child := prefix.InvertKey(key)
+		noslash := child.String()[1:]
+		dir := filepath.Join(fsdsPath, fsdsShard.Func()(noslash))
+		file := filepath.Join(dir, noslash+flatfsExtension)
+
+		return dir, file
+	}
+
+	genericSwker := &swapWorker{
+		store:      cswap.Store,
+		syncPrefix: cswap.Prefix,
+	}
+
+	// the frequency with which we log flatfs moves
+	const swapLogThreshold = 10000
+
+	// Process keys from the results channel
+	for sw := range swapCh {
+		if reverting {
+			old := sw.Old
+			sw.Old = sw.New
+			sw.New = old
+		}
+
+		if !sw.Old.Parent().Equal(sw.New.Parent()) {
+			log.Error("could not swap %s->%s. The namespaces changed. Skipping.", sw.Old, sw.New)
+			errored++
+			continue
+		}
+
+		if !sw.Old.Parent().Equal(blocksPrefix) {
+			err := genericSwker.swap(sw.Old, sw.New, reverting)
+
+			// The datastore does not have the block we are planning to
+			// migrate.
+			if err == ds.ErrNotFound {
+				log.Error("could not swap %s->%s. Could not find %s even though it was in the backup file. Skipping.", sw.Old, sw.New, sw.Old)
+				continue
+			} else if err != nil {
+				log.Error("swapping %s->%s: %s", sw.Old, sw.New, err)
+				errored++
+				continue
+			}
+
+			if cswap.SwapCh != nil {
+				cswap.SwapCh <- Swap{Old: sw.Old, New: sw.New}
+			}
+			continue
+		}
+
+		_, oldPath := getPath(fsdsPath, sw.Old)
+		newDir, newPath := getPath(fsdsPath, sw.New)
+
+		_, err := os.Stat(oldPath)
+		if err != nil {
+			log.Error("could not swap %s->%s. Could not find %s even though it was in the backup file %s. Skipping.", sw.Old, sw.New, sw.Old, err.Error())
+			continue
+		}
+
+		if err := os.Mkdir(newDir, 0755); err != nil && !os.IsExist(err) {
+			log.Error("could not swap %s->%s. Skipping.", sw.Old, sw.New, err.Error())
+			continue
+		}
+
+		if err := os.Rename(oldPath, newPath); err != nil {
+			log.Error("could not swap %s->%s. Skipping.", sw.Old, sw.New, err.Error())
+			errored++
+			continue
+		}
+		swapped++
+
+		if swapped%swapLogThreshold == 0 {
+			log.Log("%v: Migration worker has moved %d flatfs files and %d in total", time.Now(), swapLogThreshold, swapped)
+		}
+
+		if cswap.SwapCh != nil {
+			cswap.SwapCh <- Swap{Old: sw.Old, New: sw.New}
+		}
+	}
+
+	// log the leftover flatfs moves that were not already logged
+	if rem := swapped % swapLogThreshold; rem != 0 {
+		log.Log("%v: Migration worker has moved %d flatfs files and %d in total", time.Now(), rem, swapped)
+	}
+
+	// handle generic worker sync
+	// final sync to added things
+	err := genericSwker.syncAndDelete()
+	if err != nil {
+		log.Error("error performing last sync: %s", err)
+		errored++
+	}
+	err = genericSwker.sync() // final sync for deletes.
+	if err != nil {
+		log.Error("error performing last sync for deletions: %s", err)
+		errored++
+	}
+
+	return genericSwker.swapped + swapped, errored
+}
+
 // unswap worker takes notifications from unswapCh (as they would be sent by
 // the swapWorker) and undoes them. It ignores NotFound errors so that reverts
 // can succeed even if they failed half-way.
 func (cswap *CidSwapper) swapWorker(swapCh <-chan Swap, reverting bool) (uint64, uint64) {
+	// Use the more generic datastore swapper if the FlatFS fast path has been explicitly disabled
+	// Also use it for reversion since the FlatFS specific code doesn't specifically
+	// handle some reversion edge cases.
+	if !EnableFlatFSFastPath || reverting {
+		return cswap.swapWorkerDS(swapCh, reverting)
+	}
+
+	// Use the more generic datastore swapper if not using a simple FlatFS setup.
+	fsdsPath, fsDsShard, err := IsBasicFlatFSBlockstore(cswap.Store)
+	if err != nil {
+		return cswap.swapWorkerDS(swapCh, reverting)
+	}
+
+	return cswap.swapWorkerFlatFS(fsdsPath, fsDsShard, swapCh, reverting)
+}
+
+func (cswap *CidSwapper) swapWorkerDS(swapCh <-chan Swap, reverting bool) (uint64, uint64) {
 	var errored uint64
 
 	swker := &swapWorker{
@@ -288,7 +428,7 @@ func (sw *swapWorker) syncAndDelete() error {
 }
 
 func (sw *swapWorker) sync() error {
-	log.Log("Migration worker syncing after %d objects migrated", sw.swapped)
+	log.Log("%v: Generic migration worker syncing after %d objects migrated", time.Now(), sw.swapped)
 	err := sw.store.Sync(sw.syncPrefix)
 	if err != nil {
 		return err

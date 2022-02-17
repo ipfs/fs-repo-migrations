@@ -127,6 +127,7 @@ github.com/ipfs/go-datastore/sync
 ## explicit
 github.com/ipfs/go-ds-badger
 # github.com/ipfs/go-ds-flatfs v0.4.5
+## explicit
 github.com/ipfs/go-ds-flatfs
 # github.com/ipfs/go-ds-leveldb v0.4.2
 github.com/ipfs/go-ds-leveldb

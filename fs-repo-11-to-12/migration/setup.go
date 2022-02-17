@@ -2,10 +2,14 @@ package mg11
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"reflect"
+	"sync"
+	"unsafe"
 
 	ipfslite "github.com/hsanjuan/ipfs-lite"
 	migrate "github.com/ipfs/fs-repo-migrations/tools/go-migrate"
@@ -18,6 +22,9 @@ import (
 	loader "github.com/ipfs/go-ipfs/plugin/loader"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 	format "github.com/ipfs/go-ipld-format"
+
+	"github.com/ipfs/go-datastore/mount"
+	flatfs "github.com/ipfs/go-ds-flatfs"
 )
 
 // locks the repo
@@ -26,14 +33,18 @@ func (m *Migration) lock(opts migrate.Options) (io.Closer, error) {
 	return lock.Lock2(opts.Path)
 }
 
+var loadPluginsOnce sync.Once
+
 // this is just setup so that we can open the datastore.
 // Plugins are loaded once only.
-func (m *Migration) setupPlugins(opts migrate.Options) error {
+// Note: this means plugins cannot be loaded from multiple repos within the same binary
+// however, this does not seem relevant for migrations
+func setupPlugins(repoPath string) error {
 	var err error
 	var plugins *loader.PluginLoader
-	m.loadPluginsOnce.Do(func() {
+	loadPluginsOnce.Do(func() {
 		log.VLog("  - loading repo configurations")
-		plugins, err = loader.NewPluginLoader(opts.Path)
+		plugins, err = loader.NewPluginLoader(repoPath)
 		if err != nil {
 			err = fmt.Errorf("error loading plugins: %s", err)
 			return
@@ -56,7 +67,7 @@ func (m *Migration) setupPlugins(opts migrate.Options) error {
 // user's IPFS configuration says that should be used. If we had a datastore,
 // we close it and re-open it.
 func (m *Migration) open(opts migrate.Options) error {
-	if err := m.setupPlugins(opts); err != nil {
+	if err := setupPlugins(opts.Path); err != nil {
 		return err
 	}
 
@@ -81,6 +92,58 @@ func (m *Migration) open(opts migrate.Options) error {
 	}
 	m.dstore = dstore
 	return nil
+}
+
+func getUnexportedField(field reflect.Value) interface{} {
+	return reflect.NewAt(field.Type(), unsafe.Pointer(field.UnsafeAddr())).Elem().Interface()
+}
+
+func IsBasicFlatFSBlockstore(dstore ds.Datastore) (dsPath string, v1 *flatfs.ShardIdV1, err error) {
+	errNotSupportedFlatFSConfig := errors.New("not a supported FlatFS config")
+	defer func() {
+		if err := recover(); err != nil {
+			err = errNotSupportedFlatFSConfig
+		}
+	}()
+
+	mds, ok := dstore.(*mount.Datastore)
+	if !ok {
+		return "", nil, errNotSupportedFlatFSConfig
+	}
+
+	mnts, ok := getUnexportedField(reflect.ValueOf(mds).Elem().FieldByName("mounts")).([]mount.Mount)
+	if !ok {
+		return "", nil, errNotSupportedFlatFSConfig
+	}
+
+	if len(mnts) != 2 {
+		return "", nil, errNotSupportedFlatFSConfig
+	}
+
+	var blkDs ds.Datastore
+	if mnts[0].Prefix.Equal(blocksPrefix) {
+		blkDs = mnts[0].Datastore
+	} else if mnts[1].Prefix.Equal(blocksPrefix) {
+		blkDs = mnts[1].Datastore
+	} else {
+		return "", nil, errNotSupportedFlatFSConfig
+	}
+
+	if reflect.TypeOf(blkDs).String() != "*measure.measure" {
+		return "", nil, errNotSupportedFlatFSConfig
+	}
+
+	fsds, ok := getUnexportedField(reflect.ValueOf(blkDs).Elem().FieldByName("backend")).(*flatfs.Datastore)
+	if !ok {
+		return "", nil, errNotSupportedFlatFSConfig
+	}
+	fsdsPath := reflect.ValueOf(fsds).Elem().FieldByName("path").String()
+
+	shard, err := flatfs.ParseShardFunc(fsds.ShardStr())
+	if err != nil {
+		return "", nil, errNotSupportedFlatFSConfig
+	}
+	return fsdsPath, shard, nil
 }
 
 // Create a file to store the list of migrated CIDs. If it exists, it is
