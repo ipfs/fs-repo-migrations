@@ -99,25 +99,25 @@ func getUnexportedField(field reflect.Value) interface{} {
 }
 
 func IsBasicFlatFSBlockstore(dstore ds.Datastore) (dsPath string, v1 *flatfs.ShardIdV1, err error) {
-	errNotDefault := errors.New("not the default config")
+	errNotSupportedFlatFSConfig := errors.New("not a supported FlatFS config")
 	defer func() {
 		if err := recover(); err != nil {
-			err = errNotDefault
+			err = errNotSupportedFlatFSConfig
 		}
 	}()
 
 	mds, ok := dstore.(*mount.Datastore)
 	if !ok {
-		return "", nil, errNotDefault
+		return "", nil, errNotSupportedFlatFSConfig
 	}
 
 	mnts, ok := getUnexportedField(reflect.ValueOf(mds).Elem().FieldByName("mounts")).([]mount.Mount)
 	if !ok {
-		return "", nil, errNotDefault
+		return "", nil, errNotSupportedFlatFSConfig
 	}
 
 	if len(mnts) != 2 {
-		return "", nil, errNotDefault
+		return "", nil, errNotSupportedFlatFSConfig
 	}
 
 	var blkDs ds.Datastore
@@ -126,22 +126,22 @@ func IsBasicFlatFSBlockstore(dstore ds.Datastore) (dsPath string, v1 *flatfs.Sha
 	} else if mnts[1].Prefix.Equal(blocksPrefix) {
 		blkDs = mnts[1].Datastore
 	} else {
-		return "", nil, errNotDefault
+		return "", nil, errNotSupportedFlatFSConfig
 	}
 
 	if reflect.TypeOf(blkDs).String() != "*measure.measure" {
-		return "", nil, errNotDefault
+		return "", nil, errNotSupportedFlatFSConfig
 	}
 
 	fsds, ok := getUnexportedField(reflect.ValueOf(blkDs).Elem().FieldByName("backend")).(*flatfs.Datastore)
 	if !ok {
-		return "", nil, errNotDefault
+		return "", nil, errNotSupportedFlatFSConfig
 	}
 	fsdsPath := reflect.ValueOf(fsds).Elem().FieldByName("path").String()
 
 	shard, err := flatfs.ParseShardFunc(fsds.ShardStr())
 	if err != nil {
-		return "", nil, errNotDefault
+		return "", nil, errNotSupportedFlatFSConfig
 	}
 	return fsdsPath, shard, nil
 }
