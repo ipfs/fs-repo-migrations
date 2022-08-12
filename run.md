@@ -1,6 +1,6 @@
 # Running Repo Migrations
 
-This document explains how to run [fs-repo](https://github.com/ipfs/specs/tree/master/repo/fs-repo) migrations for [ipfs](https://github.com/ipfs/ipfs).
+This document explains how to run [fs-repo](https://github.com/ipfs/specs/tree/master/repo/fs-repo) migrations for [Kubo](https://github.com/ipfs/kubo) IPFS implementation.
 
 Note that running migrations is a task automatically performed by the `ipfs` when starting the `ipfs` daemon after an upgrade or running the `ipfs-update` tool, so you would normally not need to run the `fs-repo-migrations` tool.
 
@@ -19,7 +19,7 @@ cp -r ~/.ipfs ~/.ipfs.bak
 ## Step 1. Downloading the Migration
 
 - If you have Go installed: `go get -u github.com/ipfs/fs-repo-migrations`
-- Otherwise, download a prebuilt binary from [the distributions page](https://dist.ipfs.io/#fs-repo-migrations)
+- Otherwise, download a prebuilt binary from [the distributions page](https://dist.ipfs.tech/#fs-repo-migrations)
 
 ## Step 2. Run the Migration
 
@@ -33,9 +33,9 @@ fs-repo-migrations
 ./fs-repo-migrations
 ```
 
-## Step 3. Done! Run IPFS.
+## Step 3. Done! Run Kubo.
 
-If the migration completed without error, then you're done! Try running the new ipfs:
+If the migration completed without error, then you're done! Try running Kubo:
 
 ```
 ipfs daemon

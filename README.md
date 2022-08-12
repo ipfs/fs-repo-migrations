@@ -1,13 +1,12 @@
 # fs-repo-migrations
 
-[![](https://img.shields.io/badge/made%20by-Protocol%20Labs-blue.svg?style=flat-square)](http://ipn.io)
-[![](https://img.shields.io/badge/project-IPFS-blue.svg?style=flat-square)](http://ipfs.io/)
-[![](https://img.shields.io/badge/freenode-%23ipfs-blue.svg?style=flat-square)](http://webchat.freenode.net/?channels=%23ipfs)
+[![](https://img.shields.io/badge/made%20by-Protocol%20Labs-blue.svg?style=flat-square)](https://protocol.ai)
+[![](https://img.shields.io/badge/project-IPFS-blue.svg?style=flat-square)](https://ipfs.tech/)
 [![standard-readme compliant](https://img.shields.io/badge/standard--readme-OK-green.svg?style=flat-square)](https://github.com/RichardLitt/standard-readme)
 
-> Migrations for the filesystem repository of ipfs nodes
+> Migrations for the filesystem repository of Kubo IPFS nodes
 
-These are migrations for the filesystem repository of [ipfs](https://github.com/ipfs/ipfs) nodes. Each migration builds a separate binary that converts a repository to the next version.  The `fs-repo-migrations` is a tool that downloads individual migrations from the ipfs distribution site and applies them in sequence to migrate the ipfs repository to the target version.  This tool is written in Go, and developed alongside [go-ipfs](https://github.com/ipfs/go-ipfs).
+These are migrations for the filesystem repository of [Kubo](https://github.com/ipfs/kubo) IPFS nodes. Each migration builds a separate binary that converts a repository to the next version.  The `fs-repo-migrations` is a tool that downloads individual migrations from the ipfs distribution site and applies them in sequence to migrate the ipfs repository to the target version.  This tool is written in Go, and developed alongside [kubo](https://github.com/ipfs/kubo).
 
 ## Table of Contents
 
@@ -31,11 +30,11 @@ make install
 
 ### When should I migrate
 
-When you want to upgrade go-ipfs to a new version, you may need to migrate.
+When you want to upgrade Kubo to a new version, you may need to migrate.
 
-Here is the table showing which repo version corresponds to which go-ipfs version:
+Here is the table showing which repo version corresponds to which Kubo version:
 
-| ipfs repo version | go-ipfs versions |
+| ipfs repo version | Kubo versions    |
 | ----------------: | :--------------- |
 |                 1 | 0.0.0 - 0.2.3.   |
 |                 2 | 0.3.0 - 0.3.11   |
