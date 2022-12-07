@@ -1,5 +1,6 @@
 // package mg12 contains the code to perform 12-13 repository migration in Kubo.
-// This just change some config fields to add webtransport listens on ones that quic uses.
+// This just change some config fields to add webtransport listens on ones that quic uses,
+// and removes some hardcoded defaults that are no longer present on fresh 'ipfs init'.
 package mg12
 
 import (
@@ -27,7 +28,7 @@ func (m Migration) Versions() string {
 	return "12-to-13"
 }
 
-// Reversible returns false, as you can just use the backup config file.
+// Reversible returns true, as we keep old config around
 func (m Migration) Reversible() bool {
 	return true
 }
@@ -155,6 +156,10 @@ func convert(in io.Reader, out io.Writer) error {
 	runOnAllAddressFields(confMap, multiaddrPatternReplace(false, "/quic/webtransport", "/quic-v1/webtransport", "/p2p-circuit"))
 	runOnAllAddressFields(confMap, multiaddrPatternReplace(true, "/quic", "/quic-v1", "/p2p-circuit"))
 	runOnAllAddressFields(confMap, multiaddrPatternReplace(true, "/quic-v1", "/quic-v1/webtransport", "/p2p-circuit", "/webtransport"))
+
+	convertRouting(confMap)
+	convertReprovider(confMap)
+	convertConnMgr(confMap)
 
 	fixed, err := json.MarshalIndent(confMap, "", "  ")
 	if err != nil {
