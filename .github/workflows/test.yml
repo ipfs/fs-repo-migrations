@@ -1,7 +1,7 @@
 name: Tests
 
 env:
-  GO: 1.16
+  GO: 1.18
 
 on:
   push:
