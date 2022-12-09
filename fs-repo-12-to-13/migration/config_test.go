@@ -2,14 +2,41 @@ package mg12
 
 import (
 	"bytes"
-	"encoding/json"
-	"io/ioutil"
 	"regexp"
 	"strings"
 	"testing"
 )
 
 var beforeConfig = `{
+  "Addresses": {
+    "Announce": [
+      "/ip6/::3/tcp/4001/quic",
+      "/ip4/3.0.0.0/tcp/4001",
+      "/ip4/3.0.0.0/udp/4001/quic"
+    ],
+    "AppendAnnounce": [
+      "/ip6/::2/tcp/4001/quic",
+      "/ip4/2.0.0.0/tcp/4001",
+      "/ip4/2.0.0.0/udp/4001/quic"
+    ],
+    "NoAnnounce": [
+      "/ip6/::1/tcp/4001/quic",
+      "/ip4/1.0.0.0/tcp/4001",
+      "/ip4/1.0.0.0/udp/4001/quic"
+    ],
+    "Swarm": [
+      "/ip6/::/tcp/4001",
+      "/ip6/::/tcp/4001/quic",
+      "/ip4/0.0.0.0/tcp/4001",
+      "/ip4/0.0.0.0/udp/4001/quic"
+    ]
+  },
+  "AutoNAT": {},
+  "Bootstrap": [
+    "/dnsaddr/bootstrap.libp2p.io/p2p/QmcZf59bWwK5XFi76CZX8cbJ4BhTzzA3gU1ZjYZcYW3dwt",
+    "/ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",
+    "/ip4/104.131.131.82/udp/4001/quic/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ"
+  ],
   "Reprovider": {
     "Interval": "12h",
 	"Strategy": "all"
@@ -20,6 +47,10 @@ var beforeConfig = `{
     "Type": "dht"
   },
   "Swarm": {
+    "AddrFilters": [
+	  "/ip4/10.0.0.0/ipcidr/8",
+	  "/ip4/12.0.0.0/udp/4001/quic"
+	],
 	"ConnMgr": {
 		"GracePeriod": "20s",
 		"HighWater": 900,
@@ -30,42 +61,76 @@ var beforeConfig = `{
 }`
 
 var afterConfig = `{
+  "Addresses": {
+    "Announce": [
+      "/ip6/::3/tcp/4001/quic",
+      "/ip6/::3/tcp/4001/quic-v1",
+      "/ip6/::3/tcp/4001/quic-v1/webtransport",
+      "/ip4/3.0.0.0/tcp/4001",
+      "/ip4/3.0.0.0/udp/4001/quic",
+      "/ip4/3.0.0.0/udp/4001/quic-v1",
+      "/ip4/3.0.0.0/udp/4001/quic-v1/webtransport"
+    ],
+    "AppendAnnounce": [
+      "/ip6/::2/tcp/4001/quic",
+      "/ip6/::2/tcp/4001/quic-v1",
+      "/ip6/::2/tcp/4001/quic-v1/webtransport",
+      "/ip4/2.0.0.0/tcp/4001",
+      "/ip4/2.0.0.0/udp/4001/quic",
+      "/ip4/2.0.0.0/udp/4001/quic-v1",
+      "/ip4/2.0.0.0/udp/4001/quic-v1/webtransport"
+    ],
+    "NoAnnounce": [
+      "/ip6/::1/tcp/4001/quic",
+      "/ip6/::1/tcp/4001/quic-v1",
+      "/ip6/::1/tcp/4001/quic-v1/webtransport",
+      "/ip4/1.0.0.0/tcp/4001",
+      "/ip4/1.0.0.0/udp/4001/quic",
+      "/ip4/1.0.0.0/udp/4001/quic-v1",
+      "/ip4/1.0.0.0/udp/4001/quic-v1/webtransport"
+    ],
+    "Swarm": [
+      "/ip6/::/tcp/4001",
+      "/ip6/::/tcp/4001/quic",
+      "/ip6/::/tcp/4001/quic-v1",
+      "/ip6/::/tcp/4001/quic-v1/webtransport",
+      "/ip4/0.0.0.0/tcp/4001",
+      "/ip4/0.0.0.0/udp/4001/quic",
+      "/ip4/0.0.0.0/udp/4001/quic-v1",
+      "/ip4/0.0.0.0/udp/4001/quic-v1/webtransport"
+    ]
+  },
+  "AutoNAT": {},
+  "Bootstrap": [
+    "/dnsaddr/bootstrap.libp2p.io/p2p/QmcZf59bWwK5XFi76CZX8cbJ4BhTzzA3gU1ZjYZcYW3dwt",
+    "/ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",
+    "/ip4/104.131.131.82/udp/4001/quic/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ"
+  ],
   "Reprovider": {},
   "Routing": {
-	"Methods": {},
-	"Routers": {}
+    "Methods": {},
+    "Routers": {}
   },
   "Swarm": {
+    "AddrFilters": [
+      "/ip4/10.0.0.0/ipcidr/8",
+      "/ip4/12.0.0.0/udp/4001/quic",
+      "/ip4/12.0.0.0/udp/4001/quic-v1",
+      "/ip4/12.0.0.0/udp/4001/quic-v1/webtransport"
+    ],
     "ConnMgr": {}
   }
 }`
 
 func TestKubo18ConfigMigration(t *testing.T) {
+	in := strings.NewReader(beforeConfig)
 	out := new(bytes.Buffer)
 
-	data, err := ioutil.ReadAll(strings.NewReader(beforeConfig))
+	err := convert(in, out)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	confMap := make(map[string]interface{})
-	if err = json.Unmarshal(data, &confMap); err != nil {
-		t.Fatal(err)
-	}
-
-	// Kubo 0.18
-	convertRouting(confMap)
-	convertReprovider(confMap)
-	convertConnMgr(confMap)
-
-	fixed, err := json.MarshalIndent(confMap, "", "  ")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if _, err := out.Write(fixed); err != nil {
-		t.Fatal(err)
-	}
 	_, err = out.Write([]byte("\n"))
 	if err != nil {
 		t.Fatal(err)

@@ -4,6 +4,17 @@ import (
 	log "github.com/ipfs/fs-repo-migrations/tools/stump"
 )
 
+// convertQuicAddrs converts quic multiaddrs to v1 and enables webtransport listener
+// https://github.com/ipfs/kubo/issues/9410
+// https://github.com/ipfs/kubo/issues/9292
+func convertQuicAddrs(confMap map[string]any) {
+	// run this first to avoid having both quic and quic-v1 webtransport addresses
+	runOnAllAddressFields(confMap, multiaddrPatternReplace(false, "/quic/webtransport", "/quic-v1/webtransport", "/p2p-circuit"))
+
+	runOnAllAddressFields(confMap, multiaddrPatternReplace(true, "/quic", "/quic-v1", "/p2p-circuit"))
+	runOnAllAddressFields(confMap, multiaddrPatternReplace(true, "/quic-v1", "/quic-v1/webtransport", "/p2p-circuit", "/webtransport"))
+}
+
 // convertRouting converts Routing.Type to implicit default
 // https://github.com/ipfs/kubo/pull/9475
 func convertRouting(confMap map[string]any) {
