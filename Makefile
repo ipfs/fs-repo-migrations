@@ -1,6 +1,8 @@
 GO111MODULE = on
 
 MIG_DIRS = $(shell ls -d fs-repo-*-to-*)
+IGNORED_DIRS := $(shell cat ignored-migrations)
+ACTIVE_DIRS := $(filter-out $(IGNORED_DIRS),$(MIG_DIRS))
 
 .PHONY: all build clean cmd sharness test test_go
 
@@ -9,7 +11,7 @@ all: build
 show: $(MIG_DIRS)
 	@echo "$(MIG_DIRS)"
 
-build: $(shell ls -d fs-repo-*-to-* | sed -e 's/fs-repo/build.fs-repo/') cmd
+build: $(subst fs-repo,build.fs-repo,$(ACTIVE_DIRS)) cmd
 	@echo OK
 
 build.%: MIGRATION=$*
@@ -26,7 +28,7 @@ sharness:
 
 test: test_go sharness
 
-clean: $(shell ls -d fs-repo-*-to-* | sed -e 's/fs-repo/clean.fs-repo/')
+clean: $(subst fs-repo,clean.fs-repo,$(ACTIVE_DIRS))
 	@make -C sharness clean
 	@cd fs-repo-migrations && go clean
 	@echo OK
@@ -35,7 +37,7 @@ clean.%: MIGRATION=$*
 clean.%:
 	make -C $(MIGRATION) clean
 
-test_go: $(shell ls -d fs-repo-*-to-* | sed -e 's/fs-repo/test_go.fs-repo/')
+test_go: $(subst fs-repo,test_go.fs-repo,$(ACTIVE_DIRS))
 	@echo OK
 
 test_go.%: MIGRATION=$*

@@ -23,7 +23,7 @@ test "$TEST_VERBOSE" = 1 && verbose=t && echo '# TEST_VERBOSE='"$TEST_VERBOSE"
 
 test "$TEST_EXPENSIVE" = 1 && test_set_prereq EXPENSIVE
 
-DEFAULT_DOCKER_IMG="debian"
+DEFAULT_DOCKER_IMG="ubuntu:22.04" # Ideally, should match https://github.com/ipfs/distributions/blob/master/Dockerfile
 DOCKER_IMG="$DEFAULT_DOCKER_IMG"
 
 TEST_TRASH_DIR=$(pwd)

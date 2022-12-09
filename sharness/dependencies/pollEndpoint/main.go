@@ -11,7 +11,7 @@ import (
 	"time"
 
 	ma "github.com/multiformats/go-multiaddr"
-	manet "github.com/multiformats/go-multiaddr-net"
+	manet "github.com/multiformats/go-multiaddr/net"
 	logging "github.com/whyrusleeping/go-logging"
 )
 

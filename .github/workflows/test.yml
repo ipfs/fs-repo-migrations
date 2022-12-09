@@ -23,5 +23,5 @@ jobs:
       with:
         go-version: ${{ env.GO }}
 
-    - name: Make
+    - name: Test
       run: make -k test
