@@ -4,7 +4,7 @@ MIG_DIRS = $(shell ls -d fs-repo-*-to-*)
 IGNORED_DIRS := $(shell cat ignored-migrations)
 ACTIVE_DIRS := $(filter-out $(IGNORED_DIRS),$(MIG_DIRS))
 
-.PHONY: all build clean cmd sharness test test_go
+.PHONY: all build clean cmd sharness test test_go test_12_to_13
 
 all: build
 
@@ -26,7 +26,7 @@ fs-repo-migrations/fs-repo-migrations:
 sharness:
 	make -C sharness
 
-test: test_go sharness
+test: test_go sharness test_12_to_13
 
 clean: $(subst fs-repo,clean.fs-repo,$(ACTIVE_DIRS))
 	@make -C sharness clean
@@ -43,3 +43,6 @@ test_go: $(subst fs-repo,test_go.fs-repo,$(ACTIVE_DIRS))
 test_go.%: MIGRATION=$*
 test_go.%:
 	@cd $(MIGRATION)/migration && go test -mod=vendor
+
+test_12_to_13:
+	@cd fs-repo-12-to-13/not-sharness && ./test.sh

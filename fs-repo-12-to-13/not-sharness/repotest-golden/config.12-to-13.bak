@@ -1,0 +1,52 @@
+{
+  "Addresses": {
+    "Announce": [
+      "/ip6/::3/tcp/4001/quic",
+      "/ip4/3.0.0.0/tcp/4001",
+      "/ip4/3.0.0.0/udp/4001/quic"
+    ],
+    "AppendAnnounce": [
+      "/ip6/::2/tcp/4001/quic",
+      "/ip4/2.0.0.0/tcp/4001",
+      "/ip4/2.0.0.0/udp/4001/quic"
+    ],
+    "NoAnnounce": [
+      "/ip6/::1/tcp/4001/quic",
+      "/ip4/1.0.0.0/tcp/4001",
+      "/ip4/1.0.0.0/udp/4001/quic"
+    ],
+    "Swarm": [
+      "/ip6/::/tcp/4001",
+      "/ip6/::/tcp/4001/quic",
+      "/ip4/0.0.0.0/tcp/4001",
+      "/ip4/0.0.0.0/udp/4001/quic"
+    ]
+  },
+  "AutoNAT": {},
+  "Bootstrap": [
+    "/dnsaddr/bootstrap.libp2p.io/p2p/QmcZf59bWwK5XFi76CZX8cbJ4BhTzzA3gU1ZjYZcYW3dwt",
+    "/ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",
+    "/ip4/104.131.131.82/udp/4001/quic/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ"
+  ],
+  "Reprovider": {
+    "Interval": "12h",
+	"Strategy": "all"
+  },
+  "Routing": {
+	"Methods": {},
+	"Routers": {},
+    "Type": "dht"
+  },
+  "Swarm": {
+    "AddrFilters": [
+	  "/ip4/10.0.0.0/ipcidr/8",
+	  "/ip4/12.0.0.0/udp/4001/quic"
+	],
+	"ConnMgr": {
+		"GracePeriod": "20s",
+		"HighWater": 900,
+		"LowWater": 600,
+		"Type": "basic"
+	}
+  }
+}
