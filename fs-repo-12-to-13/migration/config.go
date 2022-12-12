@@ -24,6 +24,17 @@ func convertRouting(confMap map[string]any) {
 		return
 	}
 
+	routers, ok := routing["Routers"].(map[string]any)
+	if len(routers) > 0 {
+		log.Log("Custom Routing.Routers in config, skipping")
+		return
+	}
+	methods, ok := routing["Methods"].(map[string]any)
+	if len(methods) > 0 {
+		log.Log("Custom Routing.Methods in config, skipping")
+		return
+	}
+
 	rType, ok := routing["Type"].(string)
 	if !ok {
 		log.Log("No Routing.Type field in config, skipping")
@@ -50,21 +61,18 @@ func convertReprovider(confMap map[string]any) {
 		log.Log("No Reprovider.Interval field in config, skipping")
 		return
 	}
-	if interval == "12h" {
-		delete(reprovider, "Interval")
-	} else {
-		log.Log("Reprovider.Interval settings is different than the old default, skipping")
-	}
 
 	strategy, ok := reprovider["Strategy"].(string)
 	if !ok {
 		log.Log("No Reprovider.Strategy field in config, skipping")
 		return
 	}
-	if strategy == "all" {
+
+	if interval == "12h" && strategy == "all" {
 		delete(reprovider, "Strategy")
+		delete(reprovider, "Interval")
 	} else {
-		log.Log("Reprovider.Strategy settings is different than the old default, skipping")
+		log.Log("Reprovider settings are different than the old default, skipping")
 	}
 }
 
@@ -102,19 +110,11 @@ func convertConnMgr(confMap map[string]any) {
 		return
 	}
 
-	if cmType == "basic" {
+	if cmType == "basic" && int(cmLowWater) == 600 && int(cmHighWater) == 900 && cmGrace == "20s" {
 		delete(connmgr, "Type")
-		if cmGrace == "20s" {
-			delete(connmgr, "GracePeriod")
-		} else {
-			log.Log("Swarm.ConnMgr.GracePeriod setting are different than the old defaults, skipping")
-		}
-		if int(cmLowWater) == 600 && int(cmHighWater) == 900 {
-			delete(connmgr, "LowWater")
-			delete(connmgr, "HighWater")
-		} else {
-			log.Log("Swarm.ConnMgr Low/HighWater settings are different than the old defaults, skipping")
-		}
+		delete(connmgr, "GracePeriod")
+		delete(connmgr, "LowWater")
+		delete(connmgr, "HighWater")
 	} else {
 		log.Log("Swarm.ConnMgr settings are different than the old defaults, skipping")
 	}

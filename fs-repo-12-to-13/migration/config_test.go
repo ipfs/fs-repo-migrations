@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-var beforeConfig = `{
+var beforeDefaultConfig = `{
   "Addresses": {
     "Announce": [
       "/ip6/::3/tcp/4001/quic",
@@ -60,7 +60,7 @@ var beforeConfig = `{
   }
 }`
 
-var afterConfig = `{
+var afterDefaultConfig = `{
   "Addresses": {
     "Announce": [
       "/ip6/::3/tcp/4001/quic",
@@ -122,7 +122,59 @@ var afterConfig = `{
   }
 }`
 
-func TestKubo18ConfigMigration(t *testing.T) {
+var customConfig = `{
+  "Addresses": {
+    "Announce": [
+      "/ip4/3.0.0.0/tcp/4001"
+    ],
+    "AppendAnnounce": [
+      "/ip4/2.0.0.0/tcp/4001"
+    ],
+    "NoAnnounce": [
+      "/ip4/1.0.0.0/tcp/4001"
+    ],
+    "Swarm": [
+      "/ip6/::/tcp/4001",
+      "/ip4/0.0.0.0/tcp/4001"
+    ]
+  },
+  "AutoNAT": {},
+  "Bootstrap": [
+    "/dnsaddr/bootstrap.libp2p.io/p2p/QmcZf59bWwK5XFi76CZX8cbJ4BhTzzA3gU1ZjYZcYW3dwt",
+    "/ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",
+    "/ip4/104.131.131.82/udp/4001/quic/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ"
+  ],
+  "Reprovider": {
+    "Interval": "12h",
+	"Strategy": "roots"
+  },
+  "Routing": {
+	"Methods": {},
+	"Routers": {},
+    "Type": "dhtclient"
+  },
+  "Swarm": {
+    "AddrFilters": [
+	  "/ip4/10.0.0.0/ipcidr/8"
+	],
+	"ConnMgr": {
+		"GracePeriod": "20s",
+		"HighWater": 10000,
+		"LowWater": 5000,
+		"Type": "basic"
+	}
+  }
+}`
+
+func TestDefaultConfigMigration(t *testing.T) {
+	testConfigMigration(beforeDefaultConfig, afterDefaultConfig, t)
+}
+func TestCustomConfigMigration(t *testing.T) {
+	// user config with custom values for migrated fields is left untouched
+	testConfigMigration(customConfig, customConfig, t)
+}
+
+func testConfigMigration(beforeConfig string, afterConfig string, t *testing.T) {
 	in := strings.NewReader(beforeConfig)
 	out := new(bytes.Buffer)
 
