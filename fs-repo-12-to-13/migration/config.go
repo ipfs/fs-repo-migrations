@@ -9,7 +9,7 @@ import (
 // https://github.com/ipfs/kubo/issues/9292
 func convertQuicAddrs(confMap map[string]any) {
 	// run this first to avoid having both quic and quic-v1 webtransport addresses
-	runOnAllAddressFields(confMap, multiaddrPatternReplace(false, "/quic/webtransport", "/quic-v1/webtransport", "/p2p-circuit"))
+	runOnAllAddressFields(confMap, multiaddrPatternReplace(false, "/quic/webtransport", "/quic-v1/webtransport"))
 
 	runOnAllAddressFields(confMap, multiaddrPatternReplace(true, "/quic", "/quic-v1", "/p2p-circuit"))
 	runOnAllAddressFields(confMap, multiaddrPatternReplace(true, "/quic-v1", "/quic-v1/webtransport", "/p2p-circuit", "/webtransport"))
