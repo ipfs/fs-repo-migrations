@@ -178,9 +178,17 @@ func convert(in io.Reader, out io.Writer) error {
 
 func multiaddrPatternReplace(add bool, old, new string, notBefore ...string) func(in []any) (out []any) {
 	return func(in []any) (out []any) {
+		if in == nil {
+			return // if in was null then forward it as-is.
+		}
+		out = []any{} // else don't emit null slices
+		uniq := map[any]struct{}{}
 		for _, w := range in {
 			if add {
-				out = append(out, w)
+				if _, ok := uniq[w]; !ok {
+					uniq[w] = struct{}{}
+					out = append(out, w)
+				}
 			}
 
 			v, ok := w.(string)
@@ -207,7 +215,10 @@ func multiaddrPatternReplace(add bool, old, new string, notBefore ...string) fun
 
 			// always append if we didn't appended previously
 			if !add || r != v {
-				out = append(out, r)
+				if _, ok := uniq[r]; !ok {
+					uniq[r] = struct{}{}
+					out = append(out, r)
+				}
 			}
 		}
 		return
