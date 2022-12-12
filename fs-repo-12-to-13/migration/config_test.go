@@ -169,12 +169,19 @@ var customConfig = `{
 func TestDefaultConfigMigration(t *testing.T) {
 	testConfigMigration(beforeDefaultConfig, afterDefaultConfig, t)
 }
+func TestDefaultConfigMigrationIdempotency(t *testing.T) {
+	out1 := testConfigMigration(beforeDefaultConfig, afterDefaultConfig, t)
+	out2 := testConfigMigration(out1, afterDefaultConfig, t)
+	if out1 != out2 {
+		t.Fatalf("Config migration expected to be idempotent. Mismatch\nSecond conversion produced:\n%s\nExpected:\n%s\n", out2, out1)
+	}
+}
 func TestCustomConfigMigration(t *testing.T) {
 	// user config with custom values for migrated fields is left untouched
 	testConfigMigration(customConfig, customConfig, t)
 }
 
-func testConfigMigration(beforeConfig string, afterConfig string, t *testing.T) {
+func testConfigMigration(beforeConfig string, afterConfig string, t *testing.T) string {
 	in := strings.NewReader(beforeConfig)
 	out := new(bytes.Buffer)
 
@@ -192,6 +199,7 @@ func testConfigMigration(beforeConfig string, afterConfig string, t *testing.T) 
 	if noSpace(forward) != noSpace(afterConfig) {
 		t.Fatalf("Mismatch\nConversion produced:\n%s\nExpected:\n%s\n", forward, afterConfig)
 	}
+	return forward
 }
 
 var whitespaceRe = regexp.MustCompile(`\s`)
