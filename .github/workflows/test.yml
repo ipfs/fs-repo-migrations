@@ -1,7 +1,7 @@
 name: Tests
 
 env:
-  GO: 1.16
+  GO: 1.18
 
 on:
   push:
@@ -23,5 +23,5 @@ jobs:
       with:
         go-version: ${{ env.GO }}
 
-    - name: Make
+    - name: Test
       run: make -k test

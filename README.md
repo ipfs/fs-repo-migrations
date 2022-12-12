@@ -47,7 +47,8 @@ Here is the table showing which repo version corresponds to which Kubo version:
 |                 9 | 0.5.0 - 0.6.0    |
 |                10 | 0.6.0 - 0.7.0    |
 |                11 | 0.8.0 - 0.11.0   |
-|                12 | 0.12.0 - current |
+|                12 | 0.12.0 - 0.17.0  |
+|                13 | 0.18.0 - current |
 
 ### How to Run Migrations
 
@@ -79,6 +80,11 @@ Example:
 git tag fs-repo-99-to-100/v1.0.1
 git push origin fs-repo-99-to-100/v1.0.1
 ```
+
+#### Ignoring legacy migrations
+
+We "archive" legacy migrations by adding them to `ignored-migrations` file.
+This keeps CI fast, and removes issues caused by old, with unsupported go code.
 
 ### Dependencies
 
