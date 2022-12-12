@@ -5,6 +5,7 @@ package mg12
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -55,19 +56,68 @@ func (m Migration) Apply(opts migrate.Options) error {
 	log.Log("> Upgrading config to new format")
 
 	path := filepath.Join(opts.Path, "config")
-	if err := convertFile(path); err != nil {
+	in, err := os.Open(path)
+	if err != nil {
 		return err
+	}
+
+	// make backup
+	backup, err := atomicfile.New(path+backupSuffix, 0600)
+	if err != nil {
+		return err
+	}
+	if _, err := backup.ReadFrom(in); err != nil {
+		panicOnError(backup.Abort())
+		return err
+	}
+	if _, err := in.Seek(0, io.SeekStart); err != nil {
+		panicOnError(backup.Abort())
+		return err
+	}
+
+	// Create a temp file to write the output to on success
+	out, err := atomicfile.New(path, 0600)
+	if err != nil {
+		panicOnError(backup.Abort())
+		panicOnError(in.Close())
+		return err
+	}
+
+	if err := convert(in, out); err != nil {
+		panicOnError(out.Abort())
+		panicOnError(backup.Abort())
+		panicOnError(in.Close())
+		return err
+	}
+
+	if err := in.Close(); err != nil {
+		panicOnError(out.Abort())
+		panicOnError(backup.Abort())
 	}
 
 	if err := repo.WriteVersion("13"); err != nil {
 		log.Error("failed to update version file to 13")
+		// There was an error so abort writing the output and clean up temp file
+		panicOnError(out.Abort())
+		panicOnError(backup.Abort())
 		return err
+	} else {
+		// Write the output and clean up temp file
+		panicOnError(out.Close())
+		panicOnError(backup.Close())
 	}
 
 	log.Log("updated version file")
 
 	log.Log("Migration 12 to 13 succeeded")
 	return nil
+}
+
+// panicOnError is reserved for checks we can't solve transactionally if an error occurs
+func panicOnError(e error) {
+	if e != nil {
+		panic(fmt.Errorf("error can't be dealt with transactionally: %w", e))
+	}
 }
 
 func (m Migration) Revert(opts migrate.Options) error {
@@ -97,52 +147,6 @@ func (m Migration) Revert(opts migrate.Options) error {
 	}
 
 	return nil
-}
-
-// convertFile converts a config file from 12 version to 13
-func convertFile(path string) error {
-	in, err := os.Open(path)
-	if err != nil {
-		return err
-	}
-
-	// make backup
-	backup, err := atomicfile.New(path+backupSuffix, 0600)
-	if err != nil {
-		return err
-	}
-	if _, err := backup.ReadFrom(in); err != nil {
-		backup.Abort()
-		return err
-	}
-	if _, err := in.Seek(0, io.SeekStart); err != nil {
-		backup.Abort()
-		return err
-	}
-
-	// Create a temp file to write the output to on success
-	out, err := atomicfile.New(path, 0600)
-	if err != nil {
-		in.Close()
-		backup.Abort()
-		return err
-	}
-
-	err = convert(in, out)
-
-	in.Close()
-
-	if err != nil {
-		// There was an error so abort writing the output and clean up temp file
-		out.Abort()
-		backup.Abort()
-	} else {
-		// Write the output and clean up temp file
-		out.Close()
-		backup.Close()
-	}
-
-	return err
 }
 
 // convert converts the config from one version to another
