@@ -7,6 +7,7 @@ package qtls
 import (
 	"bytes"
 	"container/list"
+	"context"
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/ed25519"
@@ -349,6 +350,7 @@ type clientSessionState struct {
 // goroutines. Up to TLS 1.2, only ticket-based resumption is supported, not
 // SessionID-based resumption. In TLS 1.3 they were merged into PSK modes, which
 // are supported via this interface.
+//
 //go:generate sh -c "mockgen -package qtls -destination mock_client_session_cache_test.go github.com/marten-seemann/qtls-go1-15 ClientSessionCache"
 type ClientSessionCache = tls.ClientSessionCache
 
@@ -430,6 +432,10 @@ type clientHelloInfo struct {
 	// config is embedded by the GetCertificate or GetConfigForClient caller,
 	// for use with SupportsCertificate.
 	config *Config
+
+	// NOTE this field was added in go 1.17
+	// ctx is the context of the handshake that is in progress.
+	ctx context.Context
 }
 
 // CertificateRequestInfo contains information from a server's
