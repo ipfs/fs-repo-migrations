@@ -48,7 +48,8 @@ Here is the table showing which repo version corresponds to which Kubo version:
 |                10 | 0.6.0 - 0.7.0    |
 |                11 | 0.8.0 - 0.11.0   |
 |                12 | 0.12.0 - 0.17.0  |
-|                13 | 0.18.0 - current |
+|                13 | 0.18.0 - 0.20.0  |
+|                14 | 0.21.0 - current |
 
 ### How to Run Migrations
 

@@ -4,7 +4,7 @@ test_description="Simple fs-repo-migrations tests"
 
 . lib/test-lib.sh
 
-latestRepoVersion="12"
+latestRepoVersion="13"
 
 test_expect_success "fs-repo-migrations binary is here" '
 	test -f "$LOCAL_FS_REPO_MIG"
@@ -53,7 +53,7 @@ test_expect_success "'fs-repo-migrations -y' works" '
 '
 
 test_expect_success "'fs-repo-migrations -y' output looks good" '
-	grep "fs-repo migrated to version 3" actual || 
+	grep "fs-repo migrated to version 3" actual ||
 	test_fsh cat actual
 '
 
