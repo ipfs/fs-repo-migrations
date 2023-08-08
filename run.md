@@ -18,7 +18,7 @@ cp -r ~/.ipfs ~/.ipfs.bak
 
 ## Step 1. Downloading the Migration
 
-- If you have Go installed: `go get -u github.com/ipfs/fs-repo-migrations`
+- If you have Go installed: `go install github.com/ipfs/fs-repo-migrations@latest`
 - Otherwise, download a prebuilt binary from [the distributions page](https://dist.ipfs.tech/#fs-repo-migrations)
 
 ## Step 2. Run the Migration
