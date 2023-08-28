@@ -198,6 +198,42 @@ func convert(in io.Reader, out io.Writer) error {
 		}
 	}
 
+	// Remove legacy Gateway.HTTPHeaders values that were hardcoded since years ago, but no longer necessary
+	// (but leave as-is if user made any changes)
+	// https://github.com/ipfs/kubo/issues/10005
+	if a, ok := confMap["Gateway"]; ok {
+		addresses, ok := a.(map[string]any)
+		if !ok {
+			return fmt.Errorf("invalid type for .Gateway got %T expected json map", a)
+		}
+
+		if s, ok := addresses["HTTPHeaders"]; ok {
+			headers, ok := s.(map[string]any)
+			if !ok {
+				return fmt.Errorf("invalid type for .Gateway.HTTPHeaders got %T expected json map", s)
+			}
+
+			if acaos, ok := headers["Access-Control-Allow-Origin"].([]interface{}); ok && len(acaos) == 1 && acaos[0] == "*" {
+				delete(headers, "Access-Control-Allow-Origin")
+			} else {
+				return fmt.Errorf("invalid type for .Gateway.HTTPHeaders[Access-Control-Allow-Origin] got %T expected json array", headers["Access-Control-Allow-Origin"])
+			}
+
+			if acams, ok := headers["Access-Control-Allow-Methods"].([]interface{}); ok && len(acams) == 1 && acams[0] == "GET" {
+				delete(headers, "Access-Control-Allow-Methods")
+			} else {
+				return fmt.Errorf("invalid type for .Gateway.HTTPHeaders[Access-Control-Allow-Methods] got %T expected json array", headers["Access-Control-Allow-Methods"])
+			}
+			if acahs, ok := headers["Access-Control-Allow-Headers"].([]interface{}); ok && len(acahs) == 3 {
+				if acahs[0] == "X-Requested-With" && acahs[1] == "Range" && acahs[2] == "User-Agent" {
+					delete(headers, "Access-Control-Allow-Headers")
+				}
+			} else {
+				return fmt.Errorf("invalid type for .Gateway.HTTPHeaders[Access-Control-Allow-Headers] got %T expected json array", headers["Access-Control-Allow-Headers"])
+			}
+		}
+	}
+
 	// Save new config
 	fixed, err := json.MarshalIndent(confMap, "", "  ")
 	if err != nil {
