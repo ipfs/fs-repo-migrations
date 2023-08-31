@@ -178,10 +178,15 @@ func convert(in io.Reader, out io.Writer) error {
 			return fmt.Errorf("invalid type for .Addresses got %T expected json map", a)
 		}
 
-		if s, ok := addresses["Swarm"]; ok {
+		for _, addressToRemove := range [...]string{"Swarm", "Announce", "AppendAnnounce", "NoAnnounce"} {
+			s, ok := addresses[addressToRemove]
+			if !ok {
+				continue
+			}
+
 			swarm, ok := s.([]interface{})
 			if !ok {
-				return fmt.Errorf("invalid type for .Addresses.Swarm got %T expected json array", s)
+				return fmt.Errorf("invalid type for .Addresses.%s got %T expected json array", addressToRemove, s)
 			}
 
 			var newSwarm []interface{}
@@ -194,7 +199,7 @@ func convert(in io.Reader, out io.Writer) error {
 					newSwarm = append(newSwarm, v)
 				}
 			}
-			addresses["Swarm"] = newSwarm
+			addresses[addressToRemove] = newSwarm
 		}
 	}
 
