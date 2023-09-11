@@ -172,65 +172,79 @@ func convert(in io.Reader, out io.Writer) error {
 	}
 
 	// Remove /quic only addresses from .Addresses.Swarm
-	if a, ok := confMap["Addresses"]; ok {
-		addresses, ok := a.(map[string]any)
-		if !ok {
-			return fmt.Errorf("invalid type for .Addresses got %T expected json map", a)
-		}
-
-		for _, addressToRemove := range [...]string{"Swarm", "Announce", "AppendAnnounce", "NoAnnounce"} {
-			s, ok := addresses[addressToRemove]
+	if err := func() error {
+		if a, ok := confMap["Addresses"]; ok {
+			addresses, ok := a.(map[string]any)
 			if !ok {
-				continue
+				fmt.Printf("invalid type for .Addresses got %T expected json map; skipping .Addresses\n", a)
+				return nil
 			}
 
-			swarm, ok := s.([]interface{})
-			if !ok {
-				return fmt.Errorf("invalid type for .Addresses.%s got %T expected json array", addressToRemove, s)
-			}
-
-			var newSwarm []interface{}
-			for _, v := range swarm {
-				if addr, ok := v.(string); ok {
-					if !strings.Contains(addr, "/quic") || strings.Contains(addr, "/quic-v1") {
-						newSwarm = append(newSwarm, addr)
-					}
-				} else {
-					newSwarm = append(newSwarm, v)
+			for _, addressToRemove := range [...]string{"Swarm", "Announce", "AppendAnnounce", "NoAnnounce"} {
+				s, ok := addresses[addressToRemove]
+				if !ok {
+					continue
 				}
+
+				swarm, ok := s.([]interface{})
+				if !ok {
+					fmt.Printf("invalid type for .Addresses.%s got %T expected json array; skipping .Addresses.%s\n", addressToRemove, s, addressToRemove)
+					continue
+				}
+
+				var newSwarm []interface{}
+				for _, v := range swarm {
+					if addr, ok := v.(string); ok {
+						if !strings.Contains(addr, "/quic") || strings.Contains(addr, "/quic-v1") {
+							newSwarm = append(newSwarm, addr)
+						}
+					} else {
+						newSwarm = append(newSwarm, v)
+					}
+				}
+				addresses[addressToRemove] = newSwarm
 			}
-			addresses[addressToRemove] = newSwarm
 		}
+		return nil
+	}(); err != nil {
+		return err
 	}
 
 	// Remove legacy Gateway.HTTPHeaders values that were hardcoded since years ago, but no longer necessary
 	// (but leave as-is if user made any changes)
 	// https://github.com/ipfs/kubo/issues/10005
-	if a, ok := confMap["Gateway"]; ok {
-		addresses, ok := a.(map[string]any)
-		if !ok {
-			return fmt.Errorf("invalid type for .Gateway got %T expected json map", a)
-		}
-
-		if s, ok := addresses["HTTPHeaders"]; ok {
-			headers, ok := s.(map[string]any)
+	if err := func() error {
+		if a, ok := confMap["Gateway"]; ok {
+			addresses, ok := a.(map[string]any)
 			if !ok {
-				return fmt.Errorf("invalid type for .Gateway.HTTPHeaders got %T expected json map", s)
+				fmt.Printf("invalid type for .Gateway got %T expected json map; skipping .Gateway\n", a)
+				return nil
 			}
 
-			if acaos, ok := headers["Access-Control-Allow-Origin"].([]interface{}); ok && len(acaos) == 1 && acaos[0] == "*" {
-				delete(headers, "Access-Control-Allow-Origin")
-			}
+			if s, ok := addresses["HTTPHeaders"]; ok {
+				headers, ok := s.(map[string]any)
+				if !ok {
+					fmt.Printf("invalid type for .Gateway.HTTPHeaders got %T expected json map; skipping .Gateway.HTTPHeaders\n", s)
+					return nil
+				}
 
-			if acams, ok := headers["Access-Control-Allow-Methods"].([]interface{}); ok && len(acams) == 1 && acams[0] == "GET" {
-				delete(headers, "Access-Control-Allow-Methods")
-			}
-			if acahs, ok := headers["Access-Control-Allow-Headers"].([]interface{}); ok && len(acahs) == 3 {
-				if acahs[0] == "X-Requested-With" && acahs[1] == "Range" && acahs[2] == "User-Agent" {
-					delete(headers, "Access-Control-Allow-Headers")
+				if acaos, ok := headers["Access-Control-Allow-Origin"].([]interface{}); ok && len(acaos) == 1 && acaos[0] == "*" {
+					delete(headers, "Access-Control-Allow-Origin")
+				}
+
+				if acams, ok := headers["Access-Control-Allow-Methods"].([]interface{}); ok && len(acams) == 1 && acams[0] == "GET" {
+					delete(headers, "Access-Control-Allow-Methods")
+				}
+				if acahs, ok := headers["Access-Control-Allow-Headers"].([]interface{}); ok && len(acahs) == 3 {
+					if acahs[0] == "X-Requested-With" && acahs[1] == "Range" && acahs[2] == "User-Agent" {
+						delete(headers, "Access-Control-Allow-Headers")
+					}
 				}
 			}
 		}
+		return nil
+	}(); err != nil {
+		return err
 	}
 
 	// Save new config
