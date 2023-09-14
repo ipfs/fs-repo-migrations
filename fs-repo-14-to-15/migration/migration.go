@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	migrate "github.com/ipfs/fs-repo-migrations/tools/go-migrate"
@@ -150,6 +151,9 @@ func (m Migration) Revert(opts migrate.Options) error {
 	return nil
 }
 
+var quicRegex = regexp.MustCompilePOSIX("/quic(/|$)")
+var quicEnd = regexp.MustCompilePOSIX("/quic$")
+
 // convert converts the config from one version to another
 func convert(in io.Reader, out io.Writer) error {
 	confMap := make(map[string]any)
@@ -171,39 +175,58 @@ func convert(in io.Reader, out io.Writer) error {
 		}
 	}
 
-	// Remove /quic only addresses from .Addresses.Swarm
+	// Remove /quic only addresses from the .Addresses fields
 	if err := func() error {
-		if a, ok := confMap["Addresses"]; ok {
-			addresses, ok := a.(map[string]any)
+		a, ok := confMap["Addresses"]
+		if !ok {
+			return nil
+		}
+		addresses, ok := a.(map[string]any)
+		if !ok {
+			fmt.Printf("invalid type for .Addresses got %T expected json map; skipping .Addresses\n", a)
+			return nil
+		}
+
+		for _, addressToRemove := range [...]string{"Swarm", "Announce", "AppendAnnounce", "NoAnnounce"} {
+			s, ok := addresses[addressToRemove]
 			if !ok {
-				fmt.Printf("invalid type for .Addresses got %T expected json map; skipping .Addresses\n", a)
-				return nil
+				continue
 			}
 
-			for _, addressToRemove := range [...]string{"Swarm", "Announce", "AppendAnnounce", "NoAnnounce"} {
-				s, ok := addresses[addressToRemove]
-				if !ok {
-					continue
-				}
+			swarm, ok := s.([]interface{})
+			if !ok {
+				fmt.Printf("invalid type for .Addresses.%s got %T expected json array; skipping .Addresses.%s\n", addressToRemove, s, addressToRemove)
+				continue
+			}
 
-				swarm, ok := s.([]interface{})
-				if !ok {
-					fmt.Printf("invalid type for .Addresses.%s got %T expected json array; skipping .Addresses.%s\n", addressToRemove, s, addressToRemove)
-					continue
-				}
+			var newSwarm []interface{}
+			uniq := map[string]struct{}{}
+			for _, v := range swarm {
+				if addr, ok := v.(string); ok {
+					if quicRegex.MatchString(addr) {
+						newAddr := quicEnd.ReplaceAllString(addr, "/quic-v1")
+						newAddr = strings.ReplaceAll(newAddr, "/quic/", "/quic-v1/")
 
-				var newSwarm []interface{}
-				for _, v := range swarm {
-					if addr, ok := v.(string); ok {
-						if !strings.Contains(addr, "/quic") || strings.Contains(addr, "/quic-v1") {
-							newSwarm = append(newSwarm, addr)
+						if _, ok := uniq[newAddr]; ok {
+							continue
 						}
-					} else {
-						newSwarm = append(newSwarm, v)
+						uniq[newAddr] = struct{}{}
+
+						newSwarm = append(newSwarm, newAddr)
+						continue
 					}
+
+					if _, ok := uniq[addr]; ok {
+						continue
+					}
+					uniq[addr] = struct{}{}
+
+					newSwarm = append(newSwarm, addr)
+					continue
 				}
-				addresses[addressToRemove] = newSwarm
+				newSwarm = append(newSwarm, v)
 			}
+			addresses[addressToRemove] = newSwarm
 		}
 		return nil
 	}(); err != nil {
@@ -214,32 +237,36 @@ func convert(in io.Reader, out io.Writer) error {
 	// (but leave as-is if user made any changes)
 	// https://github.com/ipfs/kubo/issues/10005
 	if err := func() error {
-		if a, ok := confMap["Gateway"]; ok {
-			addresses, ok := a.(map[string]any)
-			if !ok {
-				fmt.Printf("invalid type for .Gateway got %T expected json map; skipping .Gateway\n", a)
-				return nil
-			}
+		a, ok := confMap["Gateway"]
+		if !ok {
+			return nil
+		}
+		addresses, ok := a.(map[string]any)
+		if !ok {
+			fmt.Printf("invalid type for .Gateway got %T expected json map; skipping .Gateway\n", a)
+			return nil
+		}
 
-			if s, ok := addresses["HTTPHeaders"]; ok {
-				headers, ok := s.(map[string]any)
-				if !ok {
-					fmt.Printf("invalid type for .Gateway.HTTPHeaders got %T expected json map; skipping .Gateway.HTTPHeaders\n", s)
-					return nil
-				}
+		s, ok := addresses["HTTPHeaders"]
+		if !ok {
+			return nil
+		}
+		headers, ok := s.(map[string]any)
+		if !ok {
+			fmt.Printf("invalid type for .Gateway.HTTPHeaders got %T expected json map; skipping .Gateway.HTTPHeaders\n", s)
+			return nil
+		}
 
-				if acaos, ok := headers["Access-Control-Allow-Origin"].([]interface{}); ok && len(acaos) == 1 && acaos[0] == "*" {
-					delete(headers, "Access-Control-Allow-Origin")
-				}
+		if acaos, ok := headers["Access-Control-Allow-Origin"].([]interface{}); ok && len(acaos) == 1 && acaos[0] == "*" {
+			delete(headers, "Access-Control-Allow-Origin")
+		}
 
-				if acams, ok := headers["Access-Control-Allow-Methods"].([]interface{}); ok && len(acams) == 1 && acams[0] == "GET" {
-					delete(headers, "Access-Control-Allow-Methods")
-				}
-				if acahs, ok := headers["Access-Control-Allow-Headers"].([]interface{}); ok && len(acahs) == 3 {
-					if acahs[0] == "X-Requested-With" && acahs[1] == "Range" && acahs[2] == "User-Agent" {
-						delete(headers, "Access-Control-Allow-Headers")
-					}
-				}
+		if acams, ok := headers["Access-Control-Allow-Methods"].([]interface{}); ok && len(acams) == 1 && acams[0] == "GET" {
+			delete(headers, "Access-Control-Allow-Methods")
+		}
+		if acahs, ok := headers["Access-Control-Allow-Headers"].([]interface{}); ok && len(acahs) == 3 {
+			if acahs[0] == "X-Requested-With" && acahs[1] == "Range" && acahs[2] == "User-Agent" {
+				delete(headers, "Access-Control-Allow-Headers")
 			}
 		}
 		return nil
