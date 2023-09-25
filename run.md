@@ -1,6 +1,6 @@
 # Running Repo Migrations
 
-This document explains how to run [fs-repo](BROKEN_LINK) migrations for [Kubo](https://github.com/ipfs/kubo) IPFS implementation.
+This document explains how to run repo migrations for [Kubo](https://github.com/ipfs/kubo) IPFS implementation.
 
 Note that running migrations is a task automatically performed by the `ipfs` when starting the `ipfs` daemon after an upgrade or running the `ipfs-update` tool, so you would normally not need to run the `fs-repo-migrations` tool.
 
