@@ -162,7 +162,7 @@ func convert(in io.Reader, out io.Writer) error {
 	}
 
 	// Upgrade bootstrapper QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ from /quic to /quic-v1
-	if b, ok := confMap["Bootstrap"]; ok {
+	if b, ok := confMap["Bootstrap"]; ok && b != nil {
 		bootstrap, ok := b.([]interface{})
 		if !ok {
 			return fmt.Errorf("invalid type for .Bootstrap got %T expected json array", b)
