@@ -166,6 +166,7 @@ function build_migration() {
     echo "===> Building migration $mig with plugins"
     pushd "$mig"
     go mod edit -replace "${IPFS_REPO}=${BUILD_GOIPFS}"
+    go mod tidy
     go mod vendor
     go build -mod=vendor
     # Cleanup temporary modifications
