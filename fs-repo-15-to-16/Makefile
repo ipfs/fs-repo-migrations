@@ -5,3 +5,6 @@ build:
 
 clean:
 	go clean
+
+test:
+	@cd test-e2e && ./test.sh

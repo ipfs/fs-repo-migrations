@@ -10,7 +10,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"strings"
 
 	migrate "github.com/ipfs/fs-repo-migrations/tools/go-migrate"
 	mfsr "github.com/ipfs/fs-repo-migrations/tools/mfsr"
@@ -150,8 +149,7 @@ func (m Migration) Revert(opts migrate.Options) error {
 	return nil
 }
 
-var quicRegex = regexp.MustCompilePOSIX("/quic(/|$)")
-var quicEnd = regexp.MustCompilePOSIX("/quic$")
+var quicRegex = regexp.MustCompilePOSIX("/quic-v1$")
 
 // convert converts the config from one version to another
 func convert(in io.Reader, out io.Writer) error {
@@ -160,21 +158,7 @@ func convert(in io.Reader, out io.Writer) error {
 		return err
 	}
 
-	// Upgrade bootstrapper QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ from /quic to /quic-v1
-	if b, ok := confMap["Bootstrap"]; ok {
-		bootstrap, ok := b.([]interface{})
-		if !ok {
-			return fmt.Errorf("invalid type for .Bootstrap got %T expected json array", b)
-		}
-
-		for i, v := range bootstrap {
-			if v == "/ip4/104.131.131.82/udp/4001/quic/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ" {
-				bootstrap[i] = "/ip4/104.131.131.82/udp/4001/quic-v1/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ"
-			}
-		}
-	}
-
-	// Remove /quic only addresses from the .Addresses fields
+	// Append /webrtc-direct listener if /udp/../quic-v1 is present in any of .Addresses fields
 	if err := func() error {
 		a, ok := confMap["Addresses"]
 		if !ok {
@@ -202,9 +186,10 @@ func convert(in io.Reader, out io.Writer) error {
 			uniq := map[string]struct{}{}
 			for _, v := range swarm {
 				if addr, ok := v.(string); ok {
+
+					// if /quic-v1, add /webrtc-direct under the same port
 					if quicRegex.MatchString(addr) {
-						newAddr := quicEnd.ReplaceAllString(addr, "/quic-v1")
-						newAddr = strings.ReplaceAll(newAddr, "/quic/", "/quic-v1/")
+						newAddr := quicRegex.ReplaceAllString(addr, "/webrtc-direct")
 
 						if _, ok := uniq[newAddr]; ok {
 							continue
@@ -212,9 +197,9 @@ func convert(in io.Reader, out io.Writer) error {
 						uniq[newAddr] = struct{}{}
 
 						newSwarm = append(newSwarm, newAddr)
-						continue
 					}
 
+					// keep original addr
 					if _, ok := uniq[addr]; ok {
 						continue
 					}
@@ -226,47 +211,6 @@ func convert(in io.Reader, out io.Writer) error {
 				newSwarm = append(newSwarm, v)
 			}
 			addresses[addressToRemove] = newSwarm
-		}
-		return nil
-	}(); err != nil {
-		return err
-	}
-
-	// Remove legacy Gateway.HTTPHeaders values that were hardcoded since years ago, but no longer necessary
-	// (but leave as-is if user made any changes)
-	// https://github.com/ipfs/kubo/issues/10005
-	if err := func() error {
-		a, ok := confMap["Gateway"]
-		if !ok {
-			return nil
-		}
-		addresses, ok := a.(map[string]any)
-		if !ok {
-			fmt.Printf("invalid type for .Gateway got %T expected json map; skipping .Gateway\n", a)
-			return nil
-		}
-
-		s, ok := addresses["HTTPHeaders"]
-		if !ok {
-			return nil
-		}
-		headers, ok := s.(map[string]any)
-		if !ok {
-			fmt.Printf("invalid type for .Gateway.HTTPHeaders got %T expected json map; skipping .Gateway.HTTPHeaders\n", s)
-			return nil
-		}
-
-		if acaos, ok := headers["Access-Control-Allow-Origin"].([]interface{}); ok && len(acaos) == 1 && acaos[0] == "*" {
-			delete(headers, "Access-Control-Allow-Origin")
-		}
-
-		if acams, ok := headers["Access-Control-Allow-Methods"].([]interface{}); ok && len(acams) == 1 && acams[0] == "GET" {
-			delete(headers, "Access-Control-Allow-Methods")
-		}
-		if acahs, ok := headers["Access-Control-Allow-Headers"].([]interface{}); ok && len(acahs) == 3 {
-			if acahs[0] == "X-Requested-With" && acahs[1] == "Range" && acahs[2] == "User-Agent" {
-				delete(headers, "Access-Control-Allow-Headers")
-			}
 		}
 		return nil
 	}(); err != nil {
