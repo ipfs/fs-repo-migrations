@@ -4,7 +4,7 @@ test_description="Simple fs-repo-migrations tests"
 
 . lib/test-lib.sh
 
-latestRepoVersion="15"
+latestRepoVersion="16"
 
 test_expect_success "fs-repo-migrations binary is here" '
 	test -f "$LOCAL_FS_REPO_MIG"
