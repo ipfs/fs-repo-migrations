@@ -26,7 +26,7 @@ fs-repo-migrations/fs-repo-migrations:
 sharness:
 	make -C sharness
 
-test: test_go sharness test_14_to_15 test_15_to_16
+test: test_go test_14_to_15 test_15_to_16 sharness
 
 clean: $(subst fs-repo,clean.fs-repo,$(ACTIVE_DIRS))
 	@make -C sharness clean
