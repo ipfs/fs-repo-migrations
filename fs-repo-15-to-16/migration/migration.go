@@ -186,26 +186,19 @@ func convert(in io.Reader, out io.Writer) error {
 			uniq := map[string]struct{}{}
 			for _, v := range swarm {
 				if addr, ok := v.(string); ok {
-
 					// if /quic-v1, add /webrtc-direct under the same port
 					if quicRegex.MatchString(addr) {
 						newAddr := quicRegex.ReplaceAllString(addr, "/webrtc-direct")
-
-						if _, ok := uniq[newAddr]; ok {
-							continue
+						if _, ok := uniq[newAddr]; !ok {
+							uniq[newAddr] = struct{}{}
+							newSwarm = append(newSwarm, newAddr)
 						}
-						uniq[newAddr] = struct{}{}
-
-						newSwarm = append(newSwarm, newAddr)
 					}
-
 					// keep original addr
-					if _, ok := uniq[addr]; ok {
-						continue
+					if _, ok := uniq[addr]; !ok {
+						uniq[addr] = struct{}{}
+						newSwarm = append(newSwarm, addr)
 					}
-					uniq[addr] = struct{}{}
-
-					newSwarm = append(newSwarm, addr)
 					continue
 				}
 				newSwarm = append(newSwarm, v)
