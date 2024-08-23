@@ -1,3 +1,11 @@
+> [!TIP]
+> # TLDR: `ipfs daemon --migrate=true`
+> If you are [Kubo](https://github.com/ipfs/kubo) or [IPFS Desktop](https://github.com/ipfs/ipfs-desktop/) user, the easiest way is to run `ipfs daemon` with  `--migrate=true`. It will automatically apply migrations if necessary.
+>
+> Below guide is very old, and manual migration is usually not necessary.
+
+
+
 # Running Repo Migrations
 
 This document explains how to run repo migrations for [Kubo](https://github.com/ipfs/kubo) IPFS implementation.
