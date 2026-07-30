@@ -101,6 +101,15 @@ func main() {
 		os.Exit(1)
 	}
 
+	if vnum >= 17 {
+		fmt.Fprintln(os.Stderr, "ipfs migration: repo version", vnum, "is not supported by this tool")
+		fmt.Fprintln(os.Stderr, "For repo version 17 or later, use the built-in migration in Kubo:")
+		fmt.Fprintln(os.Stderr, "  ipfs daemon --migrate")
+		fmt.Fprintln(os.Stderr, "")
+		fmt.Fprintln(os.Stderr, "Separate migration binaries are no longer supported for repo version 17+")
+		os.Exit(1)
+	}
+
 	if vnum > target && !*revertOk {
 		fmt.Fprintln(os.Stderr, "ipfs migration: attempt to run backward migration\nTo allow, run this command again with --revert-ok")
 		os.Exit(1)

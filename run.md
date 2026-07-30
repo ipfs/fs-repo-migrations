@@ -3,6 +3,10 @@
 > If you are [Kubo](https://github.com/ipfs/kubo) or [IPFS Desktop](https://github.com/ipfs/ipfs-desktop/) user, the easiest way is to run `ipfs daemon` with  `--migrate=true`. It will automatically apply migrations if necessary.
 >
 > Below guide is very old, and manual migration is usually not necessary.
+>
+> It only applies to repo versions up to 16 (Kubo 0.36 and older). Since Kubo
+> [v0.37.0](https://github.com/ipfs/kubo/blob/master/docs/changelogs/v0.37.md#-repository-migration-from-v16-to-v17-with-embedded-tooling)
+> migrations are built into the `ipfs` binary and nothing is downloaded.
 
 
 
